@@ -59,7 +59,7 @@ Both source and built distributions are available from SourceForge.
 The source is also available as a cloneable Mercurial repository on
 BitBucket:
 
-    http://
+    https://bitbucket.org/mzipay/aglyph
 
 ========================================================================
 INSTALLATION

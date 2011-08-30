@@ -1,0 +1,16 @@
+syntax: glob
+.project
+.pydevproject
+MANIFEST
+*.pyc
+*.pyo
+*.class
+test/*.sh
+test/*.bat
+
+syntax: regexp
+^__pycache__$
+^build$
+^dist$
+^doc/build$
+

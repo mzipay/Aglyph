@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE context SYSTEM "../resources/aglyph-context-1.0.0.dtd">
+<context id="assemblertest-context">
+    <component id="the-object" dotted-name="builtins.object"
+            strategy="singleton"/>
+    <component id="strings" dotted-name="builtins.dict">
+        <init>
+            <arg keyword="bytes-no-encoding"><bytes>facade</bytes></arg>
+            <arg keyword="bytes-with-encoding">
+                <bytes encoding="iso-8859-1">façade</bytes>
+            </arg>
+            <arg keyword="str-no-encoding"><str>facade</str></arg>
+            <arg keyword="str-with-encoding">
+                <str encoding="iso-8859-1">façade</str>
+            </arg>
+            <arg keyword="unicode"><unicode>façade</unicode></arg>
+        </init>
+    </component>
+    <component id="zipfile.ZipInfo">
+        <init>
+            <arg><str>aglyph.txt</str></arg>
+            <arg keyword="date_time">
+                <tuple><!-- 2006-04-15 21:13:37 -->
+                    <int>2006</int>
+                    <int>04</int>
+                    <int base="16">f</int>
+                    <int>21</int>
+                    <int base="0">0o15</int>
+                    <int base="2">00100101</int>
+                </tuple>
+            </arg>
+        </init>
+        <attributes>
+            <attribute name="comment"><str>This is a test.</str></attribute>
+        </attributes>
+    </component>
+    <component id="alpha" dotted-name="dummy.Alpha" strategy="borg">
+        <init>
+            <arg reference="the-object"/>
+            <arg keyword="keyword"><reference id="strings"/></arg>
+        </init>
+        <attributes>
+            <attribute name="field"><reference id="the-object"/></attribute>
+            <attribute name="set_value">
+                <list>
+                    <str>seven</str>
+                    <float>7.9</float>
+                    <eval><![CDATA[complex(7, 9)]]></eval>
+                </list>
+            </attribute>
+            <attribute name="prop" reference="strings"/>
+        </attributes>
+    </component>
+    <component id="dummy.create_alpha" strategy="borg">
+        <init>
+            <arg><reference id="the-object"/></arg>
+            <arg keyword="keyword" reference="strings"/>
+        </init>
+        <attributes>
+            <attribute name="field" reference="the-object"/>
+            <attribute name="set_value">
+                <list>
+                    <str>seven</str>
+                    <float>7.9</float>
+                    <eval><![CDATA[complex(7, 9)]]></eval>
+                </list>
+            </attribute>
+            <attribute name="prop"><reference id="strings"/></attribute>
+        </attributes>
+    </component>
+    <component id="dummy.Beta">
+        <init>
+            <arg keyword="keyword">
+                <tuple>
+                    <none/>
+                    <false/>
+                    <true/>
+                </tuple>
+            </arg>
+        </init>
+        <attributes>
+            <attribute name="field"><reference id="the-object"/></attribute>
+            <attribute name="set_value" reference="zipfile.ZipInfo"/>
+            <attribute name="prop">
+                <dict>
+                    <item>
+                        <key><reference id="the-object"/></key>
+                        <value reference="zipfile.ZipInfo"/>
+                    </item>
+                    <item>
+                        <key><str>zip-info</str></key>
+                        <value>
+                            <tuple>
+                                <reference id="zipfile.ZipInfo"/>
+                            </tuple>
+                        </value>
+                    </item>
+                </dict>
+            </attribute>
+        </attributes>
+    </component>
+    <component id="beta" dotted-name="dummy.create_beta">
+        <init>
+            <arg keyword="keyword">
+                <tuple>
+                    <none/>
+                    <false/>
+                    <true/>
+                </tuple>
+            </arg>
+        </init>
+        <attributes>
+            <attribute name="field"><reference id="the-object"/></attribute>
+            <attribute name="set_value" reference="zipfile.ZipInfo"/>
+            <attribute name="prop">
+                <dict>
+                    <item>
+                        <key><reference id="the-object"/></key>
+                        <value reference="zipfile.ZipInfo"/>
+                    </item>
+                    <item>
+                        <key><str>zip-info</str></key>
+                        <value>
+                            <tuple>
+                                <reference id="zipfile.ZipInfo"/>
+                            </tuple>
+                        </value>
+                    </item>
+                </dict>
+            </attribute>
+        </attributes>
+    </component>
+    <!-- duplicates dummy.Alpha, but dummy.Gamma is an old-style class in
+    Python 2, and this component is a prototype, not a borg -->
+    <component id="gamma" dotted-name="dummy.Gamma" strategy="prototype">
+        <init>
+            <arg reference="the-object"/>
+            <arg keyword="keyword"><reference id="strings"/></arg>
+        </init>
+        <attributes>
+            <attribute name="field"><reference id="the-object"/></attribute>
+            <attribute name="set_value">
+                <list>
+                    <str>seven</str>
+                    <float>7.9</float>
+                    <eval><![CDATA[complex(7, 9)]]></eval>
+                </list>
+            </attribute>
+            <attribute name="prop" reference="strings"/>
+        </attributes>
+    </component>
+    <!-- duplicates dummy.Beta, but dummy.Delta is an old-style class in
+    Python 2 -->
+    <component id="dummy.Delta">
+        <init>
+            <arg keyword="keyword">
+                <tuple>
+                    <none/>
+                    <false/>
+                    <true/>
+                </tuple>
+            </arg>
+        </init>
+        <attributes>
+            <attribute name="field"><reference id="the-object"/></attribute>
+            <attribute name="set_value" reference="zipfile.ZipInfo"/>
+            <attribute name="prop">
+                <dict>
+                    <item>
+                        <key><reference id="the-object"/></key>
+                        <value reference="zipfile.ZipInfo"/>
+                    </item>
+                    <item>
+                        <key><str>zip-info</str></key>
+                        <value>
+                            <tuple>
+                                <reference id="zipfile.ZipInfo"/>
+                            </tuple>
+                        </value>
+                    </item>
+                </dict>
+            </attribute>
+        </attributes>
+    </component>
+    <!-- this component will fail on assembly because the reference used as a
+    dictionary key does not implement the __hash__ protocol. -->
+    <component id="unhashable-reference-key" dotted-name="dummy.Alpha">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <key reference="strings"/>
+                        <value><none/></value>
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </component>
+    <!-- this component will fail on assembly because the eval used as a
+    dictionary key does not implement the __hash__ protocol. -->
+    <component id="unhashable-eval-key" dotted-name="dummy.Beta">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <key><eval>list()</eval></key>
+                        <value><none/></value>
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </component>
+    <component id="restricted-eval" dotted-name="dummy.Alpha">
+        <init>
+            <!-- Should fail on assembly because builtins.compile is not
+            permitted in the restricted globals(). -->
+            <arg><eval><![CDATA[compile("raise Exception('FAIL!')", "<string>", "exec")]]></eval></arg>
+        </init>
+    </component>
+    <!-- the next two components create a circular dependency
+    (component-1 => component-2 => component-1), which should be detected when either is
+    assembled (raise AglyphError) -->
+    <component id="component-1" dotted-name="dummy.Alpha">
+        <init><arg reference="component-2"/></init>
+    </component>
+    <component id="component-2" dotted-name="dummy.Beta">
+        <attributes><attribute name="field" reference="component-1"/></attributes>
+    </component>
+</context>

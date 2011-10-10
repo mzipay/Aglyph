@@ -33,9 +33,6 @@ programmatically in pure Python.
 Aglyph is not a "full stack;" only dependency injection support is
 provided.
 
-Aglyph does not support type 1 (interface) dependency injection at this
-time.
-
 For the definitive introduction to the Dependency Injection pattern,
 please read Martin Fowler's article "Inversion of Control Containers and
 the Dependency Injection pattern"

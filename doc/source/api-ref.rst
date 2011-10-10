@@ -2,14 +2,15 @@
 Aglyph API reference
 ====================
 
-The Aglyph API consists of a single top-level package (``aglyph``) and four
-subpackages, as listed below.
+The Aglyph API consists of a single top-level package (``aglyph``) along with
+several modules and subpackages, as listed below.
 
 .. toctree::
     :maxdepth: 2
 
     aglyph
     aglyph.assembler
+    aglyph.binder
     aglyph.cache
     aglyph.component
     aglyph.context

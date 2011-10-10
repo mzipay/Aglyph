@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name="Aglyph",
-      version="1.0.0",
+      version="1.1.0",
       description="Aglyph is a Dependency Injection framework for Python "
                   "2.5+, supporting type 2 (setter) and type 3 (constructor) "
                   "injection.",
@@ -24,14 +24,11 @@ programmatically in pure Python.
 
 Aglyph is not a "full stack;" only dependency injection support is
 provided.
-
-Aglyph does not support type 1 (interface) dependency injection at this
-time.
 """,
     author="Matthew Zipay",
     author_email="mattz@ninthtest.net",
     url="http://www.ninthtest.net/aglyph-python-dependency-injection/",
-    download_url = "http://sourceforge.net/projects/aglyph/download",
+    download_url = "http://sourceforge.net/projects/aglyph/files/aglyph/",
     packages=["aglyph", "aglyph.compat"],
     package_dir = {"": "src"},
     classifiers=[

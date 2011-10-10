@@ -64,7 +64,7 @@ class _LockingCache(dict):
     _logger = logging.getLogger("%s._LockingCache" % __name__)
 
     def __init__(self, lock):
-        """Initializes an empty cache that uses *lock* for
+        """Initialize an empty cache that uses *lock* for
         synchronization.
 
         """
@@ -73,6 +73,7 @@ class _LockingCache(dict):
 
     @property
     def lock(self):
+        """a read-only property for the lock object"""
         return self.__lock
 
     def __repr__(self):
@@ -101,7 +102,6 @@ class MutexCache(_LockingCache):
     _logger = logging.getLogger("%s.MutexCache" % __name__)
 
     def __init__(self):
-        """Initializes an empty cache with a primitive lock."""
         super(MutexCache, self).__init__(threading_.Lock())
 
 
@@ -132,5 +132,4 @@ class ReentrantMutexCache(_LockingCache):
     _logger = logging.getLogger("%s.ReentrantMutexCache" % __name__)
 
     def __init__(self):
-        """Initializes an empty cache with a reentrant lock."""
         super(ReentrantMutexCache, self).__init__(threading_.RLock())

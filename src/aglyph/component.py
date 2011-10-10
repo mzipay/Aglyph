@@ -39,7 +39,7 @@ _logger = logging.getLogger(__name__)
 
 
 class Strategy(object):
-    """Defines the component assembly strategies recognized by Aglyph.
+    """Define the component assembly strategies recognized by Aglyph.
 
     The default component assembly strategy for Aglyph is
     ``Strategy.PROTOTYPE`` (*"prototype"*).
@@ -96,7 +96,9 @@ class Reference(TextType):
         Because of this difference, the super class of ``Reference``
         is "dynamic" with respect to the version of Python under which
         Aglyph is running (:class:`unicode` under Python 2.5 - 2.7,
-        :class:`str` under Python >= 3.0).
+        :class:`str` under Python >= 3.0). This documentation shows
+        the base class as ``unicode`` because the documentation
+        generator runs under Python 2.7.
 
     """
 
@@ -105,7 +107,7 @@ class Reference(TextType):
 
 
 class Evaluator(object):
-    """Enables lazy creation of objects.
+    """Enable lazy creation of objects.
 
     An ``Evaluator`` is similar to a :func:`functools.partial` in that
     they both collect a function and related arguments into a callable
@@ -143,18 +145,21 @@ class Evaluator(object):
 
     @property
     def func(self):
+        """a read-only property for the callable"""
         return self._func
 
     @property
     def args(self):
+        """a read-only property for the positional arguments"""
         return self._args
 
     @property
     def keywords(self):
+        """a read-only property for the keyword arguments"""
         return self._keywords
 
     def __call__(self, assembler):
-        """Calls ``func(*args, **keywords)`` and returns the new object.
+        """Call ``func(*args, **keywords)`` and return the new object.
 
         *assembler* must be a reference to an
         :class:`aglyph.assembly.Assembler`, which is used to assemble
@@ -173,12 +178,29 @@ class Evaluator(object):
         return self._func(*resolved_args, **resolved_keywords)
 
     def _resolve(self, arg, assembler):
-        """Returns the resolved argument value.
+        """Return the resolved *arg*.
 
         *arg* is a positional or keyword argument to the function.
         *assembler* is an :class:`aglyph.assembly.Assembler` used to
         assemble an object if *arg* is an
         :class:`aglyph.component.Reference`.
+
+        *arg* is resolve in one of the following ways:
+
+        * If *arg* is a :class:`Reference`, it is assembled by
+          *assembler*.
+        * If *arg* is an ``Evaluator``, it is called to product its
+          value (*assembler* is passed as an argument).
+        * If *arg* is a :func:`functools.partial`, is is called to
+          produce its value.
+        * If *arg* is a dictionary or a sequence other than a string
+          type, each item is resolved and a collection of the
+          approrpriate type is returned.
+        * If none of the above cases apply, *arg* is returned unchanged.
+
+        An ``Evaluator`` can handle any level of nesting (e.g. a
+        :func:`functools.partial` within an ``Evaluator`` within another
+        ``Evaluator``).
 
         """
         self._logger.debug("resolving %r", arg)
@@ -189,6 +211,8 @@ class Evaluator(object):
         elif (isinstance(arg, functools.partial)):
             return arg()
         elif (isinstance(arg, dict)):
+            # either keys or values may themselves be References, partials, or
+            # Evaluators
             resolve = self._resolve
             return dict([(resolve(key, assembler), resolve(value, assembler))
                          for (key, value) in arg.items()])
@@ -207,8 +231,8 @@ class Evaluator(object):
 
 
 class Component(object):
-    """Defines a component and the dependencies needed to create a new
-    object of the component at runtime.
+    """Define a component and the dependencies needed to create a new
+    object of that component at runtime.
 
     """
 
@@ -281,14 +305,17 @@ class Component(object):
 
     @property
     def component_id(self):
+        """a read-only property for the component ID"""
         return self._component_id
 
     @property
     def dotted_name(self):
+        """a read-only property for the component dotted-name"""
         return self._dotted_name
 
     @property
     def strategy(self):
+        """a read-only property for the component assembly strategy"""
         return self._strategy
 
     def __repr__(self):

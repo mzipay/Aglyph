@@ -21,12 +21,12 @@
 """Test cases and runner for the :mod:`aglyph` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import unittest
 
 from aglyph import (format_dotted_name, has_importable_dotted_name,
-                    resolve_dotted_name)
+                    identify_by_spec, resolve_dotted_name)
 from dummy import Alpha, Beta, create_alpha, Delta
 
 # PYVER: "__builtin__" in Python < 3.0, "builtins" in Python >= 3.0
@@ -40,7 +40,7 @@ except ImportError:
     _py_builtins_name = "builtins"
 
 __all__ = ["FormatDottedNameTest", "get_suite", "HasImportableDottedNameTest",
-           "ResolveDottedNameTest"]
+           "IdentifyBySpecTest", "ResolveDottedNameTest"]
 
 class HasImportableDottedNameTest(unittest.TestCase):
 
@@ -101,6 +101,39 @@ class FormatDottedNameTest(unittest.TestCase):
         self.assertRaises(TypeError, format_dotted_name, None)
 
 
+class IdentifyBySpecTest(unittest.TestCase):
+
+    def test_string(self):
+        self.assertEqual("test_spec_is_string",
+                         identify_by_spec("test_spec_is_string"))
+
+    def test_new_style_class(self):
+        self.assertEqual("dummy.Alpha", identify_by_spec(Alpha))
+
+    # PYVER: redundant on Python >= 3.0 (actually a new-style class)
+    def test_old_style_class(self):
+        self.assertEqual("dummy.Delta", identify_by_spec(Delta))
+
+    def test_user_defined_function(self):
+        self.assertEqual("dummy.create_alpha", identify_by_spec(create_alpha))
+
+    def test_builtin_type(self):
+        self.assertEqual("%s.dict" % _py_builtins_name, identify_by_spec(dict))
+
+    def test_builtin_function(self):
+        self.assertEqual("%s.filter" % _py_builtins_name,
+                         identify_by_spec(filter))
+
+    def test_bound_function(self):
+        self.assertRaises(TypeError, identify_by_spec, Beta().get_value)
+        # PYVER: redundant on Python >= 3.0 (actually a new-style class)
+        self.assertRaises(TypeError, identify_by_spec, Delta().get_value)
+        self.assertRaises(TypeError, identify_by_spec, dict().update)
+
+    def test_none(self):
+        self.assertRaises(TypeError, identify_by_spec, None)
+
+
 class ResolveDottedNameTest(unittest.TestCase):
 
     def test_new_style_class(self):
@@ -142,6 +175,7 @@ def get_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(HasImportableDottedNameTest))
     suite.addTest(unittest.makeSuite(FormatDottedNameTest))
+    suite.addTest(unittest.makeSuite(IdentifyBySpecTest))
     suite.addTest(unittest.makeSuite(ResolveDottedNameTest))
     return suite
 

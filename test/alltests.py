@@ -21,7 +21,7 @@
 """Test case runner for Aglyph."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import sys
 import unittest
@@ -47,6 +47,7 @@ def enable_debug_logging():
 
 def get_suite():
     import assemblertest
+    import bindertest
     import cachetest
     import componenttest
     import contexttest
@@ -57,6 +58,7 @@ def get_suite():
     suite.addTest(componenttest.get_suite())
     suite.addTest(contexttest.get_suite())
     suite.addTest(assemblertest.get_suite())
+    suite.addTest(bindertest.get_suite())
     return suite
 
 

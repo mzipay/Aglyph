@@ -4,10 +4,11 @@ Getting started with Aglyph
 
 During this brief tutorial, you will download and install Aglyph, build a
 simple Python application based on the *MovieLister* component discussed in
-`Inversion of Control Containers and the Dependency Injection pattern <http://martinfowler.com/articles/injection.html>`_,
-then modify the application to take advantage of Aglyph dependency injection.
-This process will allow you understand the Dependency Injection pattern in
-general, as well as the Aglyph approach to Dependency Injection.
+`Inversion of Control Containers and the Dependency Injection pattern
+<http://martinfowler.com/articles/injection.html>`_, then modify the
+application to take advantage of Aglyph dependency injection. This process will
+allow you understand the Dependency Injection pattern in general, as well as
+the Aglyph approach to Dependency Injection.
 
 This tutorial is a "whirlwind tour" of Aglyph that covers only the basics. Once
 you have completed the steps, please review the :doc:`api-ref` and the
@@ -15,30 +16,33 @@ you have completed the steps, please review the :doc:`api-ref` and the
 to understand the details.
 
 The tutorial assumes that you are familiar with Python development in general,
-and that Python 3 is already installed. For an introduction to Python, please
-see `The Python Tutorial <http://docs.python.org/py3k/tutorial/index.html>`_
-(also, the free `Dive Into Python 3 <http://diveintopython3.org/>`_ book).
-Python 3 can be downloaded from
-`Python Programming Language – Official Website <http://www.python.org/>`_ (or
-just use your preferred package installer, e.g. RPM).
+and that Python 2.5+ is already installed. For an introduction to Python,
+please see `The Python Tutorial
+<http://docs.python.org/py3k/tutorial/index.html>`_ (also, the free `Dive Into
+Python <http://diveintopython.org/>`_ and `Dive Into Python 3
+<http://diveintopython3.org/>`_ books). Python can be downloaded from `Python
+Programming Language – Official Website <http://www.python.org/>`_ (or just use
+your preferred package installer, e.g. RPM).
 
 .. note::
 
-    It is recommended, but not required, that you read the
-    `Inversion of Control Containers and the Dependency Injection pattern <http://martinfowler.com/articles/injection.html>`_
-    and `Python Dependency Injection [PDF] <http://www.aleax.it/yt_pydi.pdf>`_
-    articles before beginning this tutorial.
+    It is recommended, but not required, that you read the `Inversion of
+    Control Containers and the Dependency Injection pattern
+    <http://martinfowler.com/articles/injection.html>`_ and `Python Dependency
+    Injection [PDF] <http://www.aleax.it/yt_pydi.pdf>`_ articles before
+    beginning this tutorial.
 
 1. Download and install Aglyph
 ------------------------------
 
-Download the latest :mod:`distutils` source or built distribution of
-`Aglyph on SourceForge <http://sourceforge.net/projects/aglyph/files/aglyph/1.0.0/>`_.
+Download the latest :mod:`distutils` source or built distribution of `Aglyph on
+SourceForge <http://sourceforge.net/projects/aglyph/files/aglyph/>`_.
 
 **--- OR ---**
 
 Clone the
-`Aglyph Mercurial repository from BitBucket <https://bitbucket.org/mzipay/aglyph>`_.
+`Aglyph Mercurial repository from BitBucket
+<https://bitbucket.org/mzipay/aglyph>`_.
 
 If you downloaded the source distribution, unpack it into a temporary directory
 and then navigate into that directory. Issue the following command from a
@@ -140,10 +144,10 @@ by a particular director::
                 if (movie.director == director):
                     yield movie
 
-The application can be executed using the ``run.py`` script, which simply asks
+The application can be executed using the ``app.py`` script, which simply asks
 a ``MovieLister`` for all movies directed by "Sergio Leone"::
 
-    $ python run.py 
+    $ python app.py 
     The Colossus of Rhodes
     Once Upon a Time in the West
     Once Upon a Time in America
@@ -263,7 +267,7 @@ that it contains the same records as the original *movies.txt* file::
     Weird Science,John Hughes
     Ferris Bueller's Day Off,John Hughes
 
-Finally, we'll change ``run.py`` so that the new ``CSVMovieFinder`` is used to
+Finally, we'll change ``app.py`` so that the new ``CSVMovieFinder`` is used to
 initialize a ``MovieLister``::
 
     from movies.finder import CSVMovieFinder
@@ -275,14 +279,14 @@ initialize a ``MovieLister``::
 
 Running the application again should give us the same results::
 
-    $ python run.py 
+    $ python app.py 
     The Colossus of Rhodes
     Once Upon a Time in the West
     Once Upon a Time in America
 
 The basic application is now more flexible: we can change the ``MovieFinder``
 implementation without having to modify the ``MovieLister`` class definition.
-However, we are still required to modify ``run.py`` if we decide to change the
+However, we are still required to modify ``app.py`` if we decide to change the
 ``MovieFinder`` implementation.
 
 .. note::
@@ -313,8 +317,8 @@ component(s).
 In Aglyph, a context is defined by the ``aglyph.context.Context`` class. A
 specialized subclass, ``aglyph.context.XMLContext``, is provided to allow a
 context to be defined declaratively in an XML document. Such XML documents
-must conform to the
-:download:`aglyph-context-1.0.0 DTD <../../resources/aglyph-context-1.0.0.dtd>`.
+must conform to the :download:`aglyph-context-1.0.0 DTD
+<../../resources/aglyph-context-1.0.0.dtd>`.
 
 The ``aglyph.context.Context`` class may also be used directly to define a
 context in pure Python. This approach requires the use of the
@@ -326,9 +330,21 @@ context in pure Python. This approach requires the use of the
 * ``aglyph.component.Strategy`` (used to control how an object of a component
   is created)
 
+.. versionchanged:: 1.1.0
+    The preferred approach to programmatic configuration is now
+    :class:`aglyph.binder.Binder`, which is more succinct than using
+    ``Context`` and ``Component`` directly.
+
+.. note::
+
+    Using ``Context`` and ``Component`` directly is still supported (and, in
+    fact, ``Binder`` uses them internally). You can view ``Binder`` as a
+    "layer of abstraction" on top of ``Context`` and ``Component``.
+
 We will start by creating an Aglyph context for the *movielisterapp*
-application. (For illustrative purposes, both an XML *and* a pure-Python
-context will be created; in practice, one *or* the other is sufficient.)
+application. **For illustrative purposes, both an XML context and a
+pure-Python configuration will be created; in practice, one OR the other is
+recommended.**
 
 First, we'll create the XML context document as *movies-context.xml*::
 
@@ -373,76 +389,85 @@ reference to the *csv-finder* component, which describes an instance of
 ``movies.finder.CSVMovieFinder``. We could easily change back to using
 ``movies.finder.ColonDelimitedMovieFinder`` by changing the reference.
 
-Next, we'll create the pure-Python context as the ``MoviesContext`` class (a
-subclass of ``aglyph.context.Context``) in the ``movies/__init__.py`` module::
+Next, we'll create the pure-Python configuration as the ``MoviesBinder`` class
+(a subclass of ``aglyph.binder.Binder``) in the ``movies/__init__.py`` module::
 
-    from aglyph.component import Component, Reference
-    from aglyph.context import Context
-    
-    
-    class MoviesContext(Context):
-    
+    from aglyph.binder import Binder
+
+    from movies.lister import MovieLister
+    from movies.finder import MovieFinder, CSVMovieFinder
+
+
+    class MoviesBinder(Binder):
+
         def __init__(self):
-            super().__init__("movies-context")
-    
-            colon_finder = Component("movies.finder.ColonDelimitedMovieFinder")
-            colon_finder.init_args.append("movies.txt")
-            self.add(colon_finder)
-    
-            csv_finder = Component("csv-finder", "movies.finder.CSVMovieFinder")
-            csv_finder.init_args.append("movies.csv")
-            self.add(csv_finder)
-    
-            lister = Component("movies.lister.MovieLister")
-            lister.init_args.append(Reference(csv_finder.component_id))
-            self.add(lister)
+            super(MoviesBinder, self).__init__("movies-binder")
+            self.bind(MovieLister).init(MovieFinder)
+            self.bind(MovieFinder, to=CSVMovieFinder).init("movies.csv")
 
-Take a minute to examine the XML and the pure-Python contexts; they are
-*identical*.
+Some interesting things to note here:
+
+* When we bind ``MovieLister``, we don't bind it **to** anything. Why? Python
+  does not support interfaces as a language construct (mixins and :mod:`abc`
+  are the alternatives). So in this case, ``MovieLister`` actually serves as
+  *both* the "interface" and the implementation. Duck-typing means that
+  "anything that looks like a MovieLister and acts like a MovieLister" should
+  be treated *as* a ``MovieLister``. We could just as easily create a
+  specialized subclass (say, ``FancyMovieLister``) and then bind *it* to
+  ``MovieLister`` using ``bind(MovieLister, FancyMovieLister)``.
+* ``MovieFinder`` can't be used on its own (it's a pre-:mod:`abc` abstract base
+  class), and so we bind it to our preferred implementation,
+  ``CSVMovieFinder``.
+* The :meth:`aglyph.binder.Binder.bind` method returns a proxy object that
+  allows us to specify the initialization (constructor) dependencies. The
+  dependencies are provided according to the signature of the initializer;
+  ``Binder`` knows that a class or function passed as a dependency refers to
+  another bound component.
+
+Take a minute to examine the XML context and the pure-Python configuration;
+they will produce *identical* results. Each will inject the string
+*"movies.csv"* into a ``CSVMovieFinder``, and then inject the
+``CSVMovieFinder`` instance into a ``MovieLister``.
 
 .. note::
 
-    As a reminder, it is **not necessary** to create *both* an XML and a
-    pure-Python context for your applications; it is done here for illustrative
-    purposes only. For your own applications, choose the configuration approach
-    with which *you* are most comfortable.
+    Aglyph assembles components according to a *strategy* (sometimes called a
+    "scope"). Aglyph supports three strategies:
 
-A note on component assembly strategies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ``Strategy.PROTOTYPE`` = *"prototype"*
+        a new object is always be created 
 
-Aglyph assembles components according to a *strategy* (sometimes called a
-"scope"). Aglyph supports three strategies:
+    ``Strategy.SINGLETON`` = *"singleton"*
+        only one obejct is created; this object is cached by the assembler
 
-``Strategy.PROTOTYPE`` = *"prototype"*
-    a new object is always be created 
+    ``Strategy.BORG`` = *"borg"*
+        a new object is always created; however, the internal state is cached
+        by the assembler and then assigned directly to the ``__dict__`` of all
+        new objects
 
-``Strategy.SINGLETON`` = *"singleton"*
-    only one obejct is created; this object is cached by the assembler
+    The assembly strategy for a component may be specified in the XML
+    context or in pure Python. The following examples define a singleton
+    component.
 
-``Strategy.BORG`` = *"borg"*
-    a new object is always created; however, the internal state is cached by
-    the assembler and then assigned directly to the ``__dict__`` of all new
-    objects
+    In XML::
 
-The assembly strategy for a component may be specified in the XML configuration
-or in pure Python. The following examples define a singleton component.
+        <component id="the-object" dotted-name="builtins.object" strategy="singleton"/>
 
-In XML::
+    In Python::
 
-    <component id="the-object" dotted-name="builtins.object" strategy="singleton">
+        Binder().bind("the-object", to=object, strategy="singleton")
+        # -or-
+        Component("the-object", "__builtin__.object", Strategy.SINGLETON)
 
-In Python::
-
-    Component("the-object", "builtins.object", Strategy.SINGLETON)
-
-If a strategy is not explicitly specified as part of the component definition,
-the default strategy is **prototype**.
+    If a strategy is not explicitly specified as part of the component
+    definition, the default strategy is **prototype**.
 
 Now that we have created a context for *movielisterapp*, it's time to modify
-the ``run.py`` script to use dependency injection. To demonstrate the use of
-both an XML and pure-Python context, we'll create two different "run" scripts.
+the ``app.py`` script to use dependency injection. To demonstrate the use of
+both an XML context and a pure-Python configuration, we'll create two different
+"run" scripts.
 
-The ``run1.py`` script will use the XML context::
+The ``app_xmlcontext.py`` script will use the XML context::
 
     from aglyph.assembler import Assembler
     from aglyph.context import XMLContext
@@ -455,7 +480,7 @@ The ``run1.py`` script will use the XML context::
 .. warning::
 
     *IronPython* developers will need to create a slightly different
-    ``run1.py`` script::
+    ``app_xmlcontext.py`` script::
 
         from aglyph.assembler import Assembler
         from aglyph.compat.ipyetree import XmlReaderTreeBuilder
@@ -467,37 +492,37 @@ The ``run1.py`` script will use the XML context::
         for movie in app.movies_directed_by("Sergio Leone"):
             print(movie.title)
 
-    This is made necessary because of the way that *IronPython* treats
-    Unicode strings. See :mod:`aglyph.compat.ipyetree` for details.
+    This is necessary because of the way that *IronPython* treats Unicode
+    strings. See :mod:`aglyph.compat.ipyetree` for details.
 
 This script creates an assembler with a context that is read from the
-*movies-conext.xml* XML document. Notice that we no longer need to import the
-``MovieLister`` or ``CSVMovieFinder`` class directly; we have effectively
-separated the configuration of these object from their use in the application.
+*movies-conext.xml* XML document. Notice that we no longer need to create the
+``CSVMovieFinder`` class directly; we have effectively separated the
+configuration of ``MovieLister`` from its use in the application.
 
 Running the application produces the same results as usual::
 
-    $ python run1.py 
+    $ python app_xmlcontext.py 
     The Colossus of Rhodes
     Once Upon a Time in the West
     Once Upon a Time in America
 
-The ``run2.py`` script will use the pure-Python context::
+The ``app_binder.py`` script will use the pure-Python configuration::
 
-    from aglyph.assembler import Assembler
-    from movies import MoviesContext
-    
-    assembler = Assembler(MoviesContext())
-    app = assembler.assemble("movies.lister.MovieLister")
-    for movie in app.movies_directed_by("Sergio Leone"):
+    from movies import MoviesBinder
+    from movies.lister import MovieLister
+
+    binder = MoviesBinder()
+    lister = binder.lookup(MovieLister)
+    for movie in lister.movies_directed_by("Sergio Leone"):
         print(movie.title)
 
-The only difference here is that we create the context directly, by
-instantiating the ``MoviesContext`` class, rather than reading it from XML.
+Here, we create the binder and then use it to look up the concrete
+implementation of ``MovieLister`` that we have configured.
 
 Again, running the application produces the expected results::
 
-    $ python run2.py 
+    $ python app_binder.py 
     The Colossus of Rhodes
     Once Upon a Time in the West
     Once Upon a Time in America
@@ -550,10 +575,33 @@ The modified XML context looks like this::
         </component>
     </context>
 
+Running the application still produces the expected results::
+
+    $ python app_xmlcontext.py 
+    The Colossus of Rhodes
+    Once Upon a Time in the West
+    Once Upon a Time in America
+
+To make the same change using the pure-Python configuration, the
+``MoviesBinder`` configuration class would be changed like so::
+
+    from aglyph.binder import Binder
+
+    from movies.lister import MovieLister
+    from movies.finder import MovieFinder, ColonDelimitedMovieFinder
+
+
+    class MoviesBinder(Binder):
+
+        def __init__(self):
+            super(MoviesBinder, self).__init__("movies-binder")
+            self.bind(MovieLister).init(MovieFinder)
+            self.bind(MovieFinder, to=ColonDelimitedMovieFinder,
+                      strategy="singleton").init("movies.txt")
+
 Finally, running the application one last time produces the expected results::
 
-    $ python run1.py 
-    The Colossus of Rhodes
+    $ python app_binder.py 
     Once Upon a Time in the West
     Once Upon a Time in America
 
@@ -580,18 +628,14 @@ the *movielisterapp* sample application).
 Suggested next steps:
 
 #. Read the :doc:`api-ref`.
-#. Read the
-   :download:`aglyph-context-1.0.0 DTD <../../resources/aglyph-context-1.0.0.dtd>`.
-   The DTD is fully commented, and explains some of the finder points of using
-   XML configuration.
-#. Read the :doc:`cookbook`
+#. Read the :download:`aglyph-context-1.0.0 DTD
+   <../../resources/aglyph-context-1.0.0.dtd>`. The DTD is fully commented, and
+   explains some of the finer points of using XML configuration.
+#. Read the :doc:`cookbook`.
 #. Examine the Aglyph test cases (part of the distribution; located in the
    *tests/* directory).
-#. Starting with the final modified version of *movielisterapp* (download link
-   above), create another ``MovieFinder`` implementation,
-   ``MappingMovieFinder``. This finder should **not** accept any dependencies
-   in its initializer, but should instead have a ``set_movies(mapping)`` setter
-   method that accepts a mapping of ``{title: director[, ...]}``. Modify
-   *movies-context.xml* so that the mapping is created using the ``<dict>``
-   element. Make sure that ``MovieLister`` uses the new ``MappingMovieFinder``
-   and produces the same output as in the examples.
+#. Start with either the :download:`movielisterapp-basic
+   <../../resources/movielisterapp-basic.zip>` or
+   :download:`movielisterapp-aglyph
+   <../../resources/movielisterapp-aglyph.zip>` applications and make your own
+   modifications to explore the features of Aglyph.

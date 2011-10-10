@@ -22,8 +22,8 @@ using CPython or a variant, you will:
 
 † *IronPython* developers should refer to :mod:`aglyph.compat.ipyetree`.
 
-Using 3rd-party classes/functions as components 
------------------------------------------------
+Use 3rd-party classes/functions as components 
+---------------------------------------------
 
 Using 3rd-party classes/functions as components (either to provide dependencies
 to them, use them as dependencies, or both) is no different than using your
@@ -41,8 +41,7 @@ In XML::
 
 In pure Python::
 
-    component = Component("third-party-thing", "external.package.Thing")
-    ...
+    binder.bind("third-party-thing", "external.package.Thing")...
 
 Define dependencies in XML for built-ins not described by the Aglyph DTD
 ------------------------------------------------------------------------
@@ -90,9 +89,8 @@ which creates a :func:`functools.partial` that will call the built-in
     The example given above, using programmatic configuration, could be
     simplified as follows::
 
-        component = Component("app.Thing")
-        component.init_keywords["fruits"] = frozenset(["Apple", "Orange",
-                                                       "Banana", "Pear"])
+        binder.bind(Thing).init(fruits=frozenset(
+            ["Apple", "Orange", "Banana", "Pear"])
 
     Because a :class:`frozenset` is immutable, there is no need to use a
     :func:`functools.partial` or an :class:`aglyph.component.Evaluator`. But if
@@ -100,8 +98,8 @@ which creates a :func:`functools.partial` that will call the built-in
     :func:`functools.partial` or an :class:`aglyph.component.Evaluator` may
     be appropriate.
 
-Exploiting the flexibility of a ``Reference``
----------------------------------------------
+Exploit the flexibility of a ``Reference``
+------------------------------------------
 
 An :class:`aglyph.component.Reference` is a powerful mechanism for creating
 cross-references between components.
@@ -120,25 +118,26 @@ In XML::
     <component id="an-object" dotted-name="builtins.object"/>
     <component id="cookbook.ReferenceExample">
         <init>
-            <arg>
-                <reference id="an-object"/>
-            </arg>
+            <arg reference"an-object"/>
         </init>
-        <attributes>
-            <attribute name="set_value" reference="an-object"/>
-        </attributes>
     </component>
 
 In pure Python::
 
-    an_object = Component("an-object", "builtins.object")
-    ref_example = Component("cookbook.ReferenceExample")
-    ref_example.init_args.append(Reference("an-object"))
-    ref_example.attributes["set_value"] = Reference("an-object")
+    binder.bind("an-object", object)
+    binder.bind("cookbook.ReferenceExample").init(Reference("an-object"))
 
-However, use of ``Reference`` is not limited to these cases. A ``Reference``
-may be used in *any* of the following places, allowing for extremely flexible
-configurations:
+When using :class:`aglyph.binder.Binder` for programmatic configuration, a
+"shortcut" is also available if you are binding by class or function::
+
+    binder.bind(Service, ServiceImpl)
+    binder.bind(Provider).init(Service)
+
+In this case, assuming that ``Service`` is in the "cookbook" module, Aglyph
+treats ``init(Service)`` the same as ``init(Reference("cookbook.Service"))``.
+
+A ``Reference`` may be used in *any* of the following places, allowing for
+extremely flexible configurations:
 
 * an initialization argument value (positional or keyword) for an
   :class:`aglyph.component.Component` or an :class:`aglyph.component.Evaluator`
@@ -212,8 +211,8 @@ Differences between Python 2 and Python 3
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The built-in :func:`str` type has changed significantly between Python 2 and
-Python 3 (see
-`Text Vs. Data Instead Of Unicode Vs. 8-bit <http://docs.python.org/release/3.0/whatsnew/3.0.html#text-vs-data-instead-of-unicode-vs-8-bit>`_).
+Python 3 (see `Text Vs. Data Instead Of Unicode Vs. 8-bit
+<http://docs.python.org/release/3.0/whatsnew/3.0.html#text-vs-data-instead-of-unicode-vs-8-bit>`_).
 
 In short: :func:`str` represented encoded byte data up to and including
 Python 2, but representes *Unicode text* as of Python 3.0.
@@ -228,11 +227,11 @@ A simple table illustrates the difference in types between Python 2 and 3:
 | Python 3 |      ``str``      |     ``bytes``     |
 +----------+-------------------+-------------------+
 
-The
-:download:`Aglyph 1.0.0 context DTD <../../resources/aglyph-context-1.0.0.dtd>`
-defines ``<bytes>``, ``<str>``, and ``<unicode>`` elements that correspond to
-the types in the table above, but treats the element content differently
-depending on the version of Python in which Aglyph is running:
+The :download:`Aglyph 1.0.0 context DTD
+<../../resources/aglyph-context-1.0.0.dtd>` defines ``<bytes>``, ``<str>``,
+and ``<unicode>`` elements that correspond to the types in the table above, but
+treats the element content differently depending on the version of Python in
+which Aglyph is running:
 
 .. rubric:: Python 2
 
@@ -268,8 +267,7 @@ To summarize the above:
 
 * ``<bytes>`` is interpreted as a ``str`` type in Python 2 and a ``bytes`` type
   in Python 3
-* ``<str>`` is always interpreted as a ``str`` type, **relative to** the Python
-  version
+* ``<str>`` is always interpreted as a ``str`` type
 * ``<unicode>`` is interpreted as a ``unicode`` type in Python 2 and a ``str``
   type in Python 3
 
@@ -311,82 +309,126 @@ Protect injected dependencies from being modified by reference
 
 Consider the following component (configured programmatically)::
 
-    component = Component("my-thing", "app.Thing")
-    component.attributes["mutable_sequence"] = [1, 2, 3]
+    binder.bind(Thing).attributes(mutable=[1, 2, 3])
 
-If this component is assembled, and the ``mutable_sequence`` attribute is
-modified, that change will persist in the component definition::
+If this component is assembled, and the ``mutable`` attribute is modified, that
+change will persist in the component definition::
 
-    >>> thing = assembler.assemble("my-thing")
-    >>> thing.mutable_sequence
+    >>> thing = binder.lookup(Thing)
+    >>> thing.mutable
     [1, 2, 3]
-    >>> thing.mutable_sequence.append(4)
-    >>> thing.mutable_sequence
+    >>> thing.mutable.append(4)
+    >>> thing.mutable
     [1, 2, 3, 4]
-    >>> assembler.assemble("my-thing").mutable_sequence
+    >>> another = binder.lookup(Thing)
+    >>> another.mutable
     [1, 2, 3, 4]
 
-It is likely that this is *not* desired behavior. Aglyph has a
-partial-function-like class (:class:`aglyph.component.Evaluator`) that can be
-used to guarantee a "fresh" value of some mutable type is always injected::
+It is likely that this is *not* desired behavior. To protect against
+modify-by-reference, use a :func:`functools.partial` **if** the value does not
+contain nested ``Reference`` ``Evaluator`` objects; otherwise, use an
+:class:`aglyph.component.Evaluator`::
 
-    component = Component("my-thing", "app.Thing")
-    component.attributes["mutable_sequence"] = Evaluator(list, [1, 2, 3])
+    binder.bind(Thing).attributes(mutable=functools.partial(list, [1, 2, 3]))
+    thing_ref = Reference(format_dotted_name(Thing))
+    binder.bind(Other).attributes(field=Evaluator(tuple, [None, thing_ref]))
 
-Now the ``mutable_sequence`` attribute can still be modified on an instance,
-but newly-assembled instances will always have the value specified in the
-component definition::
+Now the ``mutable`` attribute can still be modified on an instance of
+``Thing``, but newly-assembled instances will always have the value specified
+in the component definition. And looking up an instance of ``Other`` will
+correctly assemble the nested reference to ``Thing``.
 
-    >>> thing = assembler.assemble("my-thing")
-    >>> thing.mutable_sequence
+    >>> thing = binder.lookup(Thing)
+    >>> thing.mutable
     [1, 2, 3]
-    >>> thing.mutable_sequence.append(4)
-    >>> thing.mutable_sequence
+    >>> thing.mutable.append(4)
+    >>> thing.mutable
     [1, 2, 3, 4]
-    >>> assembler.assemble("my-thing").mutable_sequence
+    >>> another = binder.lookup(Thing)
+    >>> another.mutable
     [1, 2, 3]
-
-In general, using an :class:`aglyph.component.Evaluator` is appropriate when
-a dependency is a mutable type that is *not* an
-:class:`aglyph.component.Reference` (this is because a reference's "freshness"
-can be controlled through the referenced component's assembly strategy).
+    >>> other = binder.lookup(Other)
+    >>> isinstance(other.field, Thing)
+    True
 
 An interesting twist on the first example given above::
 
-    component = Component("my-thing", "app.Thing", Strategy.SINGLETON)
-    component.attributes["mutable_sequence"] = [1, 2, 3]
+    binder.bind(Thing, strategy="singleton").attributes(
+        mutable=functools.partial(list, [1, 2, 3]))
 
-Because the component is now a singleton, a change to ``mutable_sequence``
-that persists is now *correct* behavior (the same holds true if the assembly
-strategy had been defined as ``Strategy.BORG``).
+Because the component is now a singleton, a change to ``mutable`` that persists
+is now *correct* behavior (the same holds true if the assembly strategy had
+been "borg").
 
 .. note::
     When using XML configuration, a ``<list>`` or ``<dict>``
     dependency, or a ``<tuple>`` dependency with one or more items, is
-    **automatically** defined as an :class:`aglyph.component.Evaluator`!
+    **automatically** defined as an :class:`aglyph.component.Evaluator`.
     Pure-Python configuration does not have the benefit of this
     automatic behavior.
 
-XML configuration vs. programmatic configuration
-------------------------------------------------
+Write wrappers for objects that are not created by importable classes or functions
+----------------------------------------------------------------------------------
 
-Should you use XML to define your contexts, or pure Python? The answer is...
-whichever you prefer.
+There are several object creation cases that Aglyph does **not** directly
+support:
 
-Whether you create an XML context document and use
-:class:`aglyph.context.XMLContext`, or create an
-:class:`aglyph.context.Context` and add components to it directly, you still
-end up with the same thing: *a mapping of component IDs to components.*
+#. obtaining an object by using a *@staticmethod* or *@classmethod*
+#. creating an object of an "inner class"
+#. obtaining an object by calling an instance (bound) method of a class, or
+   directly accessing an instance member
 
-The primary advantage that XML configuration has over pure-Python configuration
-is that, with XML configuration, ``<list>`` and ``<dict>`` dependencies (as
-well as ``<tuple>`` dependencies with one or more items) are *automatically*
-turned into :class:`aglyph.component.Evaluator` partial functions, which helps
-to avoid unexpected modify-by-reference logic bugs (see the previous section).
+Example::
 
-The primary advantage of pure-Python configuration over XML configuration is
-that *any* built-in function or type can be used as a dependency value without
-the need to use :func:`eval`. Note, however, that wrapping the built-in type or
-function in a :func:`functools.partial` or an
-:class:`aglyph.component.Evaluator` may still be appropriate, particularly if
-instances of the type are mutable.
+    class Spam(object):
+
+        # case 1
+        @staticmethod
+        def get_instance(...):
+            ...
+
+        # case 1
+        @classmethod
+        def create(cls, ...):
+            ...
+
+        # case 2
+        class Eggs(object):
+            ...
+
+        def __init__(self, ...):
+            # case 3
+            self.thing = ...
+
+        # case 3
+        def acquire_something(self, ...):
+            ...
+
+However, there are times when you can't avoid these cases (e.g. you're using a
+3rd-party library). In this case, you can create "wrapper" functions::
+
+    def get_spam_instance(...):
+        return Spam.get_instance(...)
+
+    def get_spam_eggs(...):
+        return Spam.Eggs(...)
+
+    def create_spam(...):
+        return Spam.create(...)
+
+    def get_thing_from_spam(...):
+        return Spam(...).eggs
+
+    def get_something_from_spam(...):
+        return Spam(...).acquire_something(...)
+
+There's no need to use these functions in your application proper; they're
+simply conveniences for Aglyph. It is recommended that you place them into a
+separate module (if you're using programmatic configuration, the module where
+your :class:`aglyph.binder.Binder` is defined is a logical choice). This way,
+you can define components and injection dependencies for the importable
+functions. For example::
+
+    binder.bind(get_spam_instance).init(...).attributes(...)
+    binder.bind("eggs", get_spam_eggs).init(...).attributes(...)
+    ...

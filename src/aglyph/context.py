@@ -36,6 +36,11 @@ the following API classes:
 * :class:`aglyph.component.Evaluator` (used as a partial function to
   lazily evaluate component arguments/attributes)
 
+.. versionchanged:: 1.1.0
+    The preferred approach to programmatic configuration is now
+    :class:`aglyph.binder.Binder`, which is more succinct than using
+    ``Context`` and ``Component`` directly.
+
 Alternatively, a context can be defined using a declarative XML syntax
 that conforms to the
 :download:`aglyph-context-1.0.0 DTD <../../resources/aglyph-context-1.0.0.dtd>`
@@ -71,7 +76,9 @@ _logger = logging.getLogger(__name__)
 
 class Context(dict):
     """A mapping of component IDs to
-    :class:`aglyph.componnent.Component` objects."""
+    :class:`aglyph.componnent.Component` objects.
+
+    """
 
     _logger = logging.getLogger("%s.Context" % __name__)
 
@@ -86,15 +93,16 @@ class Context(dict):
 
     @property
     def context_id(self):
+        """a read-only property for the context ID"""
         return self._context_id
 
     def add(self, component):
-        """Adds *component* to this context.
+        """Add *component* to this context.
 
         *component* is an :class:`aglyph.component.Component`.
 
         :raises aglyph.AglyphError: if *component.component_id* is already
-                             contained in this context
+                                    contained in this context
 
         """
         if (component.component_id in self):
@@ -103,7 +111,7 @@ class Context(dict):
         self[component.component_id] = component
 
     def add_or_replace(self, component):
-        """Adds *component* to this context, **replacing** any component
+        """Add *component* to this context, **replacing** any component
         with the same ``component_id`` that already exists.
 
         *component* is an :class:`aglyph.component.Component`.
@@ -122,7 +130,7 @@ class Context(dict):
         return replaced_component
 
     def remove(self, component_id):
-        """Removes a component from this context.
+        """Remove a component from this context.
 
         *component* is an :class:`aglyph.component.Component`.
 
@@ -142,11 +150,12 @@ class Context(dict):
 
 
 class XMLContext(Context):
-    """Populates a new context by parsing an XML document.
+    """Populate a new context by parsing an XML document.
 
     The XML document must conform to the
-    :download:`aglyph-context-1.0.0 DTD <../../resources/aglyph-context-1.0.0.dtd>`
-    (included in the *resources/* directory of the distribution).
+    :download:`aglyph-context-1.0.0 DTD
+    <../../resources/aglyph-context-1.0.0.dtd>` (included in the
+    *resources/* directory of the distribution).
 
     """
 
@@ -206,10 +215,15 @@ class XMLContext(Context):
 
     @property
     def default_encoding(self):
+        """a read-only property for the default encoding
+
+        **This is not related to the document encoding!**
+
+        """
         return self._default_encoding
 
     def _parse_component(self, component_element):
-        """Creates an :class:`aglyph.component.Component` from
+        """Create an :class:`aglyph.component.Component` from
         *component_element*.
 
         *component_element* is an
@@ -227,7 +241,7 @@ class XMLContext(Context):
         return Component(component_id, dotted_name, strategy)
 
     def _process_component(self, component, component_element):
-        """Parses the child elements of *component_element* to populate
+        """Parse the child elements of *component_element* to populate
         the *component* initialization arguments and attributes.
 
         *component* is an :class:`aglyph.component.Component`.
@@ -254,7 +268,7 @@ class XMLContext(Context):
                                 list(component.attributes.keys()), component))
 
     def _parse_init(self, init_element):
-        """Yields initialization arguments (positional and keyword)
+        """Yield initialization arguments (positional and keyword)
         parsed from *init_element*.
 
         *init_element* is an :class:`xml.etree.ElementTree.Element`
@@ -272,7 +286,7 @@ class XMLContext(Context):
                 yield (keyword, value)
 
     def _parse_attributes(self, attributes_element):
-        """Yields attributes (fields, setter methods, or properties)
+        """Yield attributes (fields, setter methods, or properties)
         parsed from *attributes_element*.
 
         *attributes_element* is an
@@ -288,7 +302,7 @@ class XMLContext(Context):
             yield (name, value)
 
     def _unserialize_element_value(self, element):
-        """Returns the value, :class:`aglyph.component.Reference`,
+        """Return the value, :class:`aglyph.component.Reference`,
         :class:`aglpyh.component.Evaluator`, or
         :func:`functools.partial` object that is the result of
         processing *element*.
@@ -306,7 +320,7 @@ class XMLContext(Context):
         return self._process_element(list(element)[0])
 
     def _process_element(self, element):
-        """Creates a usable Python object from *element*.
+        """Create a usable Python object from *element*.
 
         *element* is an :class:`xml.etree.ElementTree.Element`
         representing a "value" element (e.g. ``<int>``,
@@ -325,7 +339,7 @@ class XMLContext(Context):
         return parse(element)
 
     def _parse_true(self, true_element):
-        """Returns the built-in constant ``True``.
+        """Return the built-in constant ``True``.
 
         *true_element* is an :class:`xml.etree.ElementTree.Element`
         representing a ``<true/>`` element.
@@ -334,7 +348,7 @@ class XMLContext(Context):
         return True
 
     def _parse_false(self, false_element):
-        """Returns the built-in constant ``False``.
+        """Return the built-in constant ``False``.
 
         *false_element* is an :class:`xml.etree.ElementTree.Element`
         representing a ``<false/>`` element.
@@ -343,7 +357,7 @@ class XMLContext(Context):
         return False
 
     def _parse_none(self, none_element):
-        """Returns the built-in constant ``None``.
+        """Return the built-in constant ``None``.
 
         *none_element* is an :class:`xml.etree.ElementTree.Element`
         representing a ``<none/>`` element.
@@ -352,7 +366,7 @@ class XMLContext(Context):
         return None
 
     def _parse_bytes(self, bytes_element):
-        """Returns a built-in :func:`str` (Python 2) or :class:`bytes`
+        """Return a built-in :func:`str` (Python 2) or :class:`bytes`
         (Python 3) object.
 
         *bytes_element* is an :class:`xml.etree.ElementTree.Element`
@@ -382,7 +396,7 @@ class XMLContext(Context):
             return DataType()
 
     def __parse_str_as_data(self, str_element):
-        """Returns a built-in ``str`` (Python 2 encoded byte data)
+        """Return a built-in ``str`` (Python 2 encoded byte data)
         object.
 
         .. note::
@@ -416,7 +430,7 @@ class XMLContext(Context):
             return str()
 
     def __parse_str_as_text(self, str_element):
-        """Returns a built-in ``str`` (Python 3 Unicode text) object.
+        """Return a built-in ``str`` (Python 3 Unicode text) object.
 
         .. note::
 
@@ -445,7 +459,7 @@ class XMLContext(Context):
             return str()
 
     def _parse_unicode(self, unicode_element):
-        """Returns a built-in ``unicode`` (Python 2) or ``str``
+        """Return a built-in ``unicode`` (Python 2) or ``str``
         (Python 3) object.
 
         *unicode_element* is an :class:`xml.etree.ElementTree.Element`
@@ -467,7 +481,7 @@ class XMLContext(Context):
             return TextType()
 
     def _parse_int(self, int_element):
-        """Returns a built-in :func:`int` object.
+        """Return a built-in :func:`int` object.
 
         *int_element* is an :class:`xml.etree.ElementTree.Element`
         representing an ``<int>`` element.
@@ -488,7 +502,7 @@ class XMLContext(Context):
             return int()
 
     def _parse_float(self, float_element):
-        """Returns a built-in :func:`float` object.
+        """Return a built-in :func:`float` object.
 
         *float_element* is an :class:`xml.etree.ElementTree.Element`
         representing a ``<float>`` element.
@@ -505,7 +519,7 @@ class XMLContext(Context):
             return float()
 
     def _parse_list(self, list_element):
-        """Returns an :class:`aglyph.component.Evaluator` that produces
+        """Return an :class:`aglyph.component.Evaluator` that produces
         a built-in :func:`list` object when called.
 
         *list_element* is an :class:`xml.etree.ElementTree.Element`
@@ -517,7 +531,7 @@ class XMLContext(Context):
         return Evaluator(list, items)
 
     def _parse_tuple(self, tuple_element):
-        """Returns either an :class:`aglyph.component.Evaluator` that
+        """Return either an :class:`aglyph.component.Evaluator` that
         produces a built-in :func:`tuple` object when called, or an
         empty :func:`tuple` object.
 
@@ -538,7 +552,7 @@ class XMLContext(Context):
             return tuple()
 
     def _parse_dict(self, dict_element):
-        """Returns an :class:`aglyph.component.Evaluator` that produces
+        """Return an :class:`aglyph.component.Evaluator` that produces
         a built-in :func:`dict` object when called.
 
         *dict_element* is an :class:`xml.etree.ElementTree.Element`
@@ -561,7 +575,7 @@ class XMLContext(Context):
         return Evaluator(dict, items)
 
     def _parse_reference(self, reference_element):
-        """Returns an :class:`aglyph.component.Reference`.
+        """Return an :class:`aglyph.component.Reference`.
 
         *reference_element* is an :class:`xml.etree.ElementTree.Element`
         representing a ``<reference>`` element.
@@ -574,7 +588,7 @@ class XMLContext(Context):
         return Reference(component_id)
 
     def _parse_eval(self, eval_element):
-        """Returns a :func:`functools.partial` that will evaluate an
+        """Return a :func:`functools.partial` that will evaluate an
         expression when called, using the built-in :func:`eval`
         function.
 

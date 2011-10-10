@@ -9,8 +9,8 @@ test/*.sh
 test/*.bat
 
 syntax: regexp
+^\.settings$
 ^__pycache__$
 ^build$
 ^dist$
 ^doc/build$
-

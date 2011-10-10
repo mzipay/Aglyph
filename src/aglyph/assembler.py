@@ -52,7 +52,7 @@ _logger = logging.getLogger(__name__)
 
 
 class Assembler(object):
-    """Creates application objects using type 2 (setter) and type 3
+    """Create application objects using type 2 (setter) and type 3
     (constructor) dependency injection.
 
     """
@@ -69,7 +69,7 @@ class Assembler(object):
         self._logger.info("initialized %s", self)
 
     def assemble(self, component_id):
-        """Returns an instance of the component specified by
+        """Return an instance of the component specified by
         *component_id* with all of its dependencies provided.
 
         *component_id* must be a valid "relative_module.identifier"
@@ -95,7 +95,7 @@ class Assembler(object):
             self._assembly_stack.pop()
 
     def _create(self, component):
-        """Returns an instance of *component*.
+        """Return an instance of *component*.
 
         *component* is an :class:`aglyph.component.Component`.
 
@@ -107,7 +107,7 @@ class Assembler(object):
         return create(component)
 
     def _create_prototype(self, component):
-        """Returns an instance of the prototype *component*.
+        """Return an instance of the prototype *component*.
 
         *component* is an :class:`aglyph.component.Component` having
         ``strategy="prototype"``.
@@ -120,7 +120,7 @@ class Assembler(object):
         return instance
 
     def _create_singleton(self, component):
-        """Returns an instance of the singleton *component*.
+        """Return an instance of the singleton *component*.
 
         *component* is an :class:`aglyph.component.Component` having
         ``strategy="singleton"``.
@@ -143,7 +143,7 @@ class Assembler(object):
             return instance
 
     def _create_borg(self, component):
-        """Returns an instance of the borg *component*.
+        """Return an instance of the borg *component*.
 
         *component* is an :class:`aglyph.component.Component` having
         ``strategy="borg"``.
@@ -184,7 +184,7 @@ class Assembler(object):
                 return instance
 
     def _initialize(self, component):
-        """Returns a new instance of *component* initialized with its
+        """Return a new *component* object initialized with its
         dependencies.
 
         *component* is an :class:`aglyph.component.Component`.
@@ -204,7 +204,7 @@ class Assembler(object):
             return initializer(*args, **kwargs)
 
     def _resolve_args_and_keywords(self, component):
-        """Returns the fully assembled/evaluated positional and keyword
+        """Return the fully assembled/evaluated positional and keyword
         arguments for *component*.
 
         *component* is an :class:`aglyph.component.Component`.
@@ -220,13 +220,13 @@ class Assembler(object):
         return (args, keywords)
 
     def _wire(self, instance, component):
-        """Injects dependencies into *instance*.
+        """Inject dependencies into *instance* using direct attribute
+        assignment, setter methods, and/or properties.
 
         *instance* is an initialized object of the type defined by
         *component* (which is an :class:`aglyph.component.Component`).
 
-        This method performs type 2 (setter) injection for *instance*,
-        based on the attributes defined in *component*.
+        This method performs type 2 (setter) injection.
 
         """
         self._logger.info("wiring %s", component)
@@ -241,7 +241,7 @@ class Assembler(object):
                 setattr(instance, attr_name, attr_value)
 
     def _resolve(self, value_spec):
-        """Returns the actual value of an initialization or attribute
+        """Return the actual value of an initialization or attribute
         value specification.
 
         If *value_spec* is an :class:`aglyph.component.Reference`, the
@@ -270,9 +270,9 @@ class Assembler(object):
             return value_spec
 
     def clear_singletons(self):
-        """Evicts all cached singleton component instances.
+        """Evict all cached singleton component instances.
 
-        A list of evicted component IDs is returned.
+        :returns: a list of evicted component IDs
 
         """
         with self._singleton_cache.lock:
@@ -282,10 +282,10 @@ class Assembler(object):
             return singleton_ids
 
     def clear_borgs(self):
-        """Evicts all cached borg component shared-states.
+        """Evict all cached borg component shared-states.
 
-        A list of component IDs (corresponding to the evicted
-        shared-state instance ``__dict__`` references) is returned.
+        :returns: a list of component IDs corresponding to the evicted
+                  shared-state instance ``__dict__`` references
 
         """
         with self._borg_cache.lock:
@@ -295,7 +295,7 @@ class Assembler(object):
             return borg_ids
 
     def __contains__(self, component_id):
-        """Returns ``True`` if the *component_id* is defined in this
+        """Return ``True`` if the *component_id* is defined in this
         assembler's context.
 
         *component_id* must be a valid "relative_module.identifier"

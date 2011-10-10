@@ -77,10 +77,10 @@ else:
 
 
     class XmlReaderTreeBuilder(object):
-        """Builds an
-        `ElementTree <http://effbot.org/zone/element-index.htm>`_ using
-        the .NET
-        `System.Xml.XmlReader <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
+        """Build an `ElementTree
+        <http://effbot.org/zone/element-index.htm>`_ using the .NET
+        `System.Xml.XmlReader
+        <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
         XML parser.
 
         """
@@ -108,7 +108,7 @@ else:
             self._document_encoding = "utf-8" # default
 
         def feed(self, data):
-            """Adds more XML data to be parsed.
+            """Add more XML data to be parsed.
 
             *data* is raw XML read from a stream or passed in as a
             string.
@@ -123,7 +123,7 @@ else:
             self._buffer.append(data)
 
         def close(self):
-            """Parses the XML from the internal buffer to build an
+            """Parse the XML from the internal buffer to build an
             element tree.
 
             :returns: the root element of the XML document
@@ -150,7 +150,7 @@ else:
             return self._target.close()
 
         def _parse_xml_declaration(self, xml_decl):
-            """Parses the document encoding from *xml_decl*.
+            """Parse the document encoding from *xml_decl*.
 
             *xml_decl* is the content of the XML declaration as reported
             by
@@ -164,7 +164,7 @@ else:
                 self._document_encoding = enc_name
 
         def _start_element(self, reader):
-            """Notifies the tree builder that a start element has been
+            """Notify the tree builder that a start element has been
             encountered.
 
             *reader* is a reference to a .NET

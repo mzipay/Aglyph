@@ -35,16 +35,18 @@ logging module.
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+# always the current version of Aglyph
+__version__ = "1.1.0"
 
 import logging
 import platform
 
 from aglyph.compat import (ClassAndFunctionTypes, log_23_compatibility,
-                           NoOpLoggingHandler, python_implementation)
+                           NoOpLoggingHandler, python_implementation,
+                           StringTypes)
 
 __all__ = ["AglyphError", "format_dotted_name", "has_importable_dotted_name",
-           "resolve_dotted_name"]
+           "identify_by_spec", "resolve_dotted_name"]
 
 # define a logger for the "aglyph" channel to enable logging
 _logger = logging.getLogger(__name__)
@@ -68,7 +70,7 @@ class AglyphError(Exception):
 
 
 def has_importable_dotted_name(obj):
-    """Returns ``True`` if *obj* is an importable class or unbound
+    """Return ``True`` if *obj* is an importable class or unbound
     function.
 
     """
@@ -79,7 +81,7 @@ def has_importable_dotted_name(obj):
 
 
 def format_dotted_name(factory):
-    """Returns the dotted-name string for *factory*.
+    """Return the dotted-name string for *factory*.
 
     *factory* should be an importable class or unbound function.
 
@@ -103,8 +105,22 @@ def format_dotted_name(factory):
     return dotted_name
 
 
+def identify_by_spec(spec):
+    """Return an identifier string for *spec*.
+
+    If *spec* is a string, it is returned. Otherwise, *spec* must be an
+    importable class or unbound  function, and its dotted-name is
+    returned (see :func:`format_dotted_name`).
+
+    """
+    if (isinstance(spec, StringTypes)):
+        return spec
+    else:
+        return format_dotted_name(spec)
+
+
 def resolve_dotted_name(dotted_name):
-    """Returns the class or function identified by *dotted_name*.
+    """Return the class or function identified by *dotted_name*.
 
     *dotted_name* must be a "relative_module.identifier" string such
     that the following production represents a valid import statement

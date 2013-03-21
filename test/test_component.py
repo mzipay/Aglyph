@@ -1,4 +1,6 @@
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,69 +20,82 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Test cases and runner for the 'aglyph.component' module."""
+"""Test cases and runner for the :mod:`aglyph.component` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import functools
+import logging
 import unittest
 
 from aglyph.component import Component, Evaluator, Reference, Strategy
-from dummy import Alpha
 
-__all__ = ["ComponentTest", "EvaluatorTest", "get_suite", "ReferenceTest"]
+from test import enable_debug_logging
+from test.dummy import Alpha
+
+__all__ = [
+    "ComponentTest",
+    "EvaluatorTest",
+    "ReferenceTest",
+    "suite",
+]
+
+# don't use __name__ here; can be run as "__main__"
+_logger = logging.getLogger("test.test_component")
 
 
 class ComponentTest(unittest.TestCase):
+    """Test the :class:`aglyph.component.Component` class."""
 
     def test_id_is_dotted_name(self):
-        component = Component("dummy.Alpha")
-        self.assertEqual("dummy.Alpha", component.component_id)
-        self.assertEqual("dummy.Alpha", component.dotted_name)
+        component = Component("test.dummy.Alpha")
+        self.assertEqual("test.dummy.Alpha", component.component_id)
+        self.assertEqual("test.dummy.Alpha", component.dotted_name)
 
     def test_unique_id_and_dotted_name(self):
-        comonent = Component("alpha", "dummy.Alpha")
+        comonent = Component("alpha", "test.dummy.Alpha")
         self.assertEqual("alpha", comonent.component_id)
-        self.assertEqual("dummy.Alpha", comonent.dotted_name)
+        self.assertEqual("test.dummy.Alpha", comonent.dotted_name)
 
     def test_bad_strategy(self):
-        self.assertRaises(ValueError, Component, "dummy.Alpha",
+        self.assertRaises(ValueError, Component, "test.dummy.Alpha",
                           strategy="spam")
 
     def test_default_strategy(self):
-        component = Component("dummy.Alpha")
+        component = Component("test.dummy.Alpha")
         self.assertEqual(Strategy.PROTOTYPE, component.strategy)
 
     def test_readonly_properties(self):
-        component = Component("alpha", "dummy.Alpha")
+        component = Component("alpha", "test.dummy.Alpha")
         self.assertRaises(AttributeError, setattr, component, "component_id",
                           "beta")
         self.assertRaises(AttributeError, setattr, component, "dotted_name",
-                          "dummy.Beta")
+                          "test.dummy.Beta")
         self.assertRaises(AttributeError, setattr, component, "strategy",
                           Strategy.SINGLETON)
 
     def test_explicit_prototype_strategy(self):
-        component = Component("dummy.Alpha", strategy=Strategy.PROTOTYPE)
+        component = Component("test.dummy.Alpha", strategy=Strategy.PROTOTYPE)
         self.assertEqual(Strategy.PROTOTYPE, component.strategy)
 
     def test_explicit_singleton_strategy(self):
-        component = Component("dummy.Alpha", strategy=Strategy.SINGLETON)
+        component = Component("test.dummy.Alpha", strategy=Strategy.SINGLETON)
         self.assertEqual(Strategy.SINGLETON, component.strategy)
 
     def test_explicit_borg_strategy(self):
-        component = Component("dummy.Alpha", strategy=Strategy.BORG)
+        component = Component("test.dummy.Alpha", strategy=Strategy.BORG)
         self.assertEqual(Strategy.BORG, component.strategy)
 
     def test_default_dependencies(self):
-        component = Component("dummy.Alpha")
+        component = Component("test.dummy.Alpha")
         self.assertEqual([], component.init_args)
         self.assertEqual({}, component.init_keywords)
         self.assertEqual({}, component.attributes)
 
 
 class EvaluatorTest(unittest.TestCase):
+    """Test the :class:`aglyph.component.Evaluator` class."""
 
     def test_func_not_callable(self):
         self.assertRaises(TypeError, Evaluator, None)
@@ -171,19 +186,20 @@ except NameError:
 # PYVER: u"..." syntax is illegal in Python >= 3.0, and b"..." syntax is
 #        illegal in Python < 3.0
 try:
-    _dummy_dot_Alpha_ascii = eval("u'dummy.Alpha'.encode('ascii')")
+    _dummy_dot_Alpha_ascii = eval("u'test.dummy.Alpha'.encode('ascii')")
     _Delta_ustr = eval("u'\u0394'")
     _Delta_utf8 = eval("u'\u0394'.encode('utf-8')")
 except SyntaxError:
-    _dummy_dot_Alpha_ascii = eval("b'dummy.Alpha'")
+    _dummy_dot_Alpha_ascii = eval("b'test.dummy.Alpha'")
     _Delta_ustr = eval("'\u0394'")
     _Delta_utf8 = eval("'\u0394'.encode('utf-8')")
 
 
 class ReferenceTest(unittest.TestCase):
+    """Test the :class:`aglyph.component.Reference` class."""
 
     def test_dotted_name_ascii(self):
-        ref = Reference("dummy.Alpha")
+        ref = Reference("test.dummy.Alpha")
         self.assertTrue(isinstance(ref, _ustr))
         self.assertEqual(_dummy_dot_Alpha_ascii, ref.encode("ascii"))
 
@@ -200,14 +216,17 @@ class ReferenceTest(unittest.TestCase):
         self.assertEqual(_Delta_utf8, ref.encode("utf-8"))
 
 
-def get_suite():
+def suite():
+    """Build the test suite for the :mod:`aglyph.component` module."""
+    _logger.debug("TRACE")
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(ComponentTest))
     suite.addTest(unittest.makeSuite(EvaluatorTest))
     suite.addTest(unittest.makeSuite(ReferenceTest))
+    _logger.debug("RETURN %r", suite)
     return suite
 
 
 if (__name__ == "__main__"):
-    unittest.TextTestRunner(verbosity=2).run(get_suite())
-
+    enable_debug_logging(suite)
+    unittest.TextTestRunner().run(suite())

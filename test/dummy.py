@@ -1,4 +1,6 @@
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +30,17 @@ testing).
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
-__all__ = ["Alpha", "Beta", "create_alpha", "create_beta", "DEFAULT", "Delta",
-           "Gamma"]
+__all__ = [
+    "Alpha",
+    "Beta",
+    "create_alpha",
+    "create_beta",
+    "DEFAULT",
+    "Delta",
+    "Gamma",
+]
 
 #: used as a default instead of ``None`` (easier testing)
 DEFAULT = object()

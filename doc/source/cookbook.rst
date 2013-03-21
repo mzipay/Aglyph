@@ -194,9 +194,9 @@ Consider the following example::
         </component>
     </context>
 
-When this component is assembled, the ``text`` attribute will be a Unicode
-string (:func:`unicode`), and the ``data1`` and ``data2`` attributes will be
-encoded bytes (:func:`str`) in the UTF-8 and ISO-8859-7 character sets,
+When this component is assembled under Python 2, the ``text`` attribute will be
+a Unicode string (`unicode``), and the ``data1`` and ``data2`` attributes
+will be encoded bytes (:class:`str`) in the UTF-8 and ISO-8859-7 character sets,
 respectively::
 
     >>> obj = assembler.assemble("cookbook.TextAndData")
@@ -210,11 +210,11 @@ respectively::
 Differences between Python 2 and Python 3
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The built-in :func:`str` type has changed significantly between Python 2 and
+The built-in :class:`str` type has changed significantly between Python 2 and
 Python 3 (see `Text Vs. Data Instead Of Unicode Vs. 8-bit
 <http://docs.python.org/release/3.0/whatsnew/3.0.html#text-vs-data-instead-of-unicode-vs-8-bit>`_).
 
-In short: :func:`str` represented encoded byte data up to and including
+In short: :class:`str` represented encoded byte data up to and including
 Python 2, but representes *Unicode text* as of Python 3.0.
 
 A simple table illustrates the difference in types between Python 2 and 3:

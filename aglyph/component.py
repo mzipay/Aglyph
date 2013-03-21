@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,19 @@ dependencies.
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import functools
 import logging
 
 from aglyph.compat import is_callable, StringTypes, TextType
 
-__all__ = ["Component", "Evaluator", "Reference", "Strategy"]
+__all__ = [
+    "Component",
+    "Evaluator",
+    "Reference",
+    "Strategy",
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -69,6 +74,9 @@ class Strategy(object):
     _STRATEGIES = set([PROTOTYPE, SINGLETON, BORG])
 
 
+_logger.debug("Reference extends %r", TextType)
+
+
 class Reference(TextType):
     """A place-holder used to refer to another
     :class:`aglyph.component.Component`.
@@ -84,7 +92,7 @@ class Reference(TextType):
     :class:`aglyph.component.Evaluator`, and can be assembled directly
     by an :class:`aglyph.assembler.Assembler`.
 
-    .. warning::
+    .. note::
         In Python versions < 3.0, a ``Reference`` representing a
         dotted-name *must* consist only of characters in the ASCII
         subset of the source encoding (see :pep:`0263`).
@@ -95,10 +103,10 @@ class Reference(TextType):
 
         Because of this difference, the super class of ``Reference``
         is "dynamic" with respect to the version of Python under which
-        Aglyph is running (:class:`unicode` under Python 2.5 - 2.7,
-        :class:`str` under Python >= 3.0). This documentation shows
-        the base class as ``unicode`` because the documentation
-        generator runs under Python 2.7.
+        Aglyph is running (:class:`unicode` under Python 2,
+        :class:`str` under Python 3). This documentation shows the base
+        class as ``str`` because the documentation generator runs under
+        Python 3.
 
     """
 
@@ -135,13 +143,18 @@ class Evaluator(object):
         is a mapping of keyword arguments.
 
         """
+        if (self._logger.isEnabledFor(logging.DEBUG)):
+            # do not log possibly sensitive data
+            self._logger.debug("TRACE %r *%r, **%r", func,
+                               [type(arg) for arg in args],
+                               dict([(k, type(v))
+                                     for (k, v) in keywords.items()]))
         super(Evaluator, self).__init__()
         if (not is_callable(func)):
             raise TypeError("%s is not callable" % type(func).__name__)
         self._func = func
         self._args = args
         self._keywords = keywords
-        self._logger.debug("initialized %s", self)
 
     @property
     def func(self):
@@ -167,7 +180,7 @@ class Evaluator(object):
         function arguments.
 
         """
-        self._logger.info("evaluating %s", self)
+        self._logger.debug("TRACE %r", assembler)
         args = self._args
         keywords = self._keywords
         resolve = self._resolve
@@ -175,7 +188,9 @@ class Evaluator(object):
         # keywords MUST be strings!
         resolved_keywords = dict([(keyword, resolve(arg, assembler))
                                   for (keyword, arg) in keywords.items()])
-        return self._func(*resolved_args, **resolved_keywords)
+        obj = self._func(*resolved_args, **resolved_keywords)
+        self._logger.debug("RETURN %r", obj)
+        return obj
 
     def _resolve(self, arg, assembler):
         """Return the resolved *arg*.
@@ -203,7 +218,6 @@ class Evaluator(object):
         ``Evaluator``).
 
         """
-        self._logger.debug("resolving %r", arg)
         if (isinstance(arg, Reference)):
             return assembler.assemble(arg)
         elif (isinstance(arg, Evaluator)):
@@ -225,9 +239,10 @@ class Evaluator(object):
             return arg
 
     def __repr__(self):
-        return "%s:%s<%r %r %r>" % (self.__class__.__module__,
-                                    self.__class__.__name__, self._func,
-                                    self._args, self._keywords)
+        # do not log possibly sensitive data
+        return "%s:%s<%r *args **keywords>" % (self.__class__.__module__,
+                                               self.__class__.__name__,
+                                               self._func)
 
 
 class Component(object):
@@ -288,6 +303,8 @@ class Component(object):
         * use any combination of the above behaviors
 
         """
+        self._logger.debug("TRACE %r, dotted_name=%r, strategy=%r",
+                           component_id, dotted_name, strategy)
         super(Component, self).__init__()
         self._component_id = component_id
         if (dotted_name is not None):
@@ -301,7 +318,6 @@ class Component(object):
         self.init_args = []
         self.init_keywords = {}
         self.attributes = {}
-        self._logger.debug("initialized %s", self)
 
     @property
     def component_id(self):

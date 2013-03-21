@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,16 +36,25 @@ easier to maintain (and easier to remove later).
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import logging
 import platform
 import sys
 import types
 
-__all__ = ["ClassAndFunctionTypes", "DataType", "is_python_2", "is_python_3",
-           "log_23_compatibility", "new_instance", "NoOpLoggingHandler",
-           "python_implementation", "RESTRICTED_BUILTINS", "TextType"]
+__all__ = [
+    "ClassAndFunctionTypes",
+    "DataType",
+    "is_python_2",
+    "is_python_3",
+    "log_23_compatibility",
+    "new_instance",
+    "NoOpLoggingHandler",
+    "python_implementation",
+    "RESTRICTED_BUILTINS",
+    "TextType",
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -111,8 +120,8 @@ if (is_python_2):
     # take old-style classes into account when trying to determine whether or
     # not an object is a class or function
     # (used in aglyph.__init__.has_importable_dotted_name)
-    ClassAndFunctionTypes = (type, types.ClassType, types.FunctionType,
-                             types.BuiltinFunctionType)
+    ClassAndFunctionTypes = (type, getattr(types, "ClassType"),
+                             types.FunctionType, types.BuiltinFunctionType)
 
     # the built-in function 'callable' is available in Python 2
     # (used in 'aglyph.assembler.Assembler._wire' and

@@ -19,8 +19,8 @@ The tutorial assumes that you are familiar with Python development in general,
 and that Python 2.5+ is already installed. For an introduction to Python,
 please see `The Python Tutorial
 <http://docs.python.org/py3k/tutorial/index.html>`_ (also, the free `Dive Into
-Python <http://diveintopython.org/>`_ and `Dive Into Python 3
-<http://diveintopython3.org/>`_ books). Python can be downloaded from `Python
+Python <http://diveintopython.net/>`_ and `Dive Into Python 3
+<http://diveintopython3.net/>`_ books). Python can be downloaded from `Python
 Programming Language – Official Website <http://www.python.org/>`_ (or just use
 your preferred package installer, e.g. RPM).
 
@@ -45,25 +45,27 @@ Clone the
 <https://bitbucket.org/mzipay/aglyph>`_.
 
 If you downloaded the source distribution, unpack it into a temporary directory
-and then navigate into that directory. Issue the following command from a
+and then navigate into that directory. Issue the following commands from a
 terminal::
 
+    python setup.py test
     python setup.py install
 
 If you downloaded a built distribution, install it using the appropriate
 platform-specific tool.
 
 If you cloned the repository from BitBucket, navigate into the root directory
-of the repository and issue the following command from a terminal::
+of the repository and issue the following commands from a terminal::
 
+    python setup.py test
     python setup.py install
 
 Verify that the installation was successful by importing the ``aglyph`` module
 from a Python interpreter. For example::
 
     $ python
-    Python 2.7.2 (default, Jul  8 2011, 14:08:55) 
-    [GCC 4.2.1 (Apple Inc. build 5646) (dot 1)] on darwin
+    Python 3.3.0 (default, Sep 29 2012, 08:16:19) 
+    [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import aglyph
 
@@ -71,7 +73,9 @@ from a Python interpreter. For example::
 --------------------------------------------------------------
 
 The sample code for this tutorial can be downloaded
-:download:`here <../../resources/movielisterapp-basic.zip>`. Extract the ZIP
+:download:`here <../../resources/movielisterapp-basic.zip>` (or find it under
+the *examples/* directory if you cloned the `Aglyph Mercurial repository from
+BitBucket <https://bitbucket.org/mzipay/aglyph>`_). Extract the ZIP
 archive to a temporary location and navigate into the application directory::
 
     $ unzip movielisterapp-basic.zip
@@ -270,12 +274,14 @@ that it contains the same records as the original *movies.txt* file::
 Finally, we'll change ``app.py`` so that the new ``CSVMovieFinder`` is used to
 initialize a ``MovieLister``::
 
+    import sys
+    
     from movies.finder import CSVMovieFinder
     from movies.lister import MovieLister
     
     app = MovieLister(CSVMovieFinder("movies.csv"))
     for movie in app.movies_directed_by("Sergio Leone"):
-        print(movie.title)
+        sys.stdout.write("%s\n" % movie.title)
 
 Running the application again should give us the same results::
 
@@ -306,7 +312,7 @@ However, we are still required to modify ``app.py`` if we decide to change the
 
 Recall that Dependency Injection gives reponsibility for injecting dependencies
 to an an external object (called an "assembler"). In Aglyph, this "assembler"
-is defined by the ``aglyph.assembler.Assembler`` class.
+is defined by the :class:`aglyph.assembler.Assembler` class.
 
 An ``aglyph.assembler.Assembler`` requires a "context," which is a collection
 of component definitions. A *component definition* is simply a
@@ -314,21 +320,21 @@ description of some callable (an importable class or function), including its
 dependencies. Any component can itself be a dependency of any other
 component(s).
 
-In Aglyph, a context is defined by the ``aglyph.context.Context`` class. A
-specialized subclass, ``aglyph.context.XMLContext``, is provided to allow a
+In Aglyph, a context is defined by the :class:`aglyph.context.Context` class. A
+specialized subclass, :class:`aglyph.context.XMLContext`, is provided to allow a
 context to be defined declaratively in an XML document. Such XML documents
 must conform to the :download:`aglyph-context-1.0.0 DTD
 <../../resources/aglyph-context-1.0.0.dtd>`.
 
 The ``aglyph.context.Context`` class may also be used directly to define a
 context in pure Python. This approach requires the use of the
-``aglyph.component.Component`` class, and (optionally) one of more of:
+:class:`aglyph.component.Component` class, and (optionally) one of more of:
 
-* ``aglyph.component.Reference`` (used to indicate that a dependency refers to
-  another component in the same context)
-* ``aglyph.component.Evaluator`` (similar to :func:`functools.partial`)
-* ``aglyph.component.Strategy`` (used to control how an object of a component
-  is created)
+* :class:`aglyph.component.Reference` (used to indicate that a dependency refers
+  to another component in the same context)
+* :class:`aglyph.component.Evaluator` (similar to :func:`functools.partial`)
+* :class:`aglyph.component.Strategy` (used to control how an object of a
+  component is created)
 
 .. versionchanged:: 1.1.0
     The preferred approach to programmatic configuration is now
@@ -469,19 +475,23 @@ both an XML context and a pure-Python configuration, we'll create two different
 
 The ``app_xmlcontext.py`` script will use the XML context::
 
+    import sys
+    
     from aglyph.assembler import Assembler
     from aglyph.context import XMLContext
     
     assembler = Assembler(XMLContext("movies-context.xml"))
     app = assembler.assemble("movies.lister.MovieLister")
     for movie in app.movies_directed_by("Sergio Leone"):
-        print(movie.title)
+        sys.stdout.write("%s\n" % movie.title)
 
 .. warning::
 
     *IronPython* developers will need to create a slightly different
     ``app_xmlcontext.py`` script::
 
+        import sys
+        
         from aglyph.assembler import Assembler
         from aglyph.compat.ipyetree import XmlReaderTreeBuilder
         from aglyph.context import XMLContext
@@ -490,7 +500,7 @@ The ``app_xmlcontext.py`` script will use the XML context::
                                          parser=XmlReaderTreeBuilder()))
         app = assembler.assemble("movies.lister.MovieLister")
         for movie in app.movies_directed_by("Sergio Leone"):
-            print(movie.title)
+            sys.stdout.write("%s\n" % movie.title)
 
     This is necessary because of the way that *IronPython* treats Unicode
     strings. See :mod:`aglyph.compat.ipyetree` for details.
@@ -509,13 +519,15 @@ Running the application produces the same results as usual::
 
 The ``app_binder.py`` script will use the pure-Python configuration::
 
+    import sys
+    
     from movies import MoviesBinder
     from movies.lister import MovieLister
 
     binder = MoviesBinder()
     lister = binder.lookup(MovieLister)
     for movie in lister.movies_directed_by("Sergio Leone"):
-        print(movie.title)
+        sys.stdout.write("%s\n" % movie.title)
 
 Here, we create the binder and then use it to look up the concrete
 implementation of ``MovieLister`` that we have configured.
@@ -617,7 +629,8 @@ Finally, running the application one last time produces the expected results::
 
 The final modified version of the *movielisterapp* application can be
 downloaded :download:`here <../../resources/movielisterapp-aglyph.zip>` as a
-reference.
+reference (or find it under the *example/* directory if you cloned the `Aglyph
+Mercurial repository from BitBucket <https://bitbucket.org/mzipay/aglyph>`_).
 
 There are many more context/configuration options available in Aglyph beyond
 those that have been presented in this tutorial, including support for type 2

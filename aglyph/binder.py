@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@ Using ``Binder``::
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 import logging
 from uuid import uuid4
@@ -66,7 +66,9 @@ from aglyph.compat import ClassAndFunctionTypes
 from aglyph.component import Component, Reference, Strategy
 from aglyph.context import Context
 
-__all__ = ["Binder"]
+__all__ = [
+    "Binder",
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -84,10 +86,13 @@ class Binder(Assembler):
         is not provided, a random ID is generated.
 
         """
+        self._logger.debug("TRACE")
         if (binder_id is None):
             binder_id = uuid4()
         super(Binder, self).__init__(Context("binder:%s" % binder_id))
         self._binder_id = binder_id
+        self._logger.info("initialized %s", self)
+        self._logger.debug("RETURN")
 
     @property
     def binder_id(self):
@@ -126,6 +131,8 @@ class Binder(Assembler):
                   dependencies to be defined in chained-call fashion.
 
         """
+        self._logger.debug("TRACE %r, to=%r, strategy=%r", component_spec, to,
+                           strategy)
         component_id = identify_by_spec(component_spec)
         if (to is None):
             dotted_name = component_id
@@ -133,9 +140,11 @@ class Binder(Assembler):
             dotted_name = identify_by_spec(to)
         component = Component(component_id, dotted_name, strategy)
         self._context.add(component)
-        self._logger.debug("bound %r to %r (%r)", component_spec, to,
+        self._logger.info("bound %r to %r (%r)", component_spec, to,
                            dotted_name)
-        return _Binding(component)
+        binding = _Binding(component)
+        self._logger.debug("RETURN %r", binding)
+        return binding
 
     def lookup(self, component_spec):
         """Return an instance of the component specified by
@@ -146,9 +155,11 @@ class Binder(Assembler):
         previously bound by a call to :func:`bind`.
 
         """ 
-        self._logger.info("looking up %r", component_spec)
+        self._logger.debug("TRACE %r", component_spec)
         component_id = identify_by_spec(component_spec)
-        return self.assemble(component_id)
+        obj = self.assemble(component_id)
+        self._logger.debug("RETURN %r", type(obj))
+        return obj
 
 
 class _Binding(object):
@@ -180,6 +191,7 @@ class _Binding(object):
         was created by a call to :meth:`Binder.bind`.
 
         """
+        self._logger.debug("TRACE %r", component)
         self._component = component
 
     def init(self, *args, **keywords):
@@ -197,13 +209,16 @@ class _Binding(object):
             :attr:`aglyph.component.Component.init_keywords` map.
 
         """
+        if (self._logger.isEnabledFor(logging.DEBUG)):
+            # do not log possibly sensitive data
+            self._logger.debug("TRACE *%r, **%r", [type(arg) for arg in args],
+                               dict([(k, type(v))
+                                     for (k, v) in keywords.items()]))
         resolve = self._resolve
         self._component.init_args = [resolve(arg) for arg in args]
         self._component.init_keywords = dict(
             [(keyword, resolve(arg)) for (keyword, arg) in keywords.items()])
-        if (self._logger.isEnabledFor(logging.DEBUG)):
-            self._logger.debug("bound %d args, %s keywords for %s", len(args),
-                               list(keywords.keys()), self)
+        self._logger.debug("RETURN self")
         return self
 
     def attributes(self, **keywords):
@@ -221,12 +236,14 @@ class _Binding(object):
             :attr:`aglyph.component.Component.attributes` map.
 
         """
+        if (self._logger.isEnabledFor(logging.DEBUG)):
+            # do not log possibly sensitive data
+            self._logger.debug("TRACE **%r",
+                dict([(k, type(v)) for (k, v) in keywords.items()]))
         resolve = self._resolve
         self._component.attributes = dict(
                 [(name, resolve(value)) for (name, value) in keywords.items()])
-        if (self._logger.isEnabledFor(logging.DEBUG)):
-            self._logger.debug("bound %s attributes for %s",
-                               list(keywords.keys()), self)
+        self._logger.debug("RETURN self")
         return self
 
     def _resolve(self, obj):

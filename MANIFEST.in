@@ -2,3 +2,4 @@ include LICENSE.txt
 recursive-include test *.py *.xml
 recursive-include resources *.dtd
 recursive-include doc/build/html *.html *.css *.js *.png
+recursive-include example *.py *.xml *.csv *.txt

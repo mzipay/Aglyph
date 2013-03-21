@@ -5,12 +5,16 @@ MANIFEST
 *.pyc
 *.pyo
 *.class
-test/*.sh
-test/*.bat
+*.log
+*.bak
+test-versions-variants.*
+resources/movielisterapp-*.zip
 
 syntax: regexp
 ^\.settings$
 ^__pycache__$
+^Aglyph.egg-info$
 ^build$
 ^dist$
 ^doc/build$
+

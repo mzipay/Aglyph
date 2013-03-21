@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ above to populate the context.
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import functools
 import logging
@@ -69,7 +69,10 @@ from aglyph.compat import (DataType, is_python_2, RESTRICTED_BUILTINS,
                            TextType)
 from aglyph.component import Component, Evaluator, Reference, Strategy
 
-__all__ = ["Context", "XMLContext"]
+__all__ = [
+    "Context",
+    "XMLContext",
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -87,9 +90,9 @@ class Context(dict):
         context.
 
         """
+        self._logger.debug("TRACE %r", context_id)
         super(Context, self).__init__()
         self._context_id = context_id
-        self._logger.info("initialized %s", self)
 
     @property
     def context_id(self):
@@ -105,6 +108,7 @@ class Context(dict):
                                     contained in this context
 
         """
+        self._logger.debug("TRACE %r", component)
         if (component.component_id in self):
             raise AglyphError("component with ID %r is already defined in %s" %
                               (component.component_id, self))
@@ -121,12 +125,14 @@ class Context(dict):
                 no replacement was made)
 
         """
+        self._logger.debug("TRACE %r", component)
         replaced_component = self.get(component.component_id)
         if ((replaced_component is not None) and
             self._logger.isEnabledFor(logging.WARNING)):
             self._logger.warning("%s is replacing %s in %s", component,
                                  replaced_component, self)
         self[component.component_id] = component
+        self._logger.debug("RETURN %r", replaced_component)
         return replaced_component
 
     def remove(self, component_id):
@@ -139,9 +145,11 @@ class Context(dict):
                 *component.component_id* was not in this context)
 
         """
+        self._logger.debug("TRACE %r", component_id)
         component = self.get(component_id)
         if (component is not None):
             del self[component_id]
+        self._logger.debug("RETURN %r", component)
         return component
 
     def __repr__(self):
@@ -192,13 +200,13 @@ class XMLContext(Context):
             during testing.
 
         """
-        self._logger.info("parsing context from %r", source)
+        self._logger.debug("TRACE %r parser=%r, default_encoding=%r",
+                           source, parser, default_encoding)
         # alias the correct _parse_str method based on Python version
         if (is_python_2):
             self._parse_str = self.__parse_str_as_data
         else: # assume 3
             self._parse_str = self.__parse_str_as_text
-        self._logger.info("default encoding is %r", default_encoding)
         self._default_encoding = default_encoding
         root = ElementTree().parse(source, parser)
         if (root.tag != "context"):
@@ -215,9 +223,12 @@ class XMLContext(Context):
 
     @property
     def default_encoding(self):
-        """a read-only property for the default encoding
+        """A read-only property for the default encoding of ``<bytes>``
+        or ``<str>`` (under Python 2) element content when an
+        **@encoding** attribute is *not* specified.
 
-        **This is not related to the document encoding!**
+        .. warning::
+            This is **unrelated** to the document encoding!
 
         """
         return self._default_encoding
@@ -231,6 +242,7 @@ class XMLContext(Context):
         ``<component>`` element.
 
         """
+        self._logger.debug("TRACE %r", component_element)
         component_id = component_element.attrib["id"]
         self._logger.debug("parsing component[@id=%r]", component_id)
         # if the dotted-name is not specified explicitly, then the component ID
@@ -238,7 +250,9 @@ class XMLContext(Context):
         dotted_name = component_element.get("dotted-name", component_id)
         strategy = component_element.get("strategy", Strategy.PROTOTYPE)
         # Component will reject unrecognized strategy
-        return Component(component_id, dotted_name, strategy)
+        component = Component(component_id, dotted_name, strategy)
+        self._logger.debug("RETURN %r", component)
+        return component
 
     def _process_component(self, component, component_element):
         """Parse the child elements of *component_element* to populate
@@ -250,6 +264,7 @@ class XMLContext(Context):
         ``<component>`` element.
 
         """
+        self._logger.debug("TRACE %r, %r", component, component_element)
         init_element = component_element.find("init")
         if (init_element is not None):
             for (keyword, value) in self._parse_init(init_element):
@@ -275,6 +290,7 @@ class XMLContext(Context):
         representing an ``<init>`` element.
 
         """
+        self._logger.debug("TRACE %r", init_element)
         # Element.iter is not available in Python 2.5, 2.6, and 3.1, but IS
         # available in 2.7 and 3.2 (!?) - just use getiterator
         for arg_element in init_element.getiterator("arg"):
@@ -294,6 +310,7 @@ class XMLContext(Context):
         ``<attributes>`` element.
 
         """
+        self._logger.debug("TRACE %r", attributes_element)
         # Element.iter is not available in Python 2.5, 2.6, and 3.1, but IS
         # available in 2.7 and 3.2 (!?) - just use getiterator
         for attribute_element in attributes_element.getiterator("attribute"):
@@ -335,6 +352,7 @@ class XMLContext(Context):
         * a :func:`functools.partial`
 
         """
+        self._logger.debug("TRACE %r", element)
         parse = getattr(self, "_parse_%s" % element.tag)
         return parse(element)
 

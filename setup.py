@@ -1,7 +1,9 @@
-from distutils.core import setup
+# -*- coding: utf-8 -*-
+
+from setuptools import setup
 
 setup(name="Aglyph",
-      version="1.1.0",
+      version="1.1.1",
       description="Aglyph is a Dependency Injection framework for Python "
                   "2.5+, supporting type 2 (setter) and type 3 (constructor) "
                   "injection.",
@@ -9,9 +11,9 @@ setup(name="Aglyph",
 Aglyph is a Dependency Injection framework for Python 2.5+, supporting
 type 2 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on CPython (http://www.python.org/) 2.5, 2.6, 2.7, 3.0, 3.1,
-and 3.2; and on recent versions of the PyPy (http://pypy.org/>),
-Jython (http://www.jython.org/), IronPython (http://ironpython.net/),
+Aglyph runs on CPython (http://www.python.org/) 2.5 - 3.3, and on recent
+versions of the PyPy (http://pypy.org/>), Jython (http://www.jython.org/),
+IronPython (http://ironpython.net/),
 and Stackless Python (http://www.stackless.com/) variants.
 
 Aglyph can assemble "prototype" components (a new instance is created
@@ -30,7 +32,7 @@ provided.
     url="http://www.ninthtest.net/aglyph-python-dependency-injection/",
     download_url = "http://sourceforge.net/projects/aglyph/files/aglyph/",
     packages=["aglyph", "aglyph.compat"],
-    package_dir = {"": "src"},
+    test_suite="test",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -42,9 +44,9 @@ provided.
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.0",
         "Programming Language :: Python :: 3.1",
         "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "Topic :: Software Development :: Libraries :: Python Modules"],

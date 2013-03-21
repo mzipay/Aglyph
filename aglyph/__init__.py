@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ logging module.
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
 # always the current version of Aglyph
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 import logging
 import platform
@@ -97,11 +97,12 @@ def format_dotted_name(factory):
     :raises TypeError: if *factory* is not a class or unbound function
 
     """
-    _logger.debug("formatting dotted-name for %r", factory)
+    _logger.debug("TRACE %r", factory)
     if (not has_importable_dotted_name(factory)):
         raise TypeError("expected class or unbound function, not %s" %
                         type(factory).__name__)
     dotted_name = "%s.%s" % (factory.__module__, factory.__name__)
+    _logger.debug("RETURN %r", dotted_name)
     return dotted_name
 
 
@@ -136,12 +137,14 @@ def resolve_dotted_name(dotted_name):
                         "relative_module" and "identifier" parts
 
     """
-    _logger.debug("resolving %r", dotted_name)
+    _logger.debug("TRACE %r", dotted_name)
     try:
         (module_name, identifier) = dotted_name.rsplit('.', 1)
         module = __import__(module_name, globals(), locals(), [identifier])
-        return getattr(module, identifier)
+        obj = getattr(module, identifier)
     except ImportError:
         raise
     except Exception:
         raise ValueError("%r is not a valid dotted-name" % dotted_name)
+    _logger.debug("RETURN %r", obj)
+    return obj

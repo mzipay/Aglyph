@@ -1,4 +1,6 @@
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Test cases and runner for the ``aglyph.binder`` module."""
+"""Test cases and runner for the :mod:`aglyph.binder` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 from functools import partial
+import logging
 import struct
 import unittest
 import zipfile
@@ -33,10 +36,16 @@ from aglyph.binder import Binder
 from aglyph.compat import is_python_2
 from aglyph.component import Evaluator, Reference
 
-import dummy
+from test import enable_debug_logging
+import test.dummy
 
-__all__ = ["BinderTest", "get_suite"]
+__all__ = [
+    "BinderTest",
+    "suite",
+]
 
+# don't use __name__ here; can be run as "__main__"
+_logger = logging.getLogger("test.test_binder")
 
 # Python 2/3 compatibility
 # * u"..." is valid syntax in Python 2, but raises SyntaxError in Python 3
@@ -64,6 +73,7 @@ else: # assume is_python_3
 
 
 class _DummyBinder(Binder):
+    """The :class:`aglyph.binder.Binder` object used in all tests."""
 
     def __init__(self, binder_id):
         super(_DummyBinder, self).__init__(binder_id)
@@ -85,7 +95,7 @@ class _DummyBinder(Binder):
             attributes(comment="This is a test."))
         the_object_ref = Reference("the-object")
         strings_ref = Reference("strings")
-        (self.bind("alpha", dummy.Alpha, "borg").
+        (self.bind("alpha", test.dummy.Alpha, "borg").
             init(the_object_ref, strings_ref).
             attributes(field=the_object_ref,
                        # important for this to be a partial because otherwise
@@ -96,7 +106,7 @@ class _DummyBinder(Binder):
                        set_value=partial(list, [as_data("seven"), 7.9,
                                                 complex(7, 9)]),
                        prop=strings_ref))
-        (self.bind(dummy.create_alpha, strategy="borg").
+        (self.bind(test.dummy.create_alpha, strategy="borg").
             init(the_object_ref, strings_ref).
             attributes(field=the_object_ref,
                        # important for this to be a partial because otherwise
@@ -112,16 +122,16 @@ class _DummyBinder(Binder):
         # References are recursively assembled
         prop_eval = Evaluator(dict, [(the_object_ref, zipinfo_ref),
                                      ("zip-info", (zipinfo_ref,))])
-        self.bind(dummy.Beta).init(keyword=(None, False, True)).attributes(
+        self.bind(test.dummy.Beta).init(keyword=(None, False, True)).attributes(
             field=the_object_ref,
             # _Binding.resolve automatically turns this into a Reference
             set_value=zipfile.ZipInfo,
             prop=prop_eval)
-        (self.bind("beta", dummy.create_beta).
+        (self.bind("beta", test.dummy.create_beta).
             init(keyword=(None, False, True)).
             attributes(field=the_object_ref, set_value=zipinfo_ref,
                        prop=prop_eval))
-        (self.bind("gamma", "dummy.Gamma").
+        (self.bind("gamma", "test.dummy.Gamma").
             init(the_object_ref, strings_ref).
             attributes(field=the_object_ref,
                        # important for this to be a partial because otherwise
@@ -132,21 +142,22 @@ class _DummyBinder(Binder):
                        set_value=partial(list, [as_data("seven"), 7.9,
                                                 complex(7, 9)]),
                        prop=strings_ref))
-        self.bind(dummy.Delta).init(keyword=(None, False, True)).attributes(
+        self.bind(test.dummy.Delta).init(keyword=(None, False, True)).attributes(
             field=the_object_ref,
             # _Binding.resolve automatically turns this into a Reference
             set_value=zipfile.ZipInfo,
             prop=prop_eval)
         unhash_ref_key_eval = Evaluator(dict, [(strings_ref, None)])
         self.bind("unhashable-reference-key",
-                  dummy.Alpha).init(unhash_ref_key_eval)
+                  test.dummy.Alpha).init(unhash_ref_key_eval)
         component_1_ref = Reference("component-1")
         component_2_ref = Reference("component-2")
-        self.bind("component-1", dummy.Alpha).init(component_2_ref)
-        self.bind("component-2", dummy.Beta).attributes(field=component_1_ref)
+        self.bind("component-1", test.dummy.Alpha).init(component_2_ref)
+        self.bind("component-2", test.dummy.Beta).attributes(field=component_1_ref)
 
 
 class BinderTest(unittest.TestCase):
+    """Test the :class:`aglyph.binder.Binder` class."""
 
     def setUp(self):
         binder_id = self.id().rsplit('.', 1)[-1]
@@ -200,11 +211,11 @@ class BinderTest(unittest.TestCase):
         self._assert_dummy_Alpha(obj)
 
     def test_lookup_dummy_dot_create_alpha(self):
-        obj = self.binder.lookup(dummy.create_alpha)
+        obj = self.binder.lookup(test.dummy.create_alpha)
         self._assert_dummy_Alpha(obj)
 
     def _assert_dummy_Alpha(self, alpha):
-        self.assertTrue(isinstance(alpha, dummy.Alpha))
+        self.assertTrue(isinstance(alpha, test.dummy.Alpha))
         self._assert_the_object(alpha.arg)
         self._assert_strings(alpha.keyword)
         self._assert_the_object(alpha.field)
@@ -213,7 +224,7 @@ class BinderTest(unittest.TestCase):
         self._assert_strings(alpha.prop)
 
     def test_lookup_dummy_dot_Beta(self):
-        obj = self.binder.lookup(dummy.Beta)
+        obj = self.binder.lookup(test.dummy.Beta)
         self._assert_dummy_Beta(obj)
 
     def test_lookup_beta(self):
@@ -221,8 +232,8 @@ class BinderTest(unittest.TestCase):
         self._assert_dummy_Beta(obj)
 
     def _assert_dummy_Beta(self, beta):
-        self.assertTrue(isinstance(beta, dummy.Beta))
-        self.assertTrue(beta.arg is dummy.DEFAULT)
+        self.assertTrue(isinstance(beta, test.dummy.Beta))
+        self.assertTrue(beta.arg is test.dummy.DEFAULT)
         self.assertEqual((None, False, True), beta.keyword)
         self._assert_the_object(beta.field)
         self._assert_zipfile_ZipInfo(beta.get_value())
@@ -240,7 +251,7 @@ class BinderTest(unittest.TestCase):
         self._assert_dummy_Gamma(obj)
 
     def _assert_dummy_Gamma(self, gamma):
-        self.assertTrue(isinstance(gamma, dummy.Gamma))
+        self.assertTrue(isinstance(gamma, test.dummy.Gamma))
         self._assert_the_object(gamma.arg)
         self._assert_strings(gamma.keyword)
         self._assert_the_object(gamma.field)
@@ -249,12 +260,12 @@ class BinderTest(unittest.TestCase):
         self._assert_strings(gamma.prop)
 
     def test_lookup_dummy_dot_Delta(self):
-        obj = self.binder.lookup(dummy.Delta)
+        obj = self.binder.lookup(test.dummy.Delta)
         self._assert_dummy_Delta(obj)
 
     def _assert_dummy_Delta(self, delta):
-        self.assertTrue(isinstance(delta, dummy.Delta))
-        self.assertTrue(delta.arg is dummy.DEFAULT)
+        self.assertTrue(isinstance(delta, test.dummy.Delta))
+        self.assertTrue(delta.arg is test.dummy.DEFAULT)
         self.assertEqual((None, False, True), delta.keyword)
         self._assert_the_object(delta.field)
         self._assert_zipfile_ZipInfo(delta.get_value())
@@ -368,11 +379,15 @@ class BinderTest(unittest.TestCase):
         self.assertRaises(AglyphError, self.binder.lookup, "component-2")
 
 
-def get_suite():
+def suite():
+    """Build the test suite for the :mod:`aglyph.binder` module."""
+    _logger.debug("TRACE")
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(BinderTest))
+    _logger.debug("RETURN %r", suite)
     return suite
 
 
 if (__name__ == "__main__"):
-    unittest.TextTestRunner(verbosity=2).run(get_suite())
+    enable_debug_logging(suite)
+    unittest.TextTestRunner().run(suite())

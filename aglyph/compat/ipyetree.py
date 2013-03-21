@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +51,7 @@ options to work around this limitation:
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import platform
 from xml.etree.ElementTree import TreeBuilder
@@ -96,7 +94,7 @@ else:
             settings.IgnoreWhitespace = True
             if (not validating):
                 settings.DtdProcessing = DtdProcessing.Ignore
-                settings.ValidationType = ValidationType.None
+                settings.ValidationType = getattr(ValidationType, "None")
             else:
                 settings.DtdProcessing = DtdProcessing.Parse
                 settings.ValidationType = ValidationType.DTD

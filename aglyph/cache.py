@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ releasing the cache lock.
 from __future__ import with_statement
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import logging
 try:
@@ -42,7 +42,10 @@ except ImportError:
     import dummy_threading
     threading_ = dummy_threading
 
-__all__ = ["MutexCache", "ReentrantMutexCache"]
+__all__ = [
+    "MutexCache",
+    "ReentrantMutexCache",
+]
 
 _logger = logging.getLogger(__name__)
 _logger.debug("using %r", threading_)
@@ -68,6 +71,7 @@ class _LockingCache(dict):
         synchronization.
 
         """
+        self._logger.debug("TRACE %r", lock)
         super(_LockingCache, self).__init__()
         self.__lock = lock
 
@@ -102,6 +106,7 @@ class MutexCache(_LockingCache):
     _logger = logging.getLogger("%s.MutexCache" % __name__)
 
     def __init__(self):
+        self._logger.debug("TRACE")
         super(MutexCache, self).__init__(threading_.Lock())
 
 
@@ -132,4 +137,5 @@ class ReentrantMutexCache(_LockingCache):
     _logger = logging.getLogger("%s.ReentrantMutexCache" % __name__)
 
     def __init__(self):
+        self._logger.debug("TRACE")
         super(ReentrantMutexCache, self).__init__(threading_.RLock())

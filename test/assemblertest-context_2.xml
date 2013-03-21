@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE context SYSTEM "../resources/aglyph-context-1.0.0.dtd">
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context-1.0.0.dtd">
 <context id="assemblertest-context">
     <component id="the-object" dotted-name="__builtin__.object"
             strategy="singleton"/>
@@ -34,7 +34,7 @@
             <attribute name="comment"><str>This is a test.</str></attribute>
         </attributes>
     </component>
-    <component id="alpha" dotted-name="dummy.Alpha" strategy="borg">
+    <component id="alpha" dotted-name="test.dummy.Alpha" strategy="borg">
         <init>
             <arg reference="the-object"/>
             <arg keyword="keyword"><reference id="strings"/></arg>
@@ -51,7 +51,7 @@
             <attribute name="prop" reference="strings"/>
         </attributes>
     </component>
-    <component id="dummy.create_alpha" strategy="borg">
+    <component id="test.dummy.create_alpha" strategy="borg">
         <init>
             <arg><reference id="the-object"/></arg>
             <arg keyword="keyword" reference="strings"/>
@@ -68,7 +68,7 @@
             <attribute name="prop"><reference id="strings"/></attribute>
         </attributes>
     </component>
-    <component id="dummy.Beta">
+    <component id="test.dummy.Beta">
         <init>
             <arg keyword="keyword">
                 <tuple>
@@ -99,7 +99,7 @@
             </attribute>
         </attributes>
     </component>
-    <component id="beta" dotted-name="dummy.create_beta">
+    <component id="beta" dotted-name="test.dummy.create_beta">
         <init>
             <arg keyword="keyword">
                 <tuple>
@@ -130,9 +130,11 @@
             </attribute>
         </attributes>
     </component>
-    <!-- duplicates dummy.Alpha, but dummy.Gamma is an old-style class in
-    Python 2, and this component is a prototype, not a borg -->
-    <component id="gamma" dotted-name="dummy.Gamma" strategy="prototype">
+    <!--
+    duplicates test.dummy.Alpha, but test.dummy.Gamma is an old-style class in
+    Python 2, and this component is a prototype, not a borg
+    -->
+    <component id="gamma" dotted-name="test.dummy.Gamma" strategy="prototype">
         <init>
             <arg reference="the-object"/>
             <arg keyword="keyword"><reference id="strings"/></arg>
@@ -149,9 +151,11 @@
             <attribute name="prop" reference="strings"/>
         </attributes>
     </component>
-    <!-- duplicates dummy.Beta, but dummy.Delta is an old-style class in
-    Python 2 -->
-    <component id="dummy.Delta">
+    <!--
+    duplicates test.dummy.Beta, but test.dummy.Delta is an old-style class in
+    Python 2
+    -->
+    <component id="test.dummy.Delta">
         <init>
             <arg keyword="keyword">
                 <tuple>
@@ -182,9 +186,11 @@
             </attribute>
         </attributes>
     </component>
-    <!-- this component will fail on assembly because the reference used as a
-    dictionary key does not implement the __hash__ protocol. -->
-    <component id="unhashable-reference-key" dotted-name="dummy.Alpha">
+    <!--
+    this component will fail on assembly because the reference used as a
+    dictionary key does not implement the __hash__ protocol.
+    -->
+    <component id="unhashable-reference-key" dotted-name="test.dummy.Alpha">
         <init>
             <arg>
                 <dict>
@@ -196,9 +202,11 @@
             </arg>
         </init>
     </component>
-    <!-- this component will fail on assembly because the eval used as a
-    dictionary key does not implement the __hash__ protocol. -->
-    <component id="unhashable-eval-key" dotted-name="dummy.Beta">
+    <!--
+    this component will fail on assembly because the eval used as a
+    dictionary key does not implement the __hash__ protocol.
+    -->
+    <component id="unhashable-eval-key" dotted-name="test.dummy.Beta">
         <init>
             <arg>
                 <dict>
@@ -210,20 +218,24 @@
             </arg>
         </init>
     </component>
-    <component id="restricted-eval" dotted-name="dummy.Alpha">
+    <component id="restricted-eval" dotted-name="test.dummy.Alpha">
         <init>
-            <!-- Should fail on assembly because __builtin__.compile is not
-            permitted in the restricted globals(). -->
+            <!--
+            Should fail on assembly because __builtin__.compile is not
+            permitted in the restricted globals().
+            -->
             <arg><eval><![CDATA[compile("raise Exception('FAIL!')", "<string>", "exec")]]></eval></arg>
         </init>
     </component>
-    <!-- the next two components create a circular dependency
-    (component-1 => component-2 => component-1), which should be detected when either is
-    assembled (raise AglyphError) -->
-    <component id="component-1" dotted-name="dummy.Alpha">
+    <!--
+    the next two components create a circular dependency
+    (component-1 => component-2 => component-1), which should be detected when
+    either is assembled (raise AglyphError)
+    -->
+    <component id="component-1" dotted-name="test.dummy.Alpha">
         <init><arg reference="component-2"/></init>
     </component>
-    <component id="component-2" dotted-name="dummy.Beta">
+    <component id="component-2" dotted-name="test.dummy.Beta">
         <attributes><attribute name="field" reference="component-1"/></attributes>
     </component>
 </context>

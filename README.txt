@@ -17,8 +17,8 @@ LICENSE: MIT License (see the LICENSE.txt file)
 Aglyph is a Dependency Injection framework for Python 2.5+, supporting
 type 2 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on CPython (http://www.python.org/) 2.5, 2.6, 2.7, 3.0, 3.1,
-and 3.2; and on recent versions of the PyPy (http://pypy.org/>),
+Aglyph runs on CPython (http://www.python.org/) 2.5 - 3.3, and on recent
+versions of the PyPy (http://pypy.org/>),
 Jython (http://www.jython.org/), IronPython (http://ironpython.net/),
 and Stackless Python (http://www.stackless.com/) variants.
 
@@ -69,7 +69,8 @@ If you downloaded a source distribution from SourceForge:
 
 (1) Extract the archive to a temporary location.
 (2) Navigate to the "Aglyph" directory in the temporary location.
-(3) Run "python setup.py install".
+(3) Run "python setup.py test".
+(4) Run "python setup.py install".
 
 If you downloaded a built distribution from SourceForge, install it
 using the appropriate platform-specific tool.
@@ -78,7 +79,8 @@ If you cloned the repository from BitBucket, follow these instructions
 to install Aglyph:
 
 (1) Navigate to the "Aglyph" directory in your local repository.
-(2) Run "python setup.py install".
+(2) Run "python setup.py test".
+(3) Run "python setup.py install".
 
 Verify that the installation was successful by importing the 'aglyph'
 module from a Python interpreter:

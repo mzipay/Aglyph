@@ -1,6 +1,6 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ instances and **borg** component shared-states (i.e. instance
 from __future__ import with_statement
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 import functools
 from inspect import isclass
@@ -46,7 +46,9 @@ from aglyph.compat import is_callable, new_instance
 from aglyph.cache import ReentrantMutexCache
 from aglyph.component import Evaluator, Reference, Strategy
 
-__all__ = ["Assembler"]
+__all__ = [
+    "Assembler",
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -61,12 +63,14 @@ class Assembler(object):
 
     def __init__(self, context):
         """*context* should be an :class:`aglyph.context.Context`."""
+        self._logger.debug("TRACE %r", context)
         super(Assembler, self).__init__()
         self._context = context
         self._singleton_cache = ReentrantMutexCache()
         self._borg_cache = ReentrantMutexCache()
         self._assembly_stack = []
-        self._logger.info("initialized %s", self)
+        self._logger.info("initialized %r", self)
+        self._logger.debug("RETURN")
 
     def assemble(self, component_id):
         """Return an instance of the component specified by
@@ -77,19 +81,21 @@ class Assembler(object):
         identifier.
 
         """
-        self._logger.info("assembling %r", component_id)
+        self._logger.debug("TRACE %r", component_id)
         # check for circular dependency
         if (component_id in self._assembly_stack):
             raise AglyphError("circular dependency detected: %s" %
                               " => ".join(self._assembly_stack +
                                           [component_id]))
         self._assembly_stack.append(component_id)
-        self._logger.debug("current assembly stack: %s", self._assembly_stack)
+        self._logger.debug("current assembly stack: %r", self._assembly_stack)
         try:
             component = self._context[component_id]
             instance = self._create(component)
             if (component.strategy == Strategy.PROTOTYPE):
                 self._wire(instance, component)
+            self._logger.info("assembled %r", component_id)
+            self._logger.debug("RETURN %r", type(instance))
             return instance
         finally:
             self._assembly_stack.pop()
@@ -115,8 +121,10 @@ class Assembler(object):
         A new instance is always created and initialized.
 
         """
-        self._logger.info("creating %s", component)
+        self._logger.debug("TRACE %r", component)
         instance = self._initialize(component)
+        self._logger.info("created %r", component.component_id)
+        self._logger.debug("RETURN %r", type(instance))
         return instance
 
     def _create_singleton(self, component):
@@ -130,16 +138,20 @@ class Assembler(object):
         initialized, wired, cached, and then returned.
 
         """
-        self._logger.info("creating %s", component)
+        self._logger.debug("TRACE %r", component)
         with self._singleton_cache.lock:
             instance = self._singleton_cache.get(component.component_id)
-            self._logger.debug("cached instance for %s is %s", component,
+            self._logger.debug("cached instance for %r is %s", component,
                                type(instance))
             if (instance is None):
                 # singletons are initialized and wired once, then cached
                 instance = self._initialize(component)
                 self._wire(instance, component)
                 self._singleton_cache[component.component_id] = instance
+                self._logger.info("created and cached %r", component)
+            else:
+                self._logger.debug("cache hit %r", component)
+            self._logger.debug("RETURN %r", instance)
             return instance
 
     def _create_borg(self, component):
@@ -155,17 +167,17 @@ class Assembler(object):
         cached, and then the instance is returned.
 
         """
-        self._logger.info("creating %s", component)
+        self._logger.debug("TRACE %r", component)
         with self._borg_cache.lock:
             shared_state = self._borg_cache.get(component.component_id)
-            self._logger.debug("cached shared-state for %s is %s", component,
+            self._logger.debug("cached shared-state for %r is %s", component,
                                type(shared_state))
             if (shared_state is None):
                 # borgs are initialized and wired, then the state is cached
                 instance = self._initialize(component)
                 self._wire(instance, component)
                 self._borg_cache[component.component_id] = instance.__dict__
-                return instance
+                self._logger.info("created and cached %r", component)
             else:
                 # TODO: test fixtures for TypeError and AglyphError
                 # always create a new instance of borg
@@ -179,9 +191,11 @@ class Assembler(object):
                     # intent is clear and reject anyway
                     raise AglyphError("borg is not supoprted for classes that "
                                       "define or inherit __slots__")
+                self._logger.debug("cache hit %r", component)
                 instance = new_instance(cls)
                 instance.__dict__ = shared_state
-                return instance
+            self._logger.debug("RETURN %r", instance)
+            return instance
 
     def _initialize(self, component):
         """Return a new *component* object initialized with its
@@ -192,16 +206,17 @@ class Assembler(object):
         This method performs type 3 (constructor) injection.
 
         """
-        self._logger.info("initializing %s", component)
+        self._logger.debug("TRACE %r", component)
         initializer = resolve_dotted_name(component.dotted_name)
         (args, kwargs) = self._resolve_args_and_keywords(component)
         if (isclass(initializer)):
             instance = new_instance(initializer)
             instance.__init__(*args, **kwargs)
-            return instance
         else:
             # use the __call__ protocol
-            return initializer(*args, **kwargs)
+            instance = initializer(*args, **kwargs)
+        self._logger.debug("RETURN %r", type(instance))
+        return instance
 
     def _resolve_args_and_keywords(self, component):
         """Return the fully assembled/evaluated positional and keyword
@@ -213,10 +228,16 @@ class Assembler(object):
         directly to an initializer.
 
         """
-        self._logger.debug("resolving args and keywords for %s", component)
+        self._logger.debug("TRACE %r", component)
         args = tuple([self._resolve(arg) for arg in component.init_args])
         keywords = dict([(n, self._resolve(v))
                        for (n, v) in component.init_keywords.items()])
+        self._logger.info("resolved args and keywords for %r", component)
+        if (self._logger.isEnabledFor(logging.DEBUG)):
+            # do not log possibly sensitive data
+            self._logger.debug("RETURN (%r, %r)", [type(arg) for arg in args],
+                               dict([(k, type(v))
+                                     for (k, v) in keywords.items()]))
         return (args, keywords)
 
     def _wire(self, instance, component):
@@ -229,7 +250,7 @@ class Assembler(object):
         This method performs type 2 (setter) injection.
 
         """
-        self._logger.info("wiring %s", component)
+        self._logger.debug("TRACE %r, %r", type(instance), component)
         for (attr_name, raw_attr_value) in component.attributes.items():
             instance_attr = getattr(instance, attr_name)
             attr_value = self._resolve(raw_attr_value)
@@ -239,6 +260,7 @@ class Assembler(object):
             else:
                 # this is a simple attribute or property
                 setattr(instance, attr_name, attr_value)
+        self._logger.debug("RETURN")
 
     def _resolve(self, value_spec):
         """Return the actual value of an initialization or attribute
@@ -275,10 +297,12 @@ class Assembler(object):
         :returns: a list of evicted component IDs
 
         """
+        self._logger.debug("TRACE")
         with self._singleton_cache.lock:
             singleton_ids = list(self._singleton_cache.keys())
-            self._logger.info("evicting cached singletons %s", singleton_ids)
             self._singleton_cache.clear()
+            self._logger.info("singleton cache cleared")
+            self._logger.debug("RETURN %r", singleton_ids)
             return singleton_ids
 
     def clear_borgs(self):
@@ -288,10 +312,12 @@ class Assembler(object):
                   shared-state instance ``__dict__`` references
 
         """
+        self._logger.debug("TRACE")
         with self._borg_cache.lock:
             borg_ids = list(self._borg_cache.keys())
-            self._logger.info("evicting cached borg states %s", borg_ids)
             self._borg_cache.clear()
+            self._logger.info("borg cache cleared")
+            self._logger.debug("RETURN %r", borg_ids)
             return borg_ids
 
     def __contains__(self, component_id):
@@ -306,5 +332,5 @@ class Assembler(object):
         return (component_id in self._context)
 
     def __repr__(self):
-        return "%s:%s<%s>" % (self.__class__.__module__,
+        return "%s:%s<%r>" % (self.__class__.__module__,
                               self.__class__.__name__, self._context)

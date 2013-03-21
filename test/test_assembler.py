@@ -1,4 +1,6 @@
-# Copyright (c) 2006-2011 Matthew Zipay <mattz@ninthtest.net>
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,11 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""Test cases and runner for the 'aglyph.assembler' module."""
+"""Test cases and runner for the :mod:`aglyph.assembler` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
+import logging
 import struct
 import sys
 import unittest
@@ -33,7 +36,8 @@ from aglyph.compat import is_python_2, python_implementation
 from aglyph.assembler import Assembler
 from aglyph.context import XMLContext
 
-import dummy
+from test import enable_debug_logging, find_basename, skip_if
+import test.dummy
 
 try:
     # will raise ImportError for non-IronPython
@@ -42,8 +46,13 @@ try:
 except ImportError:
     from xml.etree.ElementTree import XMLTreeBuilder as ParserClass
 
+__all__ = [
+    "AssemblerTest",
+    "suite",
+]
 
-__all__ = ["AssemblerTest", "get_suite"]
+# don't use __name__ here; can be run as "__main__"
+_logger = logging.getLogger("test.test_assembler")
 
 # Python 2/3 compatibility
 # * u"..." is valid syntax in Python 2, but raises SyntaxError in Python 3
@@ -70,13 +79,14 @@ else: # assume 3
 
 
 class AssemblerTest(unittest.TestCase):
+    """Test the :class:`aglyph.assembler.Assembler` class."""
 
     def setUp(self):
         if (is_python_2):
-            context = XMLContext("assemblertest-context_2.xml",
+            context = XMLContext(find_basename("assemblertest-context_2.xml"),
                                  parser=ParserClass())
         else:
-            context = XMLContext("assemblertest-context_3.xml",
+            context = XMLContext(find_basename("assemblertest-context_3.xml"),
                                  parser=ParserClass())
         self.assembler = Assembler(context)
 
@@ -128,11 +138,11 @@ class AssemblerTest(unittest.TestCase):
         self._assert_dummy_Alpha(obj)
 
     def test_assemble_dummy_dot_create_alpha(self):
-        obj = self.assembler.assemble("dummy.create_alpha")
+        obj = self.assembler.assemble("test.dummy.create_alpha")
         self._assert_dummy_Alpha(obj)
 
     def _assert_dummy_Alpha(self, alpha):
-        self.assertTrue(isinstance(alpha, dummy.Alpha))
+        self.assertTrue(isinstance(alpha, test.dummy.Alpha))
         self._assert_the_object(alpha.arg)
         self._assert_strings(alpha.keyword)
         self._assert_the_object(alpha.field)
@@ -140,7 +150,7 @@ class AssemblerTest(unittest.TestCase):
         self._assert_strings(alpha.prop)
 
     def test_assemble_dummy_dot_Beta(self):
-        obj = self.assembler.assemble("dummy.Beta")
+        obj = self.assembler.assemble("test.dummy.Beta")
         self._assert_dummy_Beta(obj)
 
     def test_assemble_beta(self):
@@ -148,8 +158,8 @@ class AssemblerTest(unittest.TestCase):
         self._assert_dummy_Beta(obj)
 
     def _assert_dummy_Beta(self, beta):
-        self.assertTrue(isinstance(beta, dummy.Beta))
-        self.assertTrue(beta.arg is dummy.DEFAULT)
+        self.assertTrue(isinstance(beta, test.dummy.Beta))
+        self.assertTrue(beta.arg is test.dummy.DEFAULT)
         self.assertEqual((None, False, True), beta.keyword)
         self._assert_the_object(beta.field)
         self._assert_zipfile_ZipInfo(beta.get_value())
@@ -167,7 +177,7 @@ class AssemblerTest(unittest.TestCase):
         self._assert_dummy_Gamma(obj)
 
     def _assert_dummy_Gamma(self, gamma):
-        self.assertTrue(isinstance(gamma, dummy.Gamma))
+        self.assertTrue(isinstance(gamma, test.dummy.Gamma))
         self._assert_the_object(gamma.arg)
         self._assert_strings(gamma.keyword)
         self._assert_the_object(gamma.field)
@@ -175,12 +185,12 @@ class AssemblerTest(unittest.TestCase):
         self._assert_strings(gamma.prop)
 
     def test_assemble_dummy_dot_Delta(self):
-        obj = self.assembler.assemble("dummy.Delta")
+        obj = self.assembler.assemble("test.dummy.Delta")
         self._assert_dummy_Delta(obj)
 
     def _assert_dummy_Delta(self, delta):
-        self.assertTrue(isinstance(delta, dummy.Delta))
-        self.assertTrue(delta.arg is dummy.DEFAULT)
+        self.assertTrue(isinstance(delta, test.dummy.Delta))
+        self.assertTrue(delta.arg is test.dummy.DEFAULT)
         self.assertEqual((None, False, True), delta.keyword)
         self._assert_the_object(delta.field)
         self._assert_zipfile_ZipInfo(delta.get_value())
@@ -293,13 +303,12 @@ class AssemblerTest(unittest.TestCase):
         self.assertRaises(TypeError, self.assembler.assemble,
                           "unhashable-eval-key")
 
+    @skip_if((python_implementation in ["Jython", "PyPy"]) or
+                hasattr(sys, "JYTHON_JAR") or
+                hasattr(sys, "pypy_version_info"),
+             "Jython and PyPy do not respect restricted builtins passed in "
+             "the globals to eval()")
     def test_eval_restricted_builtins(self):
-        # Jython and PyPy do not respect a restricted "__builtins__" passed in
-        # the globals to eval()
-        if ((python_implementation in ["Jython", "PyPy"]) or
-            hasattr(sys, "JYTHON_JAR") or hasattr(sys, "pypy_version_info")):
-            sys.stderr.write("\nSKIPPED: test_eval_restricted_builtins\n")
-            return
         self.assertRaises(NameError, self.assembler.assemble,
                           "restricted-eval")
 
@@ -308,11 +317,15 @@ class AssemblerTest(unittest.TestCase):
         self.assertRaises(AglyphError, self.assembler.assemble, "component-2")
 
 
-def get_suite():
+def suite():
+    """Build the test suite for the :mod:`aglyph.assembler` module."""
+    _logger.debug("TRACE")
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(AssemblerTest))
+    _logger.debug("RETURN %r", suite)
     return suite
 
 
 if (__name__ == "__main__"):
-    unittest.TextTestRunner(verbosity=2).run(get_suite())
+    enable_debug_logging(suite)
+    unittest.TextTestRunner().run(suite())

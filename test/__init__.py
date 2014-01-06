@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,20 +23,20 @@
 """Utility functions and classes for all unit test modules."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
-from functools import wraps
+import functools
 import inspect
 import logging
+import logging.config
 import os
 import sys
 import unittest
 
 __all__ = [
-    "additional_tests",
     "enable_debug_logging",
     "find_basename",
-    "skip_if",
+    "skip_if"
 ]
 
 _logger = logging.getLogger(__name__)
@@ -47,15 +47,15 @@ except AttributeError:
     # PYVER: unittest.skipIf is not available in all versions of Python
     def skip_if(condition, reason):
         if (condition):
-            def decorator(test_obj):
-                @wraps(test_obj)
+            def decorator(test_func):
+                @functools.wraps(test_func)
                 def skip_wrapper(*args, **kwargs):
                     sys.stderr.write("\nSKIPPED %s (%s)\n" %
-                                     (test_obj.__name__, reason))
+                                     (test_func.__name__, reason))
                 return skip_wrapper
             return decorator
         else:
-            return lambda obj: obj
+            return lambda test_func: test_func
 
 
 def enable_debug_logging(suite):
@@ -76,6 +76,11 @@ def enable_debug_logging(suite):
         filename=log_filename,
         filemode='w'
     )
+    # PYVER: logging.captureWarnings is only available in Python 2.7+
+    try:
+        logging.captureWarnings(True)
+    except AttributeError:
+        pass
     _logger.debug("RETURN %r", log_filename)
     return log_filename
 
@@ -84,3 +89,4 @@ def find_basename(basename):
     """Locate *basename* relative to the ``test`` package."""
     init_filename = inspect.getsourcefile(find_basename)
     return os.path.join(os.path.dirname(init_filename), basename)
+

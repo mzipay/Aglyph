@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -30,7 +30,7 @@ testing).
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
 __all__ = [
     "Alpha",
@@ -40,6 +40,8 @@ __all__ = [
     "DEFAULT",
     "Delta",
     "Gamma",
+    "Epsilon",
+    "EPSILON"
 ]
 
 #: used as a default instead of ``None`` (easier testing)
@@ -130,3 +132,37 @@ class Delta(Gamma):
     def __init__(self, keyword=DEFAULT):
         # PYVER: super() is preferred in Python >= 3.0
         Gamma.__init__(self, DEFAULT, keyword=keyword)
+
+
+class Epsilon(Alpha):
+    """Class used to test factory and member assembly."""
+
+    ATTRIBUTE = "Epsilon.ATTRIBUTE"
+
+    class Zeta(Beta):
+
+        ATTRIBUTE = "Epsilon.Zeta.ATTRIBUTE"
+
+        @staticmethod
+        def static_factory(keyword=DEFAULT):
+            return Epsilon.Zeta(keyword=keyword)
+
+        @classmethod
+        def class_factory(cls, keyword=DEFAULT):
+            return cls(keyword=keyword)
+
+    @staticmethod
+    def static_factory(arg, keyword=DEFAULT):
+        return Epsilon(arg, keyword=keyword)
+
+    @classmethod
+    def class_factory(cls, arg, keyword=DEFAULT):
+        return cls(arg, keyword=keyword)
+
+
+#: Module-level member used to test member assembly.
+EPSILON = Epsilon("arg", keyword="keyword")
+
+#: Module-level member used to test member assembly.
+ZETA = Epsilon.Zeta(keyword="keyword")
+

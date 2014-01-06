@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
 """Test cases and runner for the :mod:`aglyph.context` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 import functools
 import logging
@@ -54,17 +54,10 @@ else:
     isnan = getattr(math, "isnan", lambda x: isinstance(x, float))
     isinf = getattr(math, "isinf", lambda x: isinstance(x, float))
 
-try:
-    # will raise ImportError for non-IronPython
-    import clr
-    from aglyph.compat.ipyetree import XmlReaderTreeBuilder as ParserClass
-except ImportError:
-    from xml.etree.ElementTree import XMLTreeBuilder as ParserClass
-
 __all__ = [
     "ContextTest",
     "suite",
-    "XMLContextTest",
+    "XMLContextTest"
 ]
 
 # don't use __name__ here; can be run as "__main__"
@@ -85,7 +78,7 @@ if (is_python_2):
     as_data = lambda s: s
     # the buffer type for encoded byte data
     DataIO = __import__("StringIO").StringIO
-else: # assume is_python_3
+else:  # assume is_python_3
     # allows a string literal like "fa\u00e7ade" to be used like
     # 'as_text("fa\u00e7ade")', and be interpreted correctly at runtime
     # regardless of Python version 2 or 3
@@ -168,7 +161,7 @@ class XMLContextTest(unittest.TestCase):
 
     def _init_context(self, xml_string, encoding="utf-8"):
         source = DataIO(xml_string.encode(encoding))
-        return XMLContext(source, parser=ParserClass())
+        return XMLContext(source)
 
     def test_init_root_is_not_context(self):
         self.assertRaises(AglyphError, self._init_context, as_text(
@@ -179,8 +172,7 @@ class XMLContextTest(unittest.TestCase):
                           '<?xml version="1.0"?>\n<context/>'))
 
     def test_init_filename(self):
-        context = XMLContext(find_basename("empty-context.xml"),
-                             parser=ParserClass())
+        context = XMLContext(find_basename("empty-context.xml"))
         self.assertEqual("empty-context", context.context_id)
 
     def test_init_stream(self):
@@ -190,15 +182,13 @@ class XMLContextTest(unittest.TestCase):
     def test_default_default_encoding(self):
         context = XMLContext(DataIO(as_text("""\
 <?xml version="1.0"?>
-<context id="test_default_default_encoding"/>""".encode("utf-8"))),
-                             parser=ParserClass())
+<context id="test_default_default_encoding"/>""".encode("utf-8"))))
         self.assertEqual(sys.getdefaultencoding(), context.default_encoding)
 
     def test_explicit_default_encoding(self):
         context = XMLContext(DataIO(as_text("""\
 <?xml version="1.0"?>
 <context id="test_explicit_default_encoding"/>""".encode("utf-8"))),
-                             parser=ParserClass(),
                              default_encoding="iso-8859-1")
         self.assertEqual("iso-8859-1", context.default_encoding)
 
@@ -228,7 +218,7 @@ class XMLContextTest(unittest.TestCase):
 
     def test_parse_component_unique_id(self):
         context = self._init_context(self.context_template % as_text(
-                        '<component id="beta" dotted-name="test.dummy.Beta"/>'))
+                    '<component id="beta" dotted-name="test.dummy.Beta"/>'))
         component = context["beta"]
         self.assertEqual("beta", component.component_id)
         self.assertEqual("test.dummy.Beta", component.dotted_name)
@@ -258,6 +248,21 @@ class XMLContextTest(unittest.TestCase):
             self.context_template % as_text(
                 '<component id="test.dummy.Beta" strategy="borg"/>'))
         self.assertEqual(Strategy.BORG, context["test.dummy.Beta"].strategy)
+
+    def test_parse_component_factory_name(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="epsilon" dotted-name="test.dummy.Epsilon" '
+                    'factory-name="class_factory" />'))
+        self.assertEqual("class_factory", context["epsilon"].factory_name)
+
+    def test_parse_component_member_name(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="epsilon-member" '
+                    'dotted-name="test.dummy.Epsilon" '
+                    'member-name="ATTRIBUTE" />'))
+        self.assertEqual("ATTRIBUTE", context["epsilon-member"].member_name)
 
     def test_parse_init_empty(self):
         context = self._init_context(
@@ -502,7 +507,7 @@ class XMLContextTest(unittest.TestCase):
         if (is_python_2):
             long_int = eval("sys.maxint + 1")
             long_int_type = eval("long")
-        else: # assume 3
+        else:  # assume 3
             long_int = eval("sys.maxsize + 1")
             long_int_type = int
         context = self._init_context(self.context_template % as_text("""\
@@ -908,7 +913,7 @@ class XMLContextTest(unittest.TestCase):
         self.assertTrue(isinstance(partial_arg, functools.partial))
         self.assertTrue(partial_arg.func is eval)
         self.assertEqual("complex(7, 9)", partial_arg.args[0])
-        self.assertEqual(complex(7,9), partial_arg())
+        self.assertEqual(complex(7, 9), partial_arg())
         partial_kw = context["test.dummy.Alpha"].init_keywords["keyword"]
         self.assertTrue(isinstance(partial_kw, functools.partial))
         self.assertTrue(partial_kw.func is eval)
@@ -926,7 +931,7 @@ class XMLContextTest(unittest.TestCase):
         self.assertTrue(isinstance(partial_attr, functools.partial))
         self.assertTrue(partial_attr.func is eval)
         self.assertEqual("complex(7, 9)", partial_attr.args[0])
-        self.assertEqual(complex(7,9), partial_attr())
+        self.assertEqual(complex(7, 9), partial_attr())
 
     def test_parse_eval_list(self):
         context = self._init_context(self.context_template % as_text("""\
@@ -1008,3 +1013,4 @@ def suite():
 if (__name__ == "__main__"):
     enable_debug_logging(suite)
     unittest.TextTestRunner().run(suite())
+

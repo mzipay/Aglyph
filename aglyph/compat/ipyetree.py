@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,74 +20,85 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""This module defines an :mod:`xml.etree.ElementTree` "tree builder"
-that uses the .NET
-`System.Xml.XmlReader <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
-XML parser to parse an Aglyph XML context document.
+"""This module defines an :class:`xml.etree.ElementTree.XMLParser` that
+delegates to the .NET
+`System.Xml.XmlReader
+<http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_ XML
+parser to parse an Aglyph XML context document.
 
 `IronPython <http://ironpython.net/>`_ is not able to load CPython's
-:mod:`xml.parsers.expat` module, and so the default parser (used by
-ElementTree) simply does not exist. This means that, by default,
-Aglyph XML contexts cannot be loaded in *IronPython* applications.
+:mod:`xml.parsers.expat` module, and so the default parser used by
+ElementTree does not exist.
 
-*IronPython* developers who wish to use XML configuration have several
-options to work around this limitation:
+.. versionadded:: 2.0.0
+   To address the missing :mod:`xml.parsers.expat` module, this module\
+   now defines the :class:`CLRXMLParser` class, which replaces\
+   :class:`XmlReaderTreeBuilder` and is used by\
+   :class:`aglyph.context.XMLContext` as the default parser when\
+   running under IronPython.
 
-#. Use an instance of the
-   :class:`aglyph.compat.ipyetree.XmlReaderTreeBuilder` class as the
-   ``parser`` keyword argument to :class:`aglyph.context.XMLContext`.
-#. Install an *expat* or *expat*-like library as a site package. A
-   search engine query for "IronPython expat" is a good start. **This
-   has not been tested with Aglyph.**
-#. Write your own subclass of :class:`aglyph.context.Context` to parse
-   a custom XML format using a .NET XML parser (e.g.
-   ``System.Xml.XmlReader``).
-
-.. note::
-
-    Programmatic configuration using :class:`aglyph.context.Context`
-    is fully supported in *IronPython*.
+Alternatively, IronPython developers may wish to install ``expat`` or an
+``expat``-compatible library as a site package. **However, this has not
+been tested with Aglyph.**
 
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
+import logging
 import platform
-from xml.etree.ElementTree import TreeBuilder
+import xml.etree.ElementTree as ET
 
-try:
+from aglyph import AglyphError, _warn_deprecated
+from aglyph.compat import DoctypeTreeBuilder, is_ironpython
+
+__all__ = ["CLRXMLParser", "XmlReaderTreeBuilder"]
+
+_logger = logging.getLogger(__name__)
+
+if (is_ironpython):
     import clr
-except ImportError:
-    class XmlReaderTreeBuilder(object):
-        def __init__(self, *args, **keywords):
-            raise NotImplementedError("CLR is not available!")
-else:
+
     clr.AddReference("System.Xml")
 
     from System.IO import StringReader
     from System.Text.RegularExpressions import Regex, RegexOptions
-    from System.Xml import (DtdProcessing, ValidationType, XmlNodeType,
-                            XmlReader, XmlReaderSettings)
+    from System.Xml import (
+        DtdProcessing,
+        ValidationType,
+        XmlNodeType,
+        XmlReader,
+        XmlReaderSettings
+    )
+
+    _logger.info(
+        "loaded System.Xml, System.IO, and System.Text CLR namespaces")
 
     CRE_ENCODING = Regex("encoding=['\"](?<enc_name>.*?)['\"]",
                          RegexOptions.Compiled)
 
-
-    class XmlReaderTreeBuilder(object):
-        """Build an `ElementTree
-        <http://effbot.org/zone/element-index.htm>`_ using the .NET
-        `System.Xml.XmlReader
+    class CLRXMLParser(ET.XMLParser):
+        """An :class:`xml.etree.ElementTree.XMLParser` that delegates
+        parsing to the .NET `System.Xml.XmlReader
         <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
-        XML parser.
+        parser.
 
         """
 
-        def __init__(self, validating=False):
-            """Set *validating* to ``True`` to use a validating parser.
+        __logger = logging.getLogger("%s.CLRXMLParser" % __name__)
+
+        def __init__(self, target=None, validating=False):
+            """
+            :param xml.etree.ElementTree.TreeBuilder target:\
+               the target object (if omitted, a standard\
+               ``TreeBuilder`` instance is used)
+            :param bool validating:\
+               specify ``True`` to use a validating parser
 
             """
-            super(XmlReaderTreeBuilder, self).__init__()
+            self.__logger.debug("TRACE target=%r, validating=%r",
+                                target, validating)
             settings = XmlReaderSettings()
             settings.IgnoreComments = True
             settings.IgnoreProcessingInstructions = True
@@ -99,23 +110,24 @@ else:
                 settings.DtdProcessing = DtdProcessing.Parse
                 settings.ValidationType = ValidationType.DTD
             self.settings = settings
-            self._target = TreeBuilder()
             self.version = "%s %s" % (platform.platform(),
-                                          platform.python_compiler())
+                                      platform.python_compiler())
+            self.__logger.debug("ET parser version is %r", self.version)
+            self._target = (target if (target is not None)
+                            else DoctypeTreeBuilder())
             self._buffer = []
-            self._document_encoding = "utf-8" # default
+            self._document_encoding = "UTF-8"  # default
+            self.__logger.debug("RETURN")
 
         def feed(self, data):
             """Add more XML data to be parsed.
 
-            *data* is raw XML read from a stream or passed in as a
-            string.
+            :param str data: raw XML read from a stream
 
             .. note::
-
-                All *data* across calls to this method are buffered
-                internally; the parser itself is not actually created
-                until the :func:`close` method is called.
+               All *data* across calls to this method are buffered
+               internally; the parser itself is not actually created
+               until the :meth:`close` method is called.
 
             """
             self._buffer.append(data)
@@ -124,13 +136,14 @@ else:
             """Parse the XML from the internal buffer to build an
             element tree.
 
-            :returns: the root element of the XML document
+            :return: the root element of the XML document
             :rtype: :class:`xml.etree.ElementTree.ElementTree`
 
             """
-            reader = XmlReader.Create(StringReader("".join(self._buffer)),
-                                      self.settings)
+            self.__logger.debug("TRACE")
+            xml_string = "".join(self._buffer)
             self._buffer = None
+            reader = XmlReader.Create(StringReader(xml_string), self.settings)
             while (reader.Read()):
                 if (reader.IsStartElement()):
                     self._start_element(reader)
@@ -146,27 +159,34 @@ else:
                 elif (reader.NodeType == XmlNodeType.XmlDeclaration):
                     self._parse_xml_declaration(reader.Value)
             return self._target.close()
+            self.__logger.debug("RETURN")
 
         def _parse_xml_declaration(self, xml_decl):
             """Parse the document encoding from *xml_decl*.
 
-            *xml_decl* is the content of the XML declaration as reported
-            by
-            `System.Xml.XmlReader <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
-            (node type
-            `XmlNodeType.XmlDeclaration <http://msdn.microsoft.com/en-us/library/system.xml.xmlnodetype>`_).
+            :param str xml_decl: the document XML declaration
+
+            *xml_decl* is reported by `System.Xml.XmlReader
+            <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
+            as a node of the type
+            `XmlNodeType.XmlDeclaration
+            <http://msdn.microsoft.com/en-us/library/system.xml.xmlnodetype>`_.
 
             """
+            self.__logger.debug("TRACE %r", xml_decl)
             enc_name = CRE_ENCODING.Match(xml_decl).Groups["enc_name"].Value
             if (enc_name):
+                self.__logger.info("document encoding is %r", enc_name)
                 self._document_encoding = enc_name
+            self.__logger.debug("RETURN")
 
         def _start_element(self, reader):
             """Notify the tree builder that a start element has been
             encountered.
 
             *reader* is a reference to a .NET
-            `System.Xml.XmlReader <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_.
+            `System.Xml.XmlReader
+            <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_.
 
             If the element is an empty element (e.g. ``<name/>``), the
             tree builder is also notified that the element has been
@@ -181,3 +201,41 @@ else:
             self._target.start(name, attributes)
             if (reader.IsEmptyElement):
                 self._target.end(name)
+
+
+else:
+    _logger.warn("not running under IronPython; .NET CLR is not available")
+
+    class CLRXMLParser(ET.XMLParser):
+        """A dummy class that will throw :class:`aglyph.AglyphError` if
+        instantiated.
+
+        """
+
+        def __init__(self, *args, **keywords):
+            raise AglyphError(".NET CLR is not available")
+
+
+class XmlReaderTreeBuilder(CLRXMLParser):
+    """Build an `ElementTree
+    <http://effbot.org/zone/element-index.htm>`_ using the .NET
+    `System.Xml.XmlReader
+    <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
+    XML parser.
+
+    .. versionchanged:: 2.0.0
+       It is no longer necessary for IronPython applications to use\
+       this class explicitly. :class:`aglyph.context.XMLContext` now\
+       uses :class:`CLRXMLParser` by default if running under\
+       IronPython.
+
+    .. deprecated:: 2.0.0
+       This class has been renamed to :class:`CLRXMLParser`.\
+       ``XmlReaderTreeBuilder`` will be **removed** in release 3.0.0.
+
+    """
+
+    def __init__(self, validating=False):
+        _warn_deprecated("aglyph.compat.ipyetree.XmlReaderTreeBuilder")
+        super(XmlReaderTreeBuilder, self).__init__(validating=validating)
+

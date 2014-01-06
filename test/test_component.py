@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,12 +23,13 @@
 """Test cases and runner for the :mod:`aglyph.component` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
 import functools
 import logging
 import unittest
 
+from aglyph import AglyphError
 from aglyph.component import Component, Evaluator, Reference, Strategy
 
 from test import enable_debug_logging
@@ -38,7 +39,7 @@ __all__ = [
     "ComponentTest",
     "EvaluatorTest",
     "ReferenceTest",
-    "suite",
+    "suite"
 ]
 
 # don't use __name__ here; can be run as "__main__"
@@ -92,6 +93,29 @@ class ComponentTest(unittest.TestCase):
         self.assertEqual([], component.init_args)
         self.assertEqual({}, component.init_keywords)
         self.assertEqual({}, component.attributes)
+
+    def test_factory_name(self):
+        component = Component("epsilon-factory",
+                              dotted_name="test.dummy.Epsilon",
+                              factory_name="class_factory")
+        self.assertEqual("epsilon-factory", component.component_id)
+        self.assertEqual("test.dummy.Epsilon", component.dotted_name)
+        self.assertEqual("class_factory", component.factory_name)
+        self.assertTrue(component.member_name is None)
+
+    def test_member_name(self):
+        component = Component("epsilon-class", dotted_name="test.dummy",
+                              member_name="Epsilon")
+        self.assertEqual("epsilon-class", component.component_id)
+        self.assertEqual("test.dummy", component.dotted_name)
+        self.assertEqual("Epsilon", component.member_name)
+        self.assertTrue(component.factory_name is None)
+
+    def test_factory_and_member_names_mutually_exclusive(self):
+        self.assertRaises(AglyphError, Component, "epsilon-fail",
+                          dotted_name="test.dummy.Epsilon",
+                          factory_name="class_factory",
+                          member_name="ATTRIBUTE")
 
 
 class EvaluatorTest(unittest.TestCase):
@@ -230,3 +254,4 @@ def suite():
 if (__name__ == "__main__"):
     enable_debug_logging(suite)
     unittest.TextTestRunner().run(suite())
+

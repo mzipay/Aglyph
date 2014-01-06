@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <context id="movies-context">
-    <component id="movies.finder.ColonDelimitedMovieFinder"
-            strategy="singleton">
+    <component id="delim-finder"
+               dotted-name="movies.finder.ColonDelimitedMovieFinder"
+               strategy="singleton">
         <init>
             <arg><str>movies.txt</str></arg>
         </init>
     </component>
-    <component id="csv-finder" dotted-name="movies.finder.CSVMovieFinder"
-            strategy="singleton">
+    <component id="movies.finder.MovieFinder"
+               dotted-name="movies.finder.SQLMovieFinder"
+               strategy="borg">
         <init>
-            <arg><str>movies.csv</str></arg>
+            <arg><str>movies.db</str></arg>
         </init>
     </component>
     <component id="movies.lister.MovieLister">
         <init>
-            <arg reference="movies.finder.ColonDelimitedMovieFinder"/>
+            <arg reference="movies.finder.MovieFinder" />
         </init>
     </component>
 </context>

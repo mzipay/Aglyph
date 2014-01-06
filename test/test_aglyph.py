@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,13 +23,17 @@
 """Master test case and runner for Aglyph."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 import logging
 import unittest
 
-from aglyph import (format_dotted_name, has_importable_dotted_name,
-                    identify_by_spec, resolve_dotted_name)
+from aglyph import (
+    format_dotted_name, 
+    has_importable_dotted_name,
+    identify_by_spec,
+    resolve_dotted_name
+)
 
 from test import enable_debug_logging
 from test.dummy import Alpha, Beta, create_alpha, Delta
@@ -49,7 +53,7 @@ __all__ = [
     "HasImportableDottedNameTest",
     "IdentifyBySpecTest",
     "ResolveDottedNameTest",
-    "suite",
+    "suite"
 ]
 
 # don't use __name__ here; can be run as "__main__"
@@ -151,9 +155,6 @@ class ResolveDottedNameTest(unittest.TestCase):
 
     def test_module_not_found(self):
         self.assertRaises(ImportError, resolve_dotted_name, "does.not.exist")
-
-    def test_none(self):
-        self.assertRaises(ValueError, resolve_dotted_name, None)
 
 
 class IdentifyBySpecTest(unittest.TestCase):

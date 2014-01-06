@@ -6,12 +6,14 @@ The Aglyph API consists of a single top-level package (``aglyph``) along with
 several modules and subpackages, as listed below.
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 2
 
-    aglyph
-    aglyph.assembler
-    aglyph.binder
-    aglyph.cache
-    aglyph.component
-    aglyph.context
-    aglyph.compat.ipyetree
+   aglyph
+   aglyph.assembler
+   aglyph.binder
+   aglyph.cache
+   aglyph.component
+   aglyph.context
+   aglyph.compat
+   aglyph.compat.ipyetree
+

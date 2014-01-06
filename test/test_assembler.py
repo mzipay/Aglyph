@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
 """Test cases and runner for the :mod:`aglyph.assembler` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
 import logging
 import struct
@@ -32,23 +32,16 @@ import unittest
 import zipfile
 
 from aglyph import AglyphError
-from aglyph.compat import is_python_2, python_implementation
+from aglyph.compat import is_jython, is_pypy, is_python_2
 from aglyph.assembler import Assembler
 from aglyph.context import XMLContext
 
 from test import enable_debug_logging, find_basename, skip_if
 import test.dummy
 
-try:
-    # will raise ImportError for non-IronPython
-    import clr
-    from aglyph.compat.ipyetree import XmlReaderTreeBuilder as ParserClass
-except ImportError:
-    from xml.etree.ElementTree import XMLTreeBuilder as ParserClass
-
 __all__ = [
     "AssemblerTest",
-    "suite",
+    "suite"
 ]
 
 # don't use __name__ here; can be run as "__main__"
@@ -66,7 +59,7 @@ if (is_python_2):
     # 'as_data("fa\xc3\xa7ade")', and be interpreted correctly at runtime
     # regardless of Python version 2 or 3
     as_data = lambda s: s
-else: # assume 3
+else:  # assume 3
     # allows a string literal like "fa\u00e7ade" to be used like
     # 'as_text("fa\u00e7ade")', and be interpreted correctly at runtime
     # regardless of Python version 2 or 3
@@ -82,12 +75,9 @@ class AssemblerTest(unittest.TestCase):
     """Test the :class:`aglyph.assembler.Assembler` class."""
 
     def setUp(self):
-        if (is_python_2):
-            context = XMLContext(find_basename("assemblertest-context_2.xml"),
-                                 parser=ParserClass())
-        else:
-            context = XMLContext(find_basename("assemblertest-context_3.xml"),
-                                 parser=ParserClass())
+        filename = ("assemblertest-context_2.xml" if is_python_2
+                    else "assemblertest-context_3.xml")
+        context = XMLContext(find_basename(filename))
         self.assembler = Assembler(context)
 
     def tearDown(self):
@@ -118,7 +108,7 @@ class AssemblerTest(unittest.TestCase):
              "unicode": as_text("fa\u00e7ade")}
         if (is_python_2):
             d["str-with-encoding"] = as_data("fa\xe7ade")
-        else: # assume 3
+        else:  # assume 3
             d["str-with-encoding"] = as_text("fa\u00e7ade")
         self.assertEqual(d, strings)
 
@@ -203,6 +193,95 @@ class AssemblerTest(unittest.TestCase):
         (zipinfo,) = d["zip-info"]
         self._assert_zipfile_ZipInfo(zipinfo)
 
+    def test_assemble_Epsilon_staticmethod(self):
+        obj = self.assembler.assemble("epsilon-static-factory")
+        self._assert_dummy_Epsilon(obj)
+
+    def test_assemble_Epsilon_classmethod(self):
+        obj = self.assembler.assemble("epsilon-class-factory")
+        self._assert_dummy_Epsilon(obj)
+
+    def test_assemble_factory_singleton(self):
+        epsilon1 = self.assembler.assemble("epsilon-class-factory")
+        self._assert_dummy_Epsilon(epsilon1)
+        epsilon2 = self.assembler.assemble("epsilon-class-factory")
+        self.assertTrue(epsilon2 is epsilon1)
+
+    def test_assemble_Zeta_nested_class(self):
+        obj = self.assembler.assemble("zeta")
+        self._assert_dummy_Epsilon_Zeta(obj)
+
+    def test_assemble_factory_borg(self):
+        zeta1 = self.assembler.assemble("zeta")
+        self._assert_dummy_Epsilon_Zeta(zeta1)
+        zeta1.set_value("shared-state")
+        zeta2 = self.assembler.assemble("zeta")
+        self.assertFalse(zeta2 is zeta1)
+        self.assertEqual("shared-state", zeta2.get_value())
+
+    def test_assemble_Zeta_staticmethod(self):
+        obj = self.assembler.assemble("zeta-static-factory")
+        self._assert_dummy_Epsilon_Zeta(obj)
+
+    def test_assemble_Zeta_classmethod(self):
+        obj = self.assembler.assemble("zeta-class-factory")
+        self._assert_dummy_Epsilon_Zeta(obj)
+
+    def _assert_dummy_Epsilon(self, epsilon):
+        self.assertTrue(isinstance(epsilon, test.dummy.Epsilon))
+        self.assertEqual("arg", epsilon.arg)
+        self.assertEqual("keyword", epsilon.keyword)
+        self.assertEqual("field", epsilon.field)
+        self.assertEqual("value", epsilon.get_value())
+        self.assertEqual("prop", epsilon.prop)
+
+    def _assert_dummy_Epsilon_Zeta(self, zeta):
+        self.assertTrue(isinstance(zeta, test.dummy.Epsilon.Zeta))
+        self.assertTrue(zeta.arg is test.dummy.DEFAULT)
+        self.assertEqual("keyword", zeta.keyword)
+        self.assertEqual("field", zeta.field)
+        self.assertEqual("value", zeta.get_value())
+        self.assertEqual("prop", zeta.prop)
+
+    def test_assemble_Epsilon_attribute(self):
+        obj = self.assembler.assemble("epsilon-attribute")
+        self.assertEqual("Epsilon.ATTRIBUTE", obj)
+
+    def test_assemble_Epsilon_Zeta_attribute(self):
+        obj = self.assembler.assemble("epsilon-zeta-attribute")
+        self.assertEqual("Epsilon.Zeta.ATTRIBUTE", obj)
+
+    def test_assemble_dummy_Zeta_attribute(self):
+        obj = self.assembler.assemble("dummy-zeta")
+        self.assertTrue(obj is test.dummy.ZETA)
+        self.assertEqual("field", obj.field)
+        self.assertEqual("value", obj.get_value())
+        self.assertEqual("prop", obj.prop)
+
+    def test_assemble_member_singleton(self):
+        epsilon1 = self.assembler.assemble("dummy-epsilon")
+        self._assert_dummy_Epsilon(epsilon1)
+        epsilon2 = self.assembler.assemble("dummy-epsilon")
+        self.assertTrue(epsilon2 is epsilon1)
+
+    def test_assemble_member_borg(self):
+        zeta1 = self.assembler.assemble("dummy-zeta")
+        self._assert_dummy_Epsilon_Zeta(zeta1)
+        zeta1.set_value("shared-state")
+        zeta2 = self.assembler.assemble("dummy-zeta")
+        # in this case, because we're using member access, they ARE the same
+        # object (which is correct)
+        #self.assertFalse(zeta2 is zeta1)
+        self.assertTrue(zeta2 is zeta1)
+        self.assertEqual("shared-state", zeta2.get_value())
+
+    def test_assemble_member_is_not_initialized(self):
+        # this would fail with "TypeError: 'str' object is not callable" IF
+        # initialization were not skipped when component/@member-name is
+        # defined
+        obj = self.assembler.assemble("zeta-ignore-init")
+        self.assertEqual("Epsilon.Zeta.ATTRIBUTE", obj)
+
     def test_prototype_behavior(self):
         obj1 = self.assembler.assemble("zipfile.ZipInfo")
         obj2 = self.assembler.assemble("zipfile.ZipInfo")
@@ -256,7 +335,7 @@ class AssemblerTest(unittest.TestCase):
         self.assertEqual(strings, obj3.keyword)
         shared_strings = obj3.keyword
         shared_strings["test_borg_behavior"] = "shared"
-        # "strings" is a prototype, and so change should NOT be reflected in 
+        # "strings" is a prototype, and so change should NOT be reflected in
         # "strings" instances...
         self.assertNotEqual(strings, shared_strings)
         # ... but SHOULD be reflected in all current and new "alpha" instances
@@ -303,9 +382,7 @@ class AssemblerTest(unittest.TestCase):
         self.assertRaises(TypeError, self.assembler.assemble,
                           "unhashable-eval-key")
 
-    @skip_if((python_implementation in ["Jython", "PyPy"]) or
-                hasattr(sys, "JYTHON_JAR") or
-                hasattr(sys, "pypy_version_info"),
+    @skip_if(is_jython or is_pypy,
              "Jython and PyPy do not respect restricted builtins passed in "
              "the globals to eval()")
     def test_eval_restricted_builtins(self):
@@ -329,3 +406,4 @@ def suite():
 if (__name__ == "__main__"):
     enable_debug_logging(suite)
     unittest.TextTestRunner().run(suite())
+

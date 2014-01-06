@@ -3,5 +3,10 @@
 ================================================================
 
 .. automodule:: aglyph.cache
-    :show-inheritance:
-    :members:
+
+.. autoclass:: aglyph.cache.MutexCache
+   :members:
+
+.. autoclass:: aglyph.cache.ReentrantMutexCache
+   :members:
+

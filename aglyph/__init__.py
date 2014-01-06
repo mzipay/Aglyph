@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,27 +26,41 @@ used by Aglyph.
 Aglyph is fully logged using the standard :mod:`logging` module, but by
 default uses a no-op logging handler to suppress log messages. If you
 want to enable Aglyph logging, define a logger for the *"aglyph"* log
-channel in your application, **prior** to importing any Aglyph modules.
-
-See :mod:`logging.config` for more information about configuring the
-logging module.
-
+channel in your application's logging configuration (see
+:mod:`logging.config` for more information).
 
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-# always the current version of Aglyph
-__version__ = "1.1.1"
 
+# always the current version of Aglyph
+MAJOR = 2
+MINOR = 0
+PATCH = 0
+VERSION = (MAJOR, MINOR, PATCH)
+__version__ = "%d.%d.%d" % VERSION
+
+from functools import partial, wraps
+from inspect import isclass, ismethod, ismodule, isroutine
 import logging
 import platform
+import warnings
 
-from aglyph.compat import (ClassAndFunctionTypes, log_23_compatibility,
-                           NoOpLoggingHandler, python_implementation,
-                           StringTypes)
+from aglyph.compat import (
+    ClassAndFunctionTypes,
+    log_compatibility,
+    NoOpLoggingHandler,
+    python_implementation,
+    StringTypes
+)
 
-__all__ = ["AglyphError", "format_dotted_name", "has_importable_dotted_name",
-           "identify_by_spec", "resolve_dotted_name"]
+__all__ = [
+    "AglyphError",
+    "format_dotted_name",
+    "has_importable_dotted_name",  # deprecated
+    "identify_by_spec",  # deprecated
+    "resolve_dotted_name"
+]
 
 # define a logger for the "aglyph" channel to enable logging
 _logger = logging.getLogger(__name__)
@@ -55,11 +69,29 @@ if (not _logger.handlers):
     _logger.addHandler(NoOpLoggingHandler())
 
 # log the Aglyph/Python versions and the platform (useful for debugging), and
-# then the _23compat details
+# then the compatibility details
 _logger.info("Aglyph %s; %s %s; %s" % (__version__, python_implementation,
                                        platform.python_version(),
                                        platform.platform()))
-log_23_compatibility()
+log_compatibility()
+
+
+def _warn_deprecated(name):
+    """Issue a :obj:`DeprecationWarning`.
+
+    :param str name: the name of an Aglyph class, function, method, or\
+                     module
+
+    .. warning::
+       A deprecated class, function, method, or module will remain part
+       of the Aglyph API until the next MAJOR release, at which time it
+       will be **removed**.
+
+    """
+    deprecation = DeprecationWarning(
+        "%s is deprecated and will be removed in release %d.0.0" %
+            (name, MAJOR + 1))
+    warnings.warn(deprecation, stacklevel=3)
 
 
 class AglyphError(Exception):
@@ -70,81 +102,151 @@ class AglyphError(Exception):
 
 
 def has_importable_dotted_name(obj):
-    """Return ``True`` if *obj* is an importable class or unbound
-    function.
+    """Tell whether or not *obj* can be represented as an importable
+    dotted-name string.
+
+    :param obj: any object
+    :return:\
+       ``True`` if *obj* is an importable class or unbound function,\
+       else ``False``
+
+    .. deprecated:: 2.0.0
+       This function has no replacement and will be **removed** in\
+       release 3.0.0.
 
     """
+    _warn_deprecated("aglyph.has_importable_dotted_name")
     return (isinstance(obj, ClassAndFunctionTypes) and
             # need to look for __self__ because BuiltinFunctionType is the type
             # of both built-in functions AND built-in methods
             (getattr(obj, "__self__", None) is None))
 
 
-def format_dotted_name(factory):
-    """Return the dotted-name string for *factory*.
+def _is_unbound_function(obj):
+    """Tell whether or not *obj* is an unbound function.
 
-    *factory* should be an importable class or unbound function.
+    :param obj: 
+    :return: ``True`` if *obj* is an unbound function, else ``False``
 
-    The returned dotted-name is a "relative_module.identifier" string
-    for *factory* that represents a valid import statement according to
-    the following production:
-
-    .. productionlist::
-        import_stmt: "from" relative_module "import" identifier
-
-    This function is the inverse of :func:`resolve_dotted_name`.
-
-    :raises TypeError: if *factory* is not a class or unbound function
+    .. versionadded:: 2.0.0
 
     """
-    _logger.debug("TRACE %r", factory)
-    if (not has_importable_dotted_name(factory)):
-        raise TypeError("expected class or unbound function, not %s" %
-                        type(factory).__name__)
-    dotted_name = "%s.%s" % (factory.__module__, factory.__name__)
+    return (isroutine(obj) and (not ismethod(obj)) and
+            # need to look for __self__ because BuiltinFunctionType is the type
+            # of both built-in functions AND built-in methods
+            (getattr(obj, "__self__", None) is None))
+
+
+def format_dotted_name(obj):
+    """Return the importable dotted-name string for *obj*.
+
+    :param obj: an **importable** class, function, or module
+    :return: a dotted name representing *obj*
+    :rtype: :obj:`str`
+    :raise TypeError: if *obj* is not a class, unbound function, or\
+                      module
+    :raise ValueError: if the dotted name for *obj* is not importable
+
+    The dotted name returned by this function is a *"dotted_name.NAME"*
+    or *"dotted_name"* string for *obj* that represents a valid absolute
+    import statement according to the following productions:
+
+    .. productionlist::
+       absolute_import_stmt: "from" dotted_name "import" NAME
+                           : | "import" dotted_name
+       dotted_name: NAME ('.' NAME)*
+
+    .. note::
+       This function is the inverse of :func:`resolve_dotted_name`.
+
+    .. warning::
+       This function will attempt to use the ``__qualname__`` attribute,
+       which is only available in Python 3.3+. When ``__qualname__`` is
+       **not** available, ``__name__`` is used instead.
+
+       As a result, using this function to format the dotted name of a
+       nested class, class method, or static method will **fail** if not
+       running on Python 3.3+.
+
+       .. seealso::
+          `PEP 3155 -- Qualified name for classes and functions
+          <http://www.python.org/dev/peps/pep-3155/>`_
+
+    """
+    _logger.debug("TRACE %r", obj)
+    if (isclass(obj) or _is_unbound_function(obj)):
+        dotted_name = "%s.%s" % (obj.__module__,
+                                 getattr(obj, "__qualname__", obj.__name__))
+    elif (ismodule(obj)):
+        dotted_name = obj.__name__
+    else:
+        raise TypeError("expected class, unbound function, or module; not %s" %
+                        type(obj).__name__)
+
+    # a dotted-name MUST be importable
+    # (the optimistic case here should be very fast - obj or its module is
+    # already in sys.modules, otherwise NameError or AttributeError would have
+    # been raised when trying to call this function)
+    try:
+        resolve_dotted_name(dotted_name)
+    except ImportError:
+        raise ValueError("%r for %r is not importable" % (dotted_name, obj))
+
     _logger.debug("RETURN %r", dotted_name)
     return dotted_name
 
 
 def identify_by_spec(spec):
-    """Return an identifier string for *spec*.
+    """Generate a unique identifier for *spec*.
 
-    If *spec* is a string, it is returned. Otherwise, *spec* must be an
-    importable class or unbound  function, and its dotted-name is
-    returned (see :func:`format_dotted_name`).
+    :param spec: an **importable** class, function, or module; or a\
+                 :obj:`str`
+    :return: *spec* unchanged (if it is a :obj:`str`), else *spec*'s\
+             importable dotted name
+    :rtype: :obj:`str`
+
+    If *spec* is a string, it is assumed to already represent a unique
+    identifier and is returned unchanged. Otherwise, *spec* is assumed
+    to be an **importable** class, function, or module, and its dotted
+    name is returned (see :func:`format_dotted_name`).
+
+    .. deprecated:: 2.0.0
+       This function has no replacement and will be **removed** in\
+       release 3.0.0.
 
     """
-    if (isinstance(spec, StringTypes)):
-        return spec
-    else:
-        return format_dotted_name(spec)
+    _warn_deprecated("aglyph.identify_by_spec")
+    return spec if (type(spec) in StringTypes) else format_dotted_name(spec)
 
 
 def resolve_dotted_name(dotted_name):
-    """Return the class or function identified by *dotted_name*.
+    """Return the class, function, or module identified by
+    *dotted_name*.
 
-    *dotted_name* must be a "relative_module.identifier" string such
-    that the following production represents a valid import statement
-    with respect to the application's ``sys.path``:
+    :param str dotted_name: a string representing an **importable**\
+                            class, function, or module
+    :return: a class, function, or module
+
+    *dotted_name* must be a "dotted_name.NAME" or "dotted_name"
+    string that represents a valid absolute import statement according
+    to the following productions:
 
     .. productionlist::
-        import_stmt: "from" relative_module "import" identifier
+       absolute_import_stmt: "from" dotted_name "import" NAME
+                           : | "import" dotted_name
+       dotted_name: NAME ('.' NAME)*
 
-    This method is the inverse of :func:`format_dotted_name`.
-
-    :raises ImportError: if importing *dotted_name* fails
-    :raises ValueError: if *dotted_name* cannot be parsed into
-                        "relative_module" and "identifier" parts
+    .. note::
+       This function is the inverse of :func:`format_dotted_name`.
 
     """
     _logger.debug("TRACE %r", dotted_name)
-    try:
-        (module_name, identifier) = dotted_name.rsplit('.', 1)
-        module = __import__(module_name, globals(), locals(), [identifier])
-        obj = getattr(module, identifier)
-    except ImportError:
-        raise
-    except Exception:
-        raise ValueError("%r is not a valid dotted-name" % dotted_name)
+    if ('.' in dotted_name):
+        (module_name, name) = dotted_name.rsplit('.', 1)
+        module = __import__(module_name, fromlist=[name], level=0)
+        obj = getattr(module, name)
+    else:
+        obj = __import__(dotted_name, level=0)
     _logger.debug("RETURN %r", obj)
     return obj
+

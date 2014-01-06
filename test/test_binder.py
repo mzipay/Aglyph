@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
-# 
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,9 +23,9 @@
 """Test cases and runner for the :mod:`aglyph.binder` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
-from functools import partial
+import functools
 import logging
 import struct
 import unittest
@@ -41,7 +41,7 @@ import test.dummy
 
 __all__ = [
     "BinderTest",
-    "suite",
+    "suite"
 ]
 
 # don't use __name__ here; can be run as "__main__"
@@ -60,7 +60,7 @@ if (is_python_2):
     # 'as_data("fa\xc3\xa7ade")', and be interpreted correctly at runtime
     # regardless of Python version 2 or 3
     as_data = lambda s: s
-else: # assume is_python_3
+else:  # assume is_python_3
     # allows a string literal like "fa\u00e7ade" to be used like
     # 'as_text("fa\u00e7ade")', and be interpreted correctly at runtime
     # regardless of Python version 2 or 3
@@ -77,7 +77,7 @@ class _DummyBinder(Binder):
 
     def __init__(self, binder_id):
         super(_DummyBinder, self).__init__(binder_id)
-        self.bind("the-object", object, "singleton")
+        self.bind("the-object", to=object, strategy="singleton")
         strings = {}
         strings["bytes-no-encoding"] = as_data("facade")
         strings["bytes-with-encoding"] = as_text("fa\u00e7ade").encode(
@@ -86,16 +86,16 @@ class _DummyBinder(Binder):
         if (is_python_2):
             strings["str-with-encoding"] = (as_text("fa\u00e7ade").
                                             encode("iso-8859-1"))
-        else: # assume 3
+        else:  # assume 3
             strings["str-with-encoding"] = as_text("fa\u00e7ade")
         strings["unicode"] = as_text("fa\u00e7ade")
-        self.bind("strings", dict).init(list(strings.items()))
+        self.bind("strings", to=dict).init(list(strings.items()))
         (self.bind(zipfile.ZipInfo).
             init("aglyph.txt", (2006, 4, 15, 21, 13, 37)).
             attributes(comment="This is a test."))
         the_object_ref = Reference("the-object")
         strings_ref = Reference("strings")
-        (self.bind("alpha", test.dummy.Alpha, "borg").
+        (self.bind("alpha", to=test.dummy.Alpha, strategy="borg").
             init(the_object_ref, strings_ref).
             attributes(field=the_object_ref,
                        # important for this to be a partial because otherwise
@@ -103,8 +103,8 @@ class _DummyBinder(Binder):
                        # if one of the args or keywords is a Reference, use
                        # an Evaluator instead of partial - recursive assembly
                        # won't work with a partial!
-                       set_value=partial(list, [as_data("seven"), 7.9,
-                                                complex(7, 9)]),
+                       set_value=functools.partial(list, [as_data("seven"),
+                                                   7.9, complex(7, 9)]),
                        prop=strings_ref))
         (self.bind(test.dummy.create_alpha, strategy="borg").
             init(the_object_ref, strings_ref).
@@ -114,24 +114,25 @@ class _DummyBinder(Binder):
                        # if one of the args or keywords is a Reference, use
                        # an Evaluator instead of partial - recursive assembly
                        # won't work with a partial!
-                       set_value=partial(list, [as_data("seven"), 7.9,
-                                                complex(7, 9)]),
+                       set_value=functools.partial(list, [as_data("seven"),
+                                                   7.9, complex(7, 9)]),
                        prop=strings_ref))
         zipinfo_ref = Reference("zipfile.ZipInfo")
         # needs to be an Evaluator (not a partial!) so that nested
         # References are recursively assembled
         prop_eval = Evaluator(dict, [(the_object_ref, zipinfo_ref),
                                      ("zip-info", (zipinfo_ref,))])
-        self.bind(test.dummy.Beta).init(keyword=(None, False, True)).attributes(
-            field=the_object_ref,
-            # _Binding.resolve automatically turns this into a Reference
-            set_value=zipfile.ZipInfo,
-            prop=prop_eval)
-        (self.bind("beta", test.dummy.create_beta).
+        self.bind(test.dummy.Beta).init(
+            keyword=(None, False, True)).attributes(
+                field=the_object_ref,
+                # _Binding.resolve automatically turns this into a Reference
+                set_value=zipfile.ZipInfo,
+                prop=prop_eval)
+        (self.bind("beta", to=test.dummy.create_beta).
             init(keyword=(None, False, True)).
             attributes(field=the_object_ref, set_value=zipinfo_ref,
                        prop=prop_eval))
-        (self.bind("gamma", "test.dummy.Gamma").
+        (self.bind("gamma", to="test.dummy.Gamma").
             init(the_object_ref, strings_ref).
             attributes(field=the_object_ref,
                        # important for this to be a partial because otherwise
@@ -139,21 +140,53 @@ class _DummyBinder(Binder):
                        # if one of the args or keywords is a Reference, use
                        # an Evaluator instead of partial - recursive assembly
                        # won't work with a partial!
-                       set_value=partial(list, [as_data("seven"), 7.9,
-                                                complex(7, 9)]),
+                       set_value=functools.partial(list, [as_data("seven"),
+                                                   7.9, complex(7, 9)]),
                        prop=strings_ref))
-        self.bind(test.dummy.Delta).init(keyword=(None, False, True)).attributes(
-            field=the_object_ref,
-            # _Binding.resolve automatically turns this into a Reference
-            set_value=zipfile.ZipInfo,
-            prop=prop_eval)
+        self.bind(test.dummy.Delta).init(
+            keyword=(None, False, True)).attributes(
+                field=the_object_ref,
+                # _Binding.resolve automatically turns this into a Reference
+                set_value=zipfile.ZipInfo,
+                prop=prop_eval)
         unhash_ref_key_eval = Evaluator(dict, [(strings_ref, None)])
         self.bind("unhashable-reference-key",
-                  test.dummy.Alpha).init(unhash_ref_key_eval)
+                  to=test.dummy.Alpha).init(unhash_ref_key_eval)
         component_1_ref = Reference("component-1")
         component_2_ref = Reference("component-2")
-        self.bind("component-1", test.dummy.Alpha).init(component_2_ref)
-        self.bind("component-2", test.dummy.Beta).attributes(field=component_1_ref)
+        self.bind("component-1", to=test.dummy.Alpha).init(component_2_ref)
+        self.bind("component-2", to=test.dummy.Beta).attributes(
+            field=component_1_ref)
+        (self.bind("epsilon-static-factory", to="test.dummy.Epsilon",
+                   factory="static_factory").
+            init("arg", keyword="keyword").
+            attributes(field="field", set_value="value", prop="prop"))
+        (self.bind("epsilon-class-factory", to="test.dummy.Epsilon",
+                   factory="class_factory", strategy="singleton").
+            init("arg", keyword="keyword").
+            attributes(field="field", set_value="value", prop="prop"))
+        (self.bind("zeta", to="test.dummy", factory="Epsilon.Zeta",
+                   strategy="borg").
+            init(keyword="keyword").
+            attributes(field="field", set_value="value", prop="prop"))
+        (self.bind("zeta-static-factory", to="test.dummy.Epsilon",
+                   factory="Zeta.static_factory").
+            init(keyword="keyword").
+            attributes(field="field", set_value="value", prop="prop"))
+        (self.bind("zeta-class-factory", to="test.dummy",
+                   factory="Epsilon.Zeta.class_factory").
+            init(keyword="keyword").
+            attributes(field="field", set_value="value", prop="prop"))
+        self.bind("epsilon-attribute", to="test.dummy",
+                  member="Epsilon.ATTRIBUTE")
+        self.bind("epsilon-zeta-attribute", to="test.dummy.Epsilon",
+                  member="Zeta.ATTRIBUTE", strategy="singleton")
+        (self.bind("dummy-zeta", to="test.dummy", member="ZETA",
+                   strategy="borg").
+            attributes(field="field", set_value="value", prop="prop"))
+        (self.bind("zeta-ignore-init", to="test.dummy",
+                   member="Epsilon.Zeta.ATTRIBUTE").
+            init(the_object_ref, keyword="ignored"))
 
 
 class BinderTest(unittest.TestCase):
@@ -191,7 +224,7 @@ class BinderTest(unittest.TestCase):
              "unicode": as_text("fa\u00e7ade")}
         if (is_python_2):
             d["str-with-encoding"] = as_data("fa\xe7ade")
-        else: # assume 3
+        else:  # assume 3
             d["str-with-encoding"] = as_text("fa\u00e7ade")
         self.assertEqual(d, strings)
 
@@ -278,6 +311,64 @@ class BinderTest(unittest.TestCase):
         (zipinfo,) = d["zip-info"]
         self._assert_zipfile_ZipInfo(zipinfo)
 
+    def test_lookup_Epsilon_staticmethod(self):
+        obj = self.binder.lookup("epsilon-static-factory")
+        self._assert_dummy_Epsilon(obj)
+
+    def test_lookup_Epsilon_classmethod(self):
+        obj = self.binder.lookup("epsilon-class-factory")
+        self._assert_dummy_Epsilon(obj)
+
+    def test_lookup_Zeta_nested_class(self):
+        obj = self.binder.lookup("zeta")
+        self._assert_dummy_Epsilon_Zeta(obj)
+
+    def test_lookup_Zeta_staticmethod(self):
+        obj = self.binder.lookup("zeta-static-factory")
+        self._assert_dummy_Epsilon_Zeta(obj)
+
+    def test_lookup_Zeta_classmethod(self):
+        obj = self.binder.lookup("zeta-class-factory")
+        self._assert_dummy_Epsilon_Zeta(obj)
+
+    def _assert_dummy_Epsilon(self, epsilon):
+        self.assertTrue(isinstance(epsilon, test.dummy.Epsilon))
+        self.assertEqual("arg", epsilon.arg)
+        self.assertEqual("keyword", epsilon.keyword)
+        self.assertEqual("field", epsilon.field)
+        self.assertEqual("value", epsilon.get_value())
+        self.assertEqual("prop", epsilon.prop)
+
+    def _assert_dummy_Epsilon_Zeta(self, zeta):
+        self.assertTrue(isinstance(zeta, test.dummy.Epsilon.Zeta))
+        self.assertTrue(zeta.arg is test.dummy.DEFAULT)
+        self.assertEqual("keyword", zeta.keyword)
+        self.assertEqual("field", zeta.field)
+        self.assertEqual("value", zeta.get_value())
+        self.assertEqual("prop", zeta.prop)
+
+    def test_lookup_Epsilon_attribute(self):
+        obj = self.binder.lookup("epsilon-attribute")
+        self.assertEqual("Epsilon.ATTRIBUTE", obj)
+
+    def test_lookup_Epsilon_Zeta_attribute(self):
+        obj = self.binder.lookup("epsilon-zeta-attribute")
+        self.assertEqual("Epsilon.Zeta.ATTRIBUTE", obj)
+
+    def test_lookup_dummy_Zeta_attribute(self):
+        obj = self.binder.lookup("dummy-zeta")
+        self.assertTrue(obj is test.dummy.ZETA)
+        self.assertEqual("field", obj.field)
+        self.assertEqual("value", obj.get_value())
+        self.assertEqual("prop", obj.prop)
+
+    def test_lookup_member_is_not_initialized(self):
+        # this would fail with "TypeError: 'str' object is not callable" IF
+        # initialization were not skipped when component/@member-name is
+        # defined
+        obj = self.binder.lookup("zeta-ignore-init")
+        self.assertEqual("Epsilon.Zeta.ATTRIBUTE", obj)
+
     def test_prototype_behavior(self):
         obj1 = self.binder.lookup("zipfile.ZipInfo")
         obj2 = self.binder.lookup("zipfile.ZipInfo")
@@ -331,7 +422,7 @@ class BinderTest(unittest.TestCase):
         self.assertEqual(strings, obj3.keyword)
         shared_strings = obj3.keyword
         shared_strings["test_borg_behavior"] = "shared"
-        # "strings" is a prototype, and so change should NOT be reflected in 
+        # "strings" is a prototype, and so change should NOT be reflected in
         # "strings" instances...
         self.assertNotEqual(strings, shared_strings)
         # ... but SHOULD be reflected in all current and new "alpha" instances
@@ -391,3 +482,4 @@ def suite():
 if (__name__ == "__main__"):
     enable_debug_logging(suite)
     unittest.TextTestRunner().run(suite())
+

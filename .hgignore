@@ -7,8 +7,10 @@ MANIFEST
 *.class
 *.log
 *.bak
+*.swp
 test-versions-variants.*
 resources/movielisterapp-*.zip
+NOTES.txt
 
 syntax: regexp
 ^\.settings$
@@ -17,4 +19,6 @@ syntax: regexp
 ^build$
 ^dist$
 ^doc/build$
+^example/movielisterapp-aglyph.sh$
+^example/movielisterapp-basic.sh$
 

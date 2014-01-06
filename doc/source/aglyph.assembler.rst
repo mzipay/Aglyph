@@ -3,5 +3,7 @@
 ==========================================================
 
 .. automodule:: aglyph.assembler
-    :show-inheritance:
-    :members:
+
+.. autoclass:: aglyph.assembler.Assembler
+   :members: assemble, clear_singletons, clear_borgs, __contains__
+

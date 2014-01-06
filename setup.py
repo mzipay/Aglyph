@@ -1,17 +1,24 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
+
+# workaround for setuptools/logging/multiprocessing bug
+# (see http://bugs.python.org/issue15881#msg170215)
+try:
+    import multiprocessing
+except ImportError:
+    pass
 
 from setuptools import setup
 
 setup(name="Aglyph",
-      version="1.1.1",
+      version="2.0.0",
       description="Aglyph is a Dependency Injection framework for Python "
-                  "2.5+, supporting type 2 (setter) and type 3 (constructor) "
+                  "2.6+, supporting type 2 (setter) and type 3 (constructor) "
                   "injection.",
       long_description="""\
-Aglyph is a Dependency Injection framework for Python 2.5+, supporting
+Aglyph is a Dependency Injection framework for Python 2.6+, supporting
 type 2 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on CPython (http://www.python.org/) 2.5 - 3.3, and on recent
+Aglyph runs on CPython (http://www.python.org/) 2.6 - 3.3, and on recent
 versions of the PyPy (http://pypy.org/>), Jython (http://www.jython.org/),
 IronPython (http://ironpython.net/),
 and Stackless Python (http://www.stackless.com/) variants.
@@ -30,17 +37,16 @@ provided.
     author="Matthew Zipay",
     author_email="mattz@ninthtest.net",
     url="http://www.ninthtest.net/aglyph-python-dependency-injection/",
-    download_url = "http://sourceforge.net/projects/aglyph/files/aglyph/",
+    download_url="http://sourceforge.net/projects/aglyph/files/aglyph/",
     packages=["aglyph", "aglyph.compat"],
     test_suite="test",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.5",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
@@ -53,3 +59,4 @@ provided.
     license="MIT License",
     keywords=["dependency injection", "inversion of control", "DI", "IoC",
               "service locator"])
+

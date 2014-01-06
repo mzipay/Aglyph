@@ -1,7 +1,7 @@
 from movies.finder import ColonDelimitedMovieFinder
 
 
-class MovieLister:
+class MovieLister(object):
 
     def __init__(self):
         self._finder = ColonDelimitedMovieFinder("movies.txt")

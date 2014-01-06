@@ -3,5 +3,10 @@
 =====================================================
 
 .. automodule:: aglyph.context
-    :show-inheritance:
-    :members:
+
+.. autoclass:: aglyph.context.Context
+   :members:
+
+.. autoclass:: aglyph.context.XMLContext
+   :members:
+

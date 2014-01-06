@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2013 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ releasing the cache lock.
 from __future__ import with_statement
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
 import logging
 try:
@@ -42,10 +42,7 @@ except ImportError:
     import dummy_threading
     threading_ = dummy_threading
 
-__all__ = [
-    "MutexCache",
-    "ReentrantMutexCache",
-]
+__all__ = ["MutexCache", "ReentrantMutexCache"]
 
 _logger = logging.getLogger(__name__)
 _logger.debug("using %r", threading_)
@@ -64,14 +61,14 @@ class _LockingCache(dict):
 
     """
 
-    _logger = logging.getLogger("%s._LockingCache" % __name__)
+    __logger = logging.getLogger("%s._LockingCache" % __name__)
 
     def __init__(self, lock):
         """Initialize an empty cache that uses *lock* for
         synchronization.
 
         """
-        self._logger.debug("TRACE %r", lock)
+        self.__logger.debug("TRACE %r", lock)
         super(_LockingCache, self).__init__()
         self.__lock = lock
 
@@ -81,7 +78,7 @@ class _LockingCache(dict):
         return self.__lock
 
     def __repr__(self):
-        return "%s:%s<%r>" % (self.__class__.__module__,
+        return "%s.%s(%r)" % (self.__class__.__module__,
                               self.__class__.__name__, self.__lock)
 
 
@@ -103,10 +100,10 @@ class MutexCache(_LockingCache):
 
     """
 
-    _logger = logging.getLogger("%s.MutexCache" % __name__)
+    __logger = logging.getLogger("%s.MutexCache" % __name__)
 
     def __init__(self):
-        self._logger.debug("TRACE")
+        self.__logger.debug("TRACE")
         super(MutexCache, self).__init__(threading_.Lock())
 
 
@@ -126,7 +123,7 @@ class ReentrantMutexCache(_LockingCache):
     ...     cache.lock._count
     ...     with cache.lock:
     ...         cache.lock._count
-    ... 
+    ...
     1
     2
     >>> cache.lock._count
@@ -134,8 +131,9 @@ class ReentrantMutexCache(_LockingCache):
 
     """
 
-    _logger = logging.getLogger("%s.ReentrantMutexCache" % __name__)
+    __logger = logging.getLogger("%s.ReentrantMutexCache" % __name__)
 
     def __init__(self):
-        self._logger.debug("TRACE")
+        self.__logger.debug("TRACE")
         super(ReentrantMutexCache, self).__init__(threading_.RLock())
+

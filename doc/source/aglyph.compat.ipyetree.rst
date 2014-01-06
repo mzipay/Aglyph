@@ -1,41 +1,47 @@
-==========================================================================
+**************************************************************************
 :mod:`aglyph.compat.ipyetree` --- an *ElementTree* parser for *IronPython*
-==========================================================================
+**************************************************************************
 
 .. automodule:: aglyph.compat.ipyetree
-    :show-inheritance:
-    :members:
 
-.. class:: XmlReaderTreeBuilder(validating=False)
+.. class:: CLRXMLParser(target=None, validating=False)
 
-        Builds an `ElementTree <http://effbot.org/zone/element-index.htm>`_
-        using the .NET
-        `System.Xml.XmlReader <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
-        XML parser.
+   Bases: :class:`xml.etree.ElementTree.XMLParser`
 
-        Set *validating* to ``True`` to use a validating parser.
+   An :class:`xml.etree.ElementTree.XMLParser` that delegates
+   parsing to the .NET `System.Xml.XmlReader
+   <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
+   parser.
 
-    .. method:: feed(data)
+   If *target* is omitted, a standard ``TreeBuilder`` instance is used.
 
-        Adds more XML data to be parsed.
+   If *validating* is ``True``, the ``System.Xml.XmlReader`` parser will
+   be configured for DTD validation.
 
-        *data* is raw XML read from a stream or passed in as a string.
+   .. method:: feed(data)
 
-        .. note::
+      Add more XML data to be parsed.
 
-            All *data* across calls to this method are buffered internally; the
-            parser itself is not actually created until the :func:`close`
-            method is called.
+      :param str data: raw XML read from a stream
 
-    .. method:: close()
+      .. note::
+         All *data* across calls to this method are buffered
+         internally; the parser itself is not actually created
+         until the :meth:`close` method is called.
 
-        Parses the XML from the internal buffer to build an element tree.
+   .. method:: close()
 
-        :returns: the root element of the XML document
-        :rtype: :class:`xml.etree.ElementTree.ElementTree`
+      Parse the XML from the internal buffer to build an
+      element tree.
+
+      :return: the root element of the XML document
+      :rtype: :class:`xml.etree.ElementTree.ElementTree`
+
+.. autoclass:: XmlReaderTreeBuilder(validating=False)
+   :members:
 
 A note on *IronPython* Unicode issues
--------------------------------------
+=====================================
 
 *IronPython* does not have an encoded-bytes ``str`` type; rather, the
 ``str`` and ``unicode`` types are one and the same:
@@ -47,8 +53,8 @@ Unfortunately, this means that *IronPython* **cannot not properly decode byte
 streams/sequences to Unicode strings** using Python language facilities.
 Consider the simple example of a UTF-8-encoded XML file *test.xml*::
 
-    <?xml version="1.0" encoding="utf-8"?>
-    <test>façade</test>
+   <?xml version="1.0" encoding="utf-8"?>
+   <test>façade</test>
 
 .. rubric:: CPython
 
@@ -124,9 +130,8 @@ class reports
 `XmlNodeType.XmlDeclaration <http://msdn.microsoft.com/en-us/library/system.xml.xmlnodetype>`_.
 
 .. note::
-
-    If the XML document does *not* specify an explicit encoding in the XML
-    declaration, ``XmlReaderTreeBuilder`` assumes UTF-8.
+   If the XML document does *not* specify an explicit encoding in the XML
+   declaration, ``XmlReaderTreeBuilder`` assumes UTF-8.
 
 Step #2 works because the same "glitch" that causes *IronPython*'s Unicode
 issues can be exploited to work around it:
@@ -142,3 +147,4 @@ Because of this, the text node string ``u"fa\xc3\xa7ade"`` can actually be
 *decoded* to ``u"fa\xe7ade"`` before being handed off to
 :class:`aglyph.context.XMLContext`, allowing ``XMLContext`` to remain ignorant
 of *IronPython*'s Unicode issues.
+

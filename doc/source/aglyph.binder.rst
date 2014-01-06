@@ -3,9 +3,10 @@
 ====================================================
 
 .. automodule:: aglyph.binder
-    :show-inheritance:
-    :members:
+
+.. autoclass:: aglyph.binder.Binder
+   :members:
 
 .. autoclass:: aglyph.binder._Binding
-    :show-inheritance:
-    :members:
+   :members: init, attributes
+

@@ -14,10 +14,10 @@ HOMEPAGE: http://www.ninthtest.net/aglyph-python-dependency-injection/
 AUTHOR: Matthew Zipay <mattz@ninthtest.net>
 LICENSE: MIT License (see the LICENSE.txt file)
 
-Aglyph is a Dependency Injection framework for Python 2.5+, supporting
+Aglyph is a Dependency Injection framework for Python 2.6+, supporting
 type 2 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on CPython (http://www.python.org/) 2.5 - 3.3, and on recent
+Aglyph runs on CPython (http://www.python.org/) 2.6 - 3.3, and on recent
 versions of the PyPy (http://pypy.org/>),
 Jython (http://www.jython.org/), IronPython (http://ironpython.net/),
 and Stackless Python (http://www.stackless.com/) variants.
@@ -82,7 +82,10 @@ to install Aglyph:
 (2) Run "python setup.py test".
 (3) Run "python setup.py install".
 
+Alternatively, install into a virtualenv using "pip install Aglyph".
+
 Verify that the installation was successful by importing the 'aglyph'
 module from a Python interpreter:
 
 >>> import aglyph
+

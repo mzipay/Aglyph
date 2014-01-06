@@ -1,7 +1,7 @@
 from movies.movie import Movie
 
 
-class MovieFinder:
+class MovieFinder(object):
 
     def find_all(self):
         raise NotImplementedError()

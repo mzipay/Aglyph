@@ -1,8 +1,9 @@
-import csv
+import sqlite3
+
 from movies.movie import Movie
 
 
-class MovieFinder:
+class MovieFinder(object):
 
     def find_all(self):
         raise NotImplementedError()
@@ -23,16 +24,25 @@ class ColonDelimitedMovieFinder(MovieFinder):
         return self._movies
 
 
-class CSVMovieFinder(MovieFinder):
+class SQLMovieFinder(MovieFinder):
 
-    def __init__(self, filename):
-        movies = []
-        f = open(filename)
-        for (title, director) in csv.reader(f):
-            movies.append(Movie(title, director))
-        f.close()
-        self._movies = movies
+    def __init__(self, dbname):
+        self._db = sqlite3.connect(dbname)
 
     def find_all(self):
-        return self._movies
+        cursor = self._db.cursor()
+        movies = []
+        try:
+            for row in cursor.execute("select title, director from Movies"):
+                (title, director) = row
+                movies.append(Movie(title, director))
+        finally:
+            cursor.close()
+        return movies
+
+    def __del__(self):
+        try:
+            self._db.close()
+        except:
+            pass
 

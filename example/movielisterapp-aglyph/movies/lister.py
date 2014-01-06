@@ -1,4 +1,4 @@
-class MovieLister:
+class MovieLister(object):
 
     def __init__(self, finder):
         self._finder = finder

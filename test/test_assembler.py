@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,14 @@
 """Test cases and runner for the :mod:`aglyph.assembler` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
+import gc
 import logging
 import struct
 import sys
 import unittest
+import weakref
 import zipfile
 
 from aglyph import AglyphError
@@ -46,6 +48,10 @@ __all__ = [
 
 # don't use __name__ here; can be run as "__main__"
 _logger = logging.getLogger("test.test_assembler")
+
+if (not gc.isenabled()):
+    _logger.info("enabling GC so that weakrefs can be tested correctly")
+    gc.enable()
 
 # Python 2/3 compatibility
 # * u"..." is valid syntax in Python 2, but raises SyntaxError in Python 3
@@ -85,7 +91,7 @@ class AssemblerTest(unittest.TestCase):
 
     def test_assemble_bad_component_id(self):
         self.assertRaises(KeyError, self.assembler.assemble, "not.in.context")
-        self.assertRaises(KeyError, self.assembler.assemble, None)
+        self.assertRaises(TypeError, self.assembler.assemble, None)
         self.assertRaises(TypeError, self.assembler.assemble, [])
 
     def test_assemble_the_object(self):
@@ -306,6 +312,22 @@ class AssemblerTest(unittest.TestCase):
         self.assertTrue(obj1 is obj2)
         self.assertTrue(obj2 is self.assembler.assemble("the-object"))
 
+    def test_init_singletons(self):
+        singleton_ids = self.assembler.init_singletons()
+        expected_singleton_ids = [
+            "the-object",
+            "epsilon-class-factory",
+            "dummy-epsilon",
+            "before-clear-raise",
+            "context-before-clear",
+            "template-before-clear",
+            "component-before-clear",
+            "nested-before-clear",
+        ]
+        self.assertEqual(
+            sorted(expected_singleton_ids),
+            sorted(singleton_ids))
+
     def test_clear_singletons(self):
         obj1 = self.assembler.assemble("the-object")
         obj2 = self.assembler.assemble("the-object")
@@ -316,6 +338,14 @@ class AssemblerTest(unittest.TestCase):
         obj3 = self.assembler.assemble("the-object")
         self.assertFalse(obj2 is obj3)
         self.assertTrue(obj3 is self.assembler.assemble("the-object"))
+
+    def test_init_borgs(self):
+        borg_ids = self.assembler.init_borgs()
+        expected_borg_ids = ["alpha", "test.dummy.create_alpha", "zeta",
+                             "dummy-zeta"]
+        self.assertEqual(
+            sorted(expected_borg_ids),
+            sorted(borg_ids))
 
     def test_borg_behavior(self):
         obj1 = self.assembler.assemble("alpha")
@@ -374,6 +404,35 @@ class AssemblerTest(unittest.TestCase):
         self.assertEqual("modified", obj3.arg)
         self.assertEqual("modified", obj4.arg)
 
+    def test_weakref_behavior(self):
+        obj = self.assembler.assemble("weak-alpha")
+        self.assertEqual(1, weakref.getweakrefcount(obj))
+        obj.field = "test_weakref_behavior"
+        # should be the same object; obj is still a "live" reference
+        self.assertTrue(self.assembler.assemble("weak-alpha") is obj)
+        self.assertEqual("test_weakref_behavior",
+                         self.assembler.assemble("weak-alpha").field)
+        obj = None; del obj
+        gc.collect() # this is not guaranteed!
+        # should be a different object now since obj was de-referenced
+        obj2 = self.assembler.assemble("weak-alpha")
+        self.assertEqual(1, weakref.getweakrefcount(obj2))
+        self.assertNotEqual(obj2.field, "test_weakref_behavior")
+
+    def test_clear_weakrefs(self):
+        obj1 = self.assembler.assemble("weak-alpha")
+        self.assertEqual(["weak-alpha"], self.assembler.clear_weakrefs())
+        # should NOT be the same object even though obj1 is still referenced
+        obj2 = self.assembler.assemble("weak-alpha")
+        self.assertFalse(obj2 is obj1)
+        obj1 = None
+        obj2 = None
+        # force GC for testing purposes (note: this may still fail!)
+        gc.collect()
+        # now there should be nothing to clear since both objects were
+        # de-referenced
+        self.assertEqual([], self.assembler.clear_weakrefs())
+
     def test_unhashable_reference_key(self):
         self.assertRaises(TypeError, self.assembler.assemble,
                           "unhashable-reference-key")
@@ -393,10 +452,143 @@ class AssemblerTest(unittest.TestCase):
         self.assertRaises(AglyphError, self.assembler.assemble, "component-1")
         self.assertRaises(AglyphError, self.assembler.assemble, "component-2")
 
+    def test_assembler_contains_false_nonexistent(self):
+        self.assertFalse("not.in.context" in self.assembler)
+        self.assertFalse(None in self.assembler)
+        self.assertFalse([] in self.assembler)
+
+    def test_assembler_contains_false_templates(self):
+        self.assertFalse("arg-template" in self.assembler)
+
+    def test_assembler_contains_components(self):
+        self.assertTrue("alpha" in self.assembler)
+        self.assertTrue(test.dummy.Beta in self.assembler)
+
+    def test_attribute_ordering(self):
+        iota = self.assembler.assemble(test.dummy.Iota)
+        self.assertEqual((3, "FIELD"), iota.field)
+        self.assertEqual((1, "VALUE"), iota.get_value())
+        self.assertEqual((2, "PROP"), iota.prop)
+
+    def test_assemble_template_fails(self):
+        self.assertTrue("arg-template" in self.assembler._context)
+        self.assertRaises(KeyError, self.assembler.assemble, "arg-template")
+
+    def test_templated_init_arg(self):
+        epsilon = self.assembler.assemble("epsilon-using-arg-template")
+        self.assertEqual("ARG", epsilon.arg)
+
+    def test_collect_args(self):
+        alpha = self.assembler.assemble("create_alpha-collect-args")
+        self.assertEqual("TEMPLATE_ARG", alpha.arg)
+        self.assertEqual("COMPONENT_ARG", alpha.keyword)
+
+    def test_collect_keywords(self):
+        delta = self.assembler.assemble("create_delta-collect-keywords")
+        self.assertEqual("OVERRIDE_KEYWORD", delta.keyword)
+        self.assertEqual("FIELD", delta.field)
+        self.assertEqual("FIELD", delta.field)
+
+    def test_collect_attributes(self):
+        delta = self.assembler.assemble("delta-collect-attributes")
+        self.assertEqual("FIELD", delta.field)
+        self.assertEqual("OVERRIDE_VALUE", delta.get_value())
+        self.assertEqual("PROP", delta.prop)
+
+    def test_after_inject_raise(self):
+        eta = self.assembler.assemble("after-inject-raise")
+        self.assertTrue(eta.called_after_inject_raise)
+        self.assertFalse(eta.called_context_after_inject)
+        self.assertFalse(eta.called_template_after_inject)
+        self.assertFalse(eta.called_component_after_inject)
+
+    def test_context_after_inject(self):
+        eta = self.assembler.assemble("context-after-inject")
+        self.assertFalse(eta.called_after_inject_raise)
+        self.assertTrue(eta.called_context_after_inject)
+        self.assertFalse(eta.called_template_after_inject)
+        self.assertFalse(eta.called_component_after_inject)
+
+    def test_template_after_inject(self):
+        eta = self.assembler.assemble("template-after-inject")
+        self.assertFalse(eta.called_after_inject_raise)
+        self.assertFalse(eta.called_context_after_inject)
+        self.assertTrue(eta.called_template_after_inject)
+        self.assertFalse(eta.called_component_after_inject)
+
+    def test_component_after_inject(self):
+        eta = self.assembler.assemble("component-after-inject")
+        self.assertFalse(eta.called_after_inject_raise)
+        self.assertFalse(eta.called_context_after_inject)
+        self.assertFalse(eta.called_template_after_inject)
+        self.assertTrue(eta.called_component_after_inject)
+
+    def test_nested_class_after_inject(self):
+        theta = self.assembler.assemble("nested-after-inject")
+        self.assertTrue(theta.called_prepare)
+
+    def test_before_clear_raise(self):
+        eta = self.assembler.assemble("before-clear-raise")
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+        self.assertEqual(["before-clear-raise"],
+                         self.assembler.clear_singletons())
+        self.assertTrue(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+
+    def test_context_before_clear(self):
+        eta = self.assembler.assemble("context-before-clear")
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+        self.assertEqual(["context-before-clear"],
+                         self.assembler.clear_singletons())
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertTrue(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+
+    def test_template_before_clear(self):
+        eta = self.assembler.assemble("template-before-clear")
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+        self.assertEqual(["template-before-clear"],
+                         self.assembler.clear_singletons())
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertTrue(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+
+    def test_component_before_clear(self):
+        eta = self.assembler.assemble("component-before-clear")
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertFalse(eta.called_component_before_clear)
+        self.assertEqual(["component-before-clear"],
+                         self.assembler.clear_singletons())
+        self.assertFalse(eta.called_before_clear_raise)
+        self.assertFalse(eta.called_context_before_clear)
+        self.assertFalse(eta.called_template_before_clear)
+        self.assertTrue(eta.called_component_before_clear)
+
+    def test_nested_class_before_clear(self):
+        theta = self.assembler.assemble("nested-before-clear")
+        self.assertFalse(theta.called_dispose)
+        self.assertEqual(["nested-before-clear"],
+                         self.assembler.clear_singletons())
+        self.assertTrue(theta.called_dispose)
+
 
 def suite():
     """Build the test suite for the :mod:`aglyph.assembler` module."""
-    _logger.debug("TRACE")
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(AssemblerTest))
     _logger.debug("RETURN %r", suite)

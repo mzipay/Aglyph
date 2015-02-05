@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,32 +20,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""The classes in this module are used to define collections of related
-components (:class:`aglyph.component.Component` instances), called
-"contexts" in Aglyph.
+"""The classes in this module are used to define collections
+("contexts") of related components and templates.
 
 A context can be created in pure Python. This approach involves use of
 the following API classes:
 
-* :class:`aglyph.context.Context`
+* :class:`aglyph.component.Template`
 * :class:`aglyph.component.Component`
 * :class:`aglyph.component.Reference` (used to indicate that one
   component depends on another component)
 * :class:`aglyph.component.Evaluator` (used as a partial function to
   lazily evaluate component initialization arguments and attributes)
+* :class:`aglyph.context.Context`
 
 .. versionadded:: 1.1.0
-    :class:`aglyph.binder.Binder` offers an alternative approach to
-    programmatic configuration, which is more succinct than using
-    ``Context`` and ``Component`` directly.
+   :class:`aglyph.binder.Binder` offers an alternative approach to
+   programmatic configuration, which is more succinct than using the
+   API classes noted above.
 
 Alternatively, a context can be defined using a declarative XML syntax
 that conforms to the :download:`Aglyph context DTD
-<../../resources/aglyph-context-2.0.0.dtd>` (included in the
-*resources/* directory of the distribution). This approach requires only
-the :class:`aglyph.context.XMLContext` class, which parses the XML
-document and then uses the API classes mentioned above to populate the
-context.
+<../../resources/aglyph-context.dtd>` (included in the *resources/*
+directory of the distribution). This approach requires only the
+:class:`aglyph.context.XMLContext` class, which parses the XML document
+and then uses the API classes mentioned above to populate the context.
 
 .. versionchanged:: 2.0.0
    IronPython applications that use XML contexts are **no longer**\
@@ -57,14 +56,15 @@ context.
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 import functools
 import logging
 import sys
+import warnings
 import xml.etree.ElementTree as ET
 
-from aglyph import AglyphError, _warn_deprecated
+from aglyph import AglyphDeprecationWarning, AglyphError
 from aglyph.compat import (
     DataType,
     DoctypeTreeBuilder,
@@ -72,9 +72,15 @@ from aglyph.compat import (
     is_ironpython,
     is_python_2,
     RESTRICTED_BUILTINS,  # deprecated
-    TextType
+    TextType,
 )
-from aglyph.component import Component, Evaluator, Reference, Strategy
+from aglyph.component import (
+    Component,
+    Evaluator,
+    Reference,
+    Strategy,
+    Template,
+)
 
 __all__ = ["Context", "XMLContext"]
 
@@ -82,88 +88,181 @@ _logger = logging.getLogger(__name__)
 
 
 class Context(dict):
-    """A mapping of component identifiers to
-    :class:`aglyph.component.Component` objects.
+    """A mapping of unique IDs to :class:`Component` and
+    :class:`Template` objects.
 
     """
 
     __logger = logging.getLogger("%s.Context" % __name__)
 
-    def __init__(self, context_id):
+    def __init__(self, context_id, after_inject=None, before_clear=None):
         """
-        :arg str context_id: a unique identifier for this context
+        :arg str context_id: a unique ID for this context
+        :keyword str after_inject: specifies the name of the method\
+                                   that will be called (if it exists)\
+                                   on **all** component objects after\
+                                   all of their dependencies have been\
+                                   injected
+        :keyword str before_clear: specifies the name of the method\
+                                   that will be called (if it exists)\
+                                   on **all** singleton, borg, and\
+                                   weakref objects immediately before\
+                                   they are cleared from cache
 
         """
-        self.__logger.debug("TRACE %r", context_id)
+        self.__logger.debug("TRACE %r, after_inject=%r, before_clear=%r",
+                            context_id, after_inject, before_clear)
         super(Context, self).__init__()
         self._context_id = context_id
+        self._after_inject = after_inject
+        self._before_clear = before_clear
 
     @property
     def context_id(self):
-        """The unique context identifier *(read-only)*."""
+        """The unique context ID *(read-only)*."""
         return self._context_id
 
-    def add(self, component):
-        """Add *component* to this context.
-
-        :arg aglyph.component.Component component: the component to add
-        :raise aglyph.AglyphError: if the component ID is already mapped
-
-        """
-        self.__logger.debug("TRACE %r", component)
-        if (component.component_id in self):
-            raise AglyphError("component with ID %r is already defined in %s" %
-                              (component.component_id, self))
-        self[component.component_id] = component
-
-    def add_or_replace(self, component):
-        """Add *component* to this context, replacing any component with
-        the same ID that is already mapped.
-
-        :arg aglyph.component.Component component: the component to add
-        :return: the component that was replaced or ``None``
-        :rtype: :class:`aglyph.component.Component`
+    @property
+    def after_inject(self):
+        """The name of the component object method that will be called
+        after **all** dependencies have been injected into that
+        component object.
 
         """
-        self.__logger.debug("TRACE %r", component)
-        replaced_component = self.get(component.component_id)
-        if ((replaced_component is not None) and
-            self.__logger.isEnabledFor(logging.WARNING)):
-            self.__logger.warning("%s is replacing %s in %s", component,
-                                  replaced_component, self)
-        self[component.component_id] = component
-        self.__logger.debug("RETURN %r", replaced_component)
-        return replaced_component
+        return self._after_inject
 
-    def remove(self, component_id):
-        """Remove the component identified by *component_id* from this
+    @property
+    def before_clear(self):
+        """The name of the component object method that will be called
+        immediately before the object is cleared from cache.
+
+        .. warning::
+           This property is not applicable to "prototype" component
+           objects, and is **not** guaranteed to be called for "weakref"
+           component objects.
+
+        """
+        return self._before_clear
+
+    def get_component(self, component_id):
+        """Return the :class:`Component` identified by *component_id*.
+
+        :arg str component_id: a unique ID that identifies a\
+                               :class:`Component`
+        :return: the :class:`Component` identified by *component_id*
+        :rtype: :class:`Component` if *component_id* is mapped in this\
+                context, else ``None``
+
+        """
+        obj = self.get(component_id)
+        return obj if isinstance(obj, Component) else None
+
+    def iter_components(self):
+        """Yield all definitions in this context that are instances of
+        :class:`Component`.
+
+        :return: a :class:`Component` generator
+
+        """
+        for obj in self.values():
+            if isinstance(obj, Component):
+                yield obj
+
+    def add(self, obj):
+        """Add *obj*, which must be a component or template, to this
         context.
 
-        :arg str component_id: identifies the component to remove
-        :return: the component that was removed or ``None``
-        :rtype: :class:`aglyph.component.Component`
+        :arg obj: the :class:`Component` or :class:`Template` to add to\
+                  this context
+        :raise AglyphError: if *obj.unique_id* is already mapped
+
+        .. deprecated:: 2.1.0
+           use the :meth:`dict.__contains__` and
+           :meth:`dict.__setitem__` protocols instead.
 
         """
-        self.__logger.debug("TRACE %r", component_id)
-        component = self.get(component_id)
-        if (component is not None):
-            del self[component_id]
-        self.__logger.debug("RETURN %r", component)
-        return component
+        self.__logger.debug("TRACE %r", obj)
+        warnings.warn(
+            AglyphDeprecationWarning("Context.add",
+                replacement="the dict.__contains__ and dict.__setitem__ "
+                            "protocols"))
+        if (obj.unique_id in self):
+            raise AglyphError(
+                "component or template with ID %r already mapped in %s" %
+                (obj.unique_id, self))
+        self[obj.unique_id] = obj
+
+    def add_or_replace(self, obj):
+        """Add *obj* (which must be a component or template) to this
+        context, replacing any component or template with the same ID
+        that is already mapped.
+
+        :arg obj: the :class:`Component` or :class:`Template` to add to\
+                  this context
+        :return: the component or template that was replaced, or\
+                 ``None`` if *obj.unique_id* is not already mapped
+        :rtype: :class:`Component` or :class:`Template`
+
+        .. note::
+           This method will **not** replace a component with a template
+           or vice-versa; if the object that would be replaced is not
+           the same type as the replacement, :class:`TypeError` is
+           raised.
+
+        .. deprecated:: 2.1.0
+           use the standard :meth:`dict.__setitem__` protocol instead.
+
+        """
+        self.__logger.debug("TRACE %r", obj)
+        warnings.warn(
+            AglyphDeprecationWarning("Context.add_or_replace",
+                replacement="the dict.__setitem__ protocol"))
+        replaced_obj = self.get(obj.unique_id)
+        if (replaced_obj is not None):
+            self.__logger.info("%r is replacing %r in %r",
+                               obj, replaced_obj, self)
+        self[obj.unique_id] = obj
+        self.__logger.debug("RETURN %r", replaced_obj)
+        return replaced_obj
+
+    def remove(self, unique_id):
+        """Remove the component or template identified by *id_* from
+        this context.
+
+        :arg str unique_id: identifies the component or template to\
+                            remove
+        :return: the component or template that was removed, or\
+                 ``None`` if *unique_id* is not mapped
+        :rtype: :class:`Component` or :class:`Template`
+
+        .. deprecated:: 2.1.0
+           use the :meth:`dict.__contains__` and
+           :meth:`dict.__delitem__` protocols instead.
+
+        """
+        self.__logger.debug("TRACE %r", unique_id)
+        warnings.warn(
+            AglyphDeprecationWarning("Context.remove",
+                replacement="the dict.__contains__ and dict.__delitem__ "
+                            "protocols"))
+        obj = self.pop(unique_id) if (unique_id in self) else None
+        self.__logger.debug("RETURN %r", obj)
+        return obj
 
     def __repr__(self):
-        return "%s.%s(%r)" % (self.__class__.__module__,
-                              self.__class__.__name__, self._context_id)
+        return "%s.%s(%r, after_inject=%r, before_clear=%r)" % (
+            self.__class__.__module__, self.__class__.__name__,
+            self._context_id, self._after_inject, self._before_clear)
 
 
 class XMLContext(Context):
-    """A mapping of component identifiers to
-    :class:`aglyph.component.Component` objects.
+    """A mapping of unique IDs to :class:`Component` and
+    :class:`Template` objects.
 
-    Components are declared in an XML document that conforms to the
-    :download:`Aglyph context DTD
-    <../../resources/aglyph-context-2.0.0.dtd>` (included in the
-    *resources/* directory of the distribution).
+    Components and templates are declared in an XML document that
+    conforms to the :download:`Aglyph context DTD
+    <../../resources/aglyph-context.dtd>` (included in the *resources/*
+    directory of the distribution).
 
     """
 
@@ -222,13 +321,26 @@ class XMLContext(Context):
         root = tree.getroot()
         if (root.tag != "context"):
             raise AglyphError("expected root <context>, not <%s>" % root.tag)
-        super(XMLContext, self).__init__(root.attrib["id"])
+        super(XMLContext, self).__init__(root.attrib["id"],
+            after_inject=root.attrib.get("after-inject"),
+            before_clear=root.attrib.get("before-clear"))
+        for template_element in etree_iter(root, "template"):
+            template_id = template_element.attrib["id"]
+            if (template_id in self):
+                raise AglyphError("template with ID %r already mapped in %s" %
+                                  (template_id, self))
+            template = self._parse_template(template_element)
+            self._process_dependencies(template, template_element)
+            self[template_id] = template
         for component_element in etree_iter(root, "component"):
+            component_id = component_element.attrib["id"]
+            if (component_id in self):
+                raise AglyphError(
+                    "component or template with ID %r already mapped in %s" %
+                    (component_id, self))
             component = self._parse_component(component_element)
-            self._process_component(component, component_element)
-            # this will raise AglyphError if the component.component_id has
-            # already been added
-            self.add(component)
+            self._process_dependencies(component, component_element)
+            self[component_id] = component
 
     @property
     def default_encoding(self):
@@ -242,6 +354,25 @@ class XMLContext(Context):
         """
         return self._default_encoding
 
+    def _parse_template(self, template_element):
+        """Create a template object from a ``<template>`` element.
+
+        :arg xml.etree.ElementTree.Element template_element:\
+           a ``<template>`` element
+        :return: an Aglyph template object
+        :rtype: :class:`aglyph.component.Template`
+
+        """
+        self.__logger.debug("TRACE %r", template_element)
+        unique_id = template_element.attrib["id"]
+        self.__logger.debug("parsing template[@id=%r]", unique_id)
+        template = Template(unique_id,
+            parent_id=template_element.get("parent-id"),
+            after_inject=template_element.get("after-inject"),
+            before_clear=template_element.get("before-clear"))
+        self.__logger.debug("RETURN %r", template)
+        return template
+
     def _parse_component(self, component_element):
         """Create a component object from a ``<component>`` element.
 
@@ -252,18 +383,19 @@ class XMLContext(Context):
 
         """
         self.__logger.debug("TRACE %r", component_element)
-        component_id = component_element.attrib["id"]
-        self.__logger.debug("parsing component[@id=%r]", component_id)
-        # if the dotted-name is not specified explicitly, then the component ID
-        # is assumed to represent a dotted-name
-        dotted_name = component_element.get("dotted-name", component_id)
-        factory_name = component_element.get("factory-name")
-        member_name = component_element.get("member-name")
-        strategy = component_element.get("strategy", Strategy.PROTOTYPE)
+        unique_id = component_element.attrib["id"]
+        self.__logger.debug("parsing component[@id=%r]", unique_id)
         # Component will reject unrecognized strategy
-        component = Component(component_id, dotted_name=dotted_name,
-                              factory_name=factory_name,
-                              member_name=member_name, strategy=strategy)
+        component = Component(unique_id,
+            # if the dotted-name is not specified explicitly, then the
+            # component ID is assumed to represent a dotted-name
+            dotted_name=component_element.get("dotted-name", unique_id),
+            factory_name=component_element.get("factory-name"),
+            member_name=component_element.get("member-name"),
+            strategy=component_element.get("strategy", "prototype"),
+            parent_id=component_element.get("parent-id"),
+            after_inject=component_element.get("after-inject"),
+            before_clear=component_element.get("before-clear"))
         self.__logger.debug("RETURN %r", component)
         return component
 
@@ -275,22 +407,41 @@ class XMLContext(Context):
         :arg xml.etree.ElementTree.Element component_element:\
            the element from which *component* was created
 
+        .. deprecated:: 2.1.0
+           use :meth:`_process_dependencies` instead.
+
         """
-        self.__logger.debug("TRACE %r, %r", component, component_element)
-        init_element = component_element.find("init")
+        warnings.warn(
+            AglyphDeprecationWarning("XMLContext._process_component",
+                replacement="XMLContext._process_dependencies"))
+        self._process_dependencies(component, component_element)
+
+    def _process_dependencies(self, depsupport, depsupport_element):
+        """Parse the child elements of *depsupport_element* to populate
+        the *depsupport* initialization arguments and attributes.
+
+        :arg depsupport: a :class:`Template` or :class:`Component`
+        :arg xml.etree.ElementTree.Element depsupport_element:\
+           the ``<template>`` or ``<component>`` that was parsed to\
+           create *depsupport*
+
+        """
+        self.__logger.debug("TRACE %r, %r", depsupport, depsupport_element)
+        init_element = depsupport_element.find("init")
         if (init_element is not None):
             for (keyword, value) in self._parse_init(init_element):
                 if (keyword is None):
-                    component.init_args.append(value)
+                    depsupport.args.append(value)
                 else:
-                    component.init_keywords[keyword] = value
-        attributes_element = component_element.find("attributes")
+                    depsupport.keywords[keyword] = value
+        attributes_element = depsupport_element.find("attributes")
         if (attributes_element is not None):
             for (name, value) in self._parse_attributes(attributes_element):
-                component.attributes[name] = value
-        self.__logger.debug("%r uses args %r, keywords %r, and attributes %r" %
-                            (component, component.init_args,
-                             component.init_keywords, component.attributes))
+                depsupport.attributes[name] = value
+        self.__logger.debug(
+            "%r has init_args=%r, init_keywords=%r, attributes=%r",
+            depsupport, depsupport.args, depsupport.keywords,
+            depsupport.attributes)
 
     def _parse_init(self, init_element):
         """Yield initialization arguments (positional and keyword)
@@ -779,7 +930,9 @@ class XMLContext(Context):
               Ned Batchelder's insanely thorough discussion of :py:func:`eval`
 
         """
-        _warn_deprecated("<eval>")
+        warnings.warn(
+            AglyphDeprecationWarning("Support for the <eval> element",
+                                     replacement="a <component> element"))
         if (eval_element.text is None):
             raise AglyphError("<eval> cannot be an empty element")
         # the environment for an eval expression is a restricted subset of

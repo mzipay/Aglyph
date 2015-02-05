@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,63 +35,63 @@ __author__ = "Matthew Zipay <mattz@ninthtest.net>"
 
 # always the current version of Aglyph
 MAJOR = 2
-MINOR = 0
+MINOR = 1
 PATCH = 0
 VERSION = (MAJOR, MINOR, PATCH)
 __version__ = "%d.%d.%d" % VERSION
 
-from functools import partial, wraps
 from inspect import isclass, ismethod, ismodule, isroutine
 import logging
-import platform
 import warnings
 
 from aglyph.compat import (
-    ClassAndFunctionTypes,
+    ClassAndFunctionTypes,  # deprecated
     log_compatibility,
-    NoOpLoggingHandler,
-    python_implementation,
-    StringTypes
+    NULL_LOGGING_HANDLER,
+    platform_detail,
+    StringTypes,
 )
 
 __all__ = [
+    "AglyphDeprecationWarning",
     "AglyphError",
     "format_dotted_name",
     "has_importable_dotted_name",  # deprecated
     "identify_by_spec",  # deprecated
-    "resolve_dotted_name"
+    "resolve_dotted_name",
 ]
 
 # define a logger for the "aglyph" channel to enable logging
 _logger = logging.getLogger(__name__)
 if (not _logger.handlers):
     # suppress log messages by default
-    _logger.addHandler(NoOpLoggingHandler())
+    _logger.addHandler(NULL_LOGGING_HANDLER)
 
-# log the Aglyph/Python versions and the platform (useful for debugging), and
-# then the compatibility details
-_logger.info("Aglyph %s; %s %s; %s" % (__version__, python_implementation,
-                                       platform.python_version(),
-                                       platform.platform()))
+# log the Aglyph version and Python platform, then the compatibility details
+_logger.info("Aglyph %s on %s" % (__version__, platform_detail))
 log_compatibility()
 
 
-def _warn_deprecated(name):
-    """Issue a :obj:`DeprecationWarning`.
-
-    :param str name: the name of an Aglyph class, function, method, or\
-                     module
-
-    .. warning::
-       A deprecated class, function, method, or module will remain part
-       of the Aglyph API until the next MAJOR release, at which time it
-       will be **removed**.
+class AglyphDeprecationWarning(DeprecationWarning):
+    """Issued when deprecated Aglyph functions, classes, or methods are
+    used.
 
     """
-    deprecation = DeprecationWarning(
-        "%s is deprecated and will be removed in release %d.0.0" %
+
+    def __init__(self, name, replacement=None):
+        """
+        :arg str name: the name of the deprecated function, class, or\
+                       method
+        :keyword str replacement: the name of the replacement function,\
+                                  class, or method (if applicable)
+
+        """
+        message = (
+            "%s is deprecated and will be removed in release %d.0.0." %
             (name, MAJOR + 1))
-    warnings.warn(deprecation, stacklevel=3)
+        if (replacement is not None):
+            message = "%s Use %s instead." % (message, replacement)
+        super(AglyphDeprecationWarning, self).__init__(message)
 
 
 class AglyphError(Exception):
@@ -115,7 +115,8 @@ def has_importable_dotted_name(obj):
        release 3.0.0.
 
     """
-    _warn_deprecated("aglyph.has_importable_dotted_name")
+    warnings.warn(
+        AglyphDeprecationWarning("aglyph.has_importable_dotted_name"))
     return (isinstance(obj, ClassAndFunctionTypes) and
             # need to look for __self__ because BuiltinFunctionType is the type
             # of both built-in functions AND built-in methods
@@ -215,8 +216,9 @@ def identify_by_spec(spec):
        release 3.0.0.
 
     """
-    _warn_deprecated("aglyph.identify_by_spec")
-    return spec if (type(spec) in StringTypes) else format_dotted_name(spec)
+    warnings.warn(AglyphDeprecationWarning("aglyph.identify_by_spec"))
+    return (spec if (isinstance(spec, StringTypes))
+            else format_dotted_name(spec))
 
 
 def resolve_dotted_name(dotted_name):
@@ -249,4 +251,25 @@ def resolve_dotted_name(dotted_name):
         obj = __import__(dotted_name, level=0)
     _logger.debug("RETURN %r", obj)
     return obj
+
+
+def _safe_repr(obj):
+    """Return a safe representation of *obj*.
+
+    :arg obj: any object assembled by Aglyph
+
+    .. note::
+       A "safe" representation means that no internal details of *obj*
+       are exposed. This is used to log assembled objects, which may
+       contain sensitive data that should not be emitted to logs.
+
+    """
+    type_name = type(obj).__name__
+    obj_name = getattr(obj, "__name__", None)
+    if (obj_name is None):
+        obj_name = obj.__class__.__name__
+    if (type_name != obj_name):
+        return "<%s %s @ %x>" % (obj_name, type_name, id(obj))
+    else:
+        return "<%s object @ %x>" % (type_name, id(obj))
 

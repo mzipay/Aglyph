@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 """Master test case and runner for Aglyph."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.2"
+__version__ = "2.1.0"
 
 import logging
 import unittest
@@ -32,21 +32,13 @@ from aglyph import (
     format_dotted_name, 
     has_importable_dotted_name,
     identify_by_spec,
-    resolve_dotted_name
+    resolve_dotted_name,
+    _safe_repr,
 )
+from aglyph.compat import StringTypes
 
-from test import enable_debug_logging
-from test.dummy import Alpha, Beta, create_alpha, Delta
-
-# PYVER: "__builtin__" in Python < 3.0, "builtins" in Python >= 3.0
-try:
-    import __builtin__
-    _py_builtins = __builtin__
-    _py_builtins_name = "__builtin__"
-except ImportError:
-    import builtins
-    _py_builtins = builtins
-    _py_builtins_name = "builtins"
+from test import enable_debug_logging, find_basename, py_builtin_module
+from test.dummy import Alpha, Beta, create_alpha, Delta, Gamma
 
 __all__ = [
     "FormatDottedNameTest",
@@ -58,6 +50,20 @@ __all__ = [
 
 # don't use __name__ here; can be run as "__main__"
 _logger = logging.getLogger("test.test_aglyph")
+
+# PYVER: unittest.TestCase.assertIsNone is missing in Jython 2.5.3
+if (not hasattr(unittest.TestCase, "assertIsNone")):
+    def _assert_is_none(self, obj, msg=None):
+        if (obj is not None):
+            self.fail(msg if (msg is not None) else "%r is not None" % obj)
+    unittest.TestCase.assertIsNone = _assert_is_none
+
+# PYVER: unittest.TestCase.assertIsNotNone is missing in Jython 2.5.3
+if (not hasattr(unittest.TestCase, "assertIsNotNone")):
+    def _assert_is_not_none(self, obj, msg=None):
+        if (obj is None):
+            self.fail(msg if (msg is not None) else "%r is None" % obj)
+    unittest.TestCase.assertIsNotNone = _assert_is_not_none
 
 
 class HasImportableDottedNameTest(unittest.TestCase):
@@ -104,11 +110,11 @@ class FormatDottedNameTest(unittest.TestCase):
                          format_dotted_name(create_alpha))
 
     def test_builtin_type(self):
-        self.assertEqual("%s.dict" % _py_builtins_name,
+        self.assertEqual("%s.dict" % py_builtin_module.__name__,
                          format_dotted_name(dict))
 
     def test_builtin_function(self):
-        self.assertEqual("%s.filter" % _py_builtins_name,
+        self.assertEqual("%s.filter" % py_builtin_module.__name__,
                          format_dotted_name(filter))
 
     def test_bound_function(self):
@@ -137,12 +143,14 @@ class ResolveDottedNameTest(unittest.TestCase):
                         resolve_dotted_name("test.dummy.create_alpha"))
 
     def test_builtin_type(self):
-        self.assertTrue(dict is resolve_dotted_name("%s.dict" %
-                                                    _py_builtins_name))
+        self.assertTrue(dict is
+                        resolve_dotted_name("%s.dict" %
+                                            py_builtin_module.__name__))
 
     def test_builtin_function(self):
-        self.assertTrue(filter is resolve_dotted_name("%s.filter" %
-                                                      _py_builtins_name))
+        self.assertTrue(filter is
+                        resolve_dotted_name("%s.filter" %
+                                            py_builtin_module.__name__))
 
     def test_bound_function(self):
         self.assertRaises(ImportError, resolve_dotted_name,
@@ -151,7 +159,7 @@ class ResolveDottedNameTest(unittest.TestCase):
         self.assertRaises(ImportError, resolve_dotted_name,
                           "test.dummy.Delta.get_value")
         self.assertRaises(ImportError, resolve_dotted_name, "%s.dict.update" %
-                          _py_builtins_name)
+                          py_builtin_module.__name__)
 
     def test_module_not_found(self):
         self.assertRaises(ImportError, resolve_dotted_name, "does.not.exist")
@@ -176,10 +184,11 @@ class IdentifyBySpecTest(unittest.TestCase):
                          identify_by_spec(create_alpha))
 
     def test_builtin_type(self):
-        self.assertEqual("%s.dict" % _py_builtins_name, identify_by_spec(dict))
+        self.assertEqual("%s.dict" % py_builtin_module.__name__,
+                         identify_by_spec(dict))
 
     def test_builtin_function(self):
-        self.assertEqual("%s.filter" % _py_builtins_name,
+        self.assertEqual("%s.filter" % py_builtin_module.__name__,
                          identify_by_spec(filter))
 
     def test_bound_function(self):
@@ -192,10 +201,28 @@ class IdentifyBySpecTest(unittest.TestCase):
         self.assertRaises(TypeError, identify_by_spec, None)
 
 
+class SafeReprTest(unittest.TestCase):
+
+    def test_safe_repr(self):
+        # don't care what the values are, as long as no exception is raised and
+        # the repr is not empty
+        for obj in (
+                None,       # builtin constant
+                int,        # builtin type
+                79,         # builtin type object
+                open,       # builtin function
+                Alpha,      # new-style class
+                Beta(),     # new-style class object
+                Gamma,      # old-style class
+                Delta(),    # old-style class instance
+                ):
+            r = _safe_repr(obj)
+            self.assertTrue(isinstance(r, StringTypes))
+            self.assertNotEqual("", r, repr(r))
+
+
 def suite():
     """Build the test suite for the :mod:`aglyph` package."""
-    _logger.debug("TRACE")
-
     import test.test_assembler
     import test.test_binder
     import test.test_cache
@@ -207,6 +234,7 @@ def suite():
     suite.addTest(unittest.makeSuite(FormatDottedNameTest))
     suite.addTest(unittest.makeSuite(ResolveDottedNameTest))
     suite.addTest(unittest.makeSuite(IdentifyBySpecTest))
+    suite.addTest(unittest.makeSuite(SafeReprTest))
     suite.addTest(test.test_cache.suite())
     suite.addTest(test.test_component.suite())
     suite.addTest(test.test_context.suite())

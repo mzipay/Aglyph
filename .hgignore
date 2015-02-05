@@ -1,4 +1,5 @@
 syntax: glob
+.gitignore
 .project
 .pydevproject
 MANIFEST
@@ -11,6 +12,9 @@ MANIFEST
 test-versions-variants.*
 resources/movielisterapp-*.zip
 NOTES.txt
+doc/build
+doc/sphinx_rtd_theme
+doc/cherrypy
 
 syntax: regexp
 ^\.settings$
@@ -18,7 +22,11 @@ syntax: regexp
 ^Aglyph.egg-info$
 ^build$
 ^dist$
-^doc/build$
 ^example/movielisterapp-aglyph.sh$
 ^example/movielisterapp-basic.sh$
+^test_integration-env2.7$
+^test_integration-env3.1$
+^test_integration-env3.2$
+^test_integration-env3.3$
+^test_integration-env3.4$
 

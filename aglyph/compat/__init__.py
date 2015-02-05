@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,13 +36,16 @@ easier to maintain (and easier to remove later).
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 import logging
+import os
 import platform
 import sys
 import types
 import xml.etree.ElementTree as ET
+
+# TODO: Need a custom OrderedDict (Jython 2.5.3 collections module doesn't have it)
 
 __all__ = [
     "ClassAndFunctionTypes",
@@ -50,6 +53,7 @@ __all__ = [
     "DoctypeTreeBuilder",
     "etree_iter",
     "is_callable",
+    "is_gae",
     "is_ironpython",
     "is_jython",
     "is_pypy",
@@ -58,8 +62,11 @@ __all__ = [
     "is_stackless",
     "log_compatibility",
     "new_instance",
-    "NoOpLoggingHandler",
-    "python_implementation",
+    "NoOpLoggingHandler",   # deprecated; remove in 3.0.0
+    "NULL_LOGGING_HANDLER",
+    "OrderedDict",
+    "platform_detail",
+    "python_implementation",    # deprecated; remove in 3.0.0
     "RESTRICTED_BUILTINS",
     "StringTypes",
     "TextType",
@@ -73,20 +80,14 @@ is_python_2 = (sys.version_info[0] == 2)
 #: True if the Python MAJOR version is 3.
 is_python_3 = (sys.version_info[0] == 3)
 
-# identify the Python implementation (i.e. CPython, IronPython, Jython, or
-# PyPy) - 'platform.python_implementation()' is not available in Python < 2.6
-# or Jython (used in 'aglyph.__init__')
-if (hasattr(platform, "python_implementation")):
-    _py_impl = getattr(platform, "python_implementation")()
-elif (hasattr(sys, "JYTHON_JAR")):
+#: The name of the runtime Python implementation (e.g. "CPython", "Jython").
+_py_impl = getattr(platform, "python_implementation", lambda: "Python")()
+
+# platform.python_implementation() has proven to be somewhat unreliable
+if (hasattr(sys, "JYTHON_JAR")):
     _py_impl = "Jython"
 elif (hasattr(sys, "pypy_version_info")):
     _py_impl = "PyPy"
-else:
-    _py_impl = "UnknownPythonImpl"
-
-#: The name of the runtime Python implementation (e.g. "CPython", "Jython").
-python_implementation = _py_impl
 
 try:
     import clr
@@ -96,24 +97,54 @@ else:
     _has_clr = True
 
 #: True if the runtime Python implementation is IronPython.
-is_ironpython = ("ironpython" in python_implementation.lower()) and _has_clr
+is_ironpython = ("ironpython" in _py_impl.lower()) and _has_clr
 
 #: True if the runtime Python implementation is Jython.
-is_jython = ("jython" in python_implementation.lower())
+is_jython = ("jython" in _py_impl.lower())
 
 #: True if the runtime Python implementation is PyPy.
-is_pypy = ("pypy" in python_implementation.lower())
+is_pypy = ("pypy" in _py_impl.lower())
 
+# PYVER: PyPy includes support for stackless, but as of the 3.2.5-compatible
+# PyPy 2.4.0 release, importing the "stackless" module causes an AttributeError
+# (see https://github.com/eventlet/eventlet/issues/83)
 try:
     import stackless
-except ImportError:
+except:
     _has_stackless = False
 else:
-    python_implementation = "StacklessPython"
+    _py_impl = "Stackless Python"
     _has_stackless = True
 
 #: True if the runtime Python implementation is Stackless Python.
-is_stackless = _has_stackless
+is_stackless = (not is_pypy) and _has_stackless
+
+#: True if running on the Google App Engine
+is_gae = "APPENGINE_RUNTIME" in os.environ
+
+python_implementation = _py_impl
+"""The name of the runtime Python implementation.
+
+.. deprecated:: 2.1.0
+   Superceded by :attr:`platform_detail` and will be **removed** in\
+   release 3.0.0.
+
+"""
+
+_py_ver = "%d.%d.%d" % sys.version_info[:3]
+if (sys.version_info[3] != "final"):
+    _py_ver = "%s%s%d" % (_py_ver, sys.version_info[3][0], sys.version_info[4])
+
+_py_system = None
+if (not is_gae):
+    _py_system = getattr(platform, "platform", lambda: None)()
+if (_py_system is None):
+    _py_system = getattr(platform, "system", lambda: "Unknown")()
+
+#: The python implementation, version, and platform information.
+platform_detail = "%s %s (%s)" % (_py_impl, _py_ver, _py_system)
+if (is_gae):
+    platform_detail = "%s [GAE]" % platform_detail
 
 # get a reference to the built-ins for use below; note that __builtins__ is not
 # always available (and when it is, can be either a module or a dict), so
@@ -166,9 +197,26 @@ StringTypes = (TextType, DataType)
 # define a null (no-op) logging handler
 # (used in aglyph.__init__)
 if (hasattr(logging, "NullHandler")):
-    _null_handler = getattr(logging, "NullHandler")
+    NoOpLoggingHandler = getattr(logging, "NullHandler")
 else:
-    class _null_handler(logging.Handler):    
+    class NoOpLoggingHandler(logging.Handler):
+        """The null (no-op) logging handler.
+
+        This handler is (should be) used by library code to avoid "No
+        handlers could be found" warnings when no handlers are
+        configured for the library's logging channel.
+
+        .. note::
+           :py:class:`logging.NullHandler` is not available in
+           Python < 2.7 or in Python 3.0.
+
+        .. deprecated:: 2.1.0
+           Aglyph is no longer supported on Python < 2.7 or
+           Python == 3.0, so :class:`logging.NullHandler` will used
+           moving forward.
+           This class will be **removed** in release 3.0.0.
+
+        """
         def handle(self, record):
             pass
         def emit(self, record):
@@ -176,19 +224,8 @@ else:
         def createLock(self):
             self.lock = None
 
-NoOpLoggingHandler = _null_handler
-"""The null (no-op) logging handler.
-
-This handler is (should be) used by library code to avoid "No handlers
-could be found" warnings when no handlers are configured for the
-library's logging channel.
-
-.. note::
-
-   :py:class:`logging.NullHandler` is not available in Python < 2.7 or
-   in Python 3.0.
-
-"""
+#: The null (no-op) logging handler instance.
+NULL_LOGGING_HANDLER = NoOpLoggingHandler()
 
 _class_and_func_types = [type, types.FunctionType, types.BuiltinFunctionType]
 if (is_python_2):
@@ -223,6 +260,11 @@ else: # assume is_python_3
     # (used in 'aglyph.assembler.Assembler._create_borg' and
     #  'aglyph.assembler.Assembler._initialize')
     _new_instance = lambda cls: cls.__new__(cls)
+
+try:
+    from collections import OrderedDict
+except:
+    from aglyph.compat.ordereddict import OrderedDict
 
 ClassAndFunctionTypes = tuple(_class_and_func_types)
 """The types of classes and functions.
@@ -390,7 +432,8 @@ These builtins are passed in the globals to the builtin :obj:`eval`
 function.
 
 .. deprecated:: 2.0.0
-   Use a top-level ``<component>`` instead of a nested ``<eval>``.
+   Use a top-level ``<component>`` instead of a nested ``<eval>``. This
+   member will be **removed** in release 3.0.0.
 
 .. seealso::
 
@@ -450,13 +493,14 @@ def log_compatibility():
     if (_logger.isEnabledFor(logging.DEBUG)):
         _logger.debug("is_python_2? %r; is_python_3? %r",
                       is_python_2, is_python_3)
-        _logger.debug("python_implementation is %r", python_implementation)
         _logger.debug(
-            "is_ironpython? %r, is_jython? %r, is_pypy? %r, is_stackless? %r",
-            is_ironpython, is_jython, is_pypy, is_stackless)
+            "is_ironpython? %r, is_jython? %r, is_pypy? %r, is_stackless? %r, "
+            "is_gae? %r",
+            is_ironpython, is_jython, is_pypy, is_stackless, is_gae)
         _logger.debug("TextType is %r; DataType is %r; StringTypes is %r",
                       TextType, DataType, StringTypes)
         _logger.debug("NoOpLoggingHandler is %r", NoOpLoggingHandler)
+        _logger.debug("OrderedDict is %r", OrderedDict)
         _logger.debug("ClassAndFunctionTypes is %r", ClassAndFunctionTypes)
         _logger.debug("is_callable is %r", is_callable)
         _logger.debug("new_instance is %r", new_instance)

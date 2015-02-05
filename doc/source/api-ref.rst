@@ -12,8 +12,9 @@ several modules and subpackages, as listed below.
    aglyph.assembler
    aglyph.binder
    aglyph.cache
-   aglyph.component
-   aglyph.context
    aglyph.compat
    aglyph.compat.ipyetree
+   aglyph.component
+   aglyph.context
+   aglyph.integration.cherrypy
 

@@ -1,0 +1,483 @@
+<!-- Aglyph: Dependency Injection for Python, context DTD version 2.1.0 -->
+
+<!-- The PyConstants entity defines Python built-in constants. -->
+<!ENTITY % PyConstants "none | true | false">
+
+<!--
+The PyHashables entity defines element names for Python built-in types that
+implement the __hash__ protocol.
+
+The built-in 'str' type has changed significantly between Python 2 and Python 3
+(see
+http://docs.python.org/release/3.0/whatsnew/3.0.html#text-vs-data-instead-of-unicode-vs-8-bit),
+and so matters are a bit more complicated for strings.
+
+A simple table illustrates the difference in types between Python 2 and 3:
++==========+===================+===================+
+|          |   Unicode text    | Encoded byte data |
++==========+===================+===================+
+| Python 2 |      unicode      |        str        |
++~~~~~~~~~~+~~~~~~~~~~~~~~~~~~~+~~~~~~~~~~~~~~~~~~~+
+| Python 3 |        str        |       bytes       |
++~~~~~~~~~~+~~~~~~~~~~~~~~~~~~~+~~~~~~~~~~~~~~~~~~~+
+
+Aglyph supports element names for all three types ('bytes', 'str', and
+'unicode'), but interpretation differs based on the version of Python under
+which Aglyph is running. See the comment for the respective ELEMENTs for
+details.
+
+Objects of these built-in types may be used as keys in a dictionary.
+-->
+<!ENTITY % PyHashables "%PyConstants; | bytes | str | unicode | int | float | tuple">
+
+<!--
+The PyUnhashables entity defines element names for Python built-in types that
+do NOT implement the __hash__ protocol.
+
+Objects of these built-in types may NOT be used as keys in a dictionary.
+-->
+<!ENTITY % PyUnhashables "list | dict">
+
+<!--
+The PyBuiltins entity defines element names for the Python built-in types that
+are explicitly recognized by Aglyph.
+
+Additional built-in types (e.g. set, complex) can still be used by defining
+them as components (e.g. <component id="my-set" dotted-name="builtins.set">).
+-->
+<!ENTITY % PyBuiltins "%PyHashables; | %PyUnhashables;">
+
+<!--
+The AssemlyStrategies entity defines the ways that Aglyph knows how to assemble
+components.
+
+An assembler always creates a new instance of a prototype component. Only one
+instance of a singleton is created, and an assembler always returns the same
+instance. An assembler always creates a new instance of a borg component, but
+each instance of that component shares the same internal state. A weakref
+component remains cached (like a singleton) as long as there is at least one
+"live" reference to the assembled object in the application runtime; when the
+only reference to the assembled object is in the Aglyph cache, it is discarded
+and the next assemble request creates (and caches) a new object.
+-->
+<!ENTITY % AssemblyStrategies "prototype | singleton | borg | weakref">
+
+<!--
+The context element is the root element, and defines zero or more components
+that can be assembled by an assembler.
+
+The context/@id attribute uniquely identifies a context.
+
+The context/@after-inject attribute identifies a method name that will be
+called (if it exists) on ALL assembled objects after all of their dependencies
+have been injected, but before the object is returned to the caller.
+This method will be called with NO arguments (positional or keyword).
+This method will NOT be called on singleton, borg, or weakref objects that have
+been successfully retrieved from cache (i.e. it will only be called when those
+objects are initially created).
+
+The context/@before-clear attribute identifies a method name that will be
+called (if it exists) on ALL singleton, borg, and weakref objects when those
+objects are explicitly removed from cache via Assembler.clear_singletons(),
+Assembler.clear_borgs(), and Assembler.clear_weakrefs(), respectively.
+This method will be called with NO arguments (positional or keyword).
+This method is IGNORED for prototype components (a warning will be issued if
+it is specified).
+This method MIGHT NOT be called for weakref objects when the weakref cache is
+cleared. This is due to the nature of weak references - it is possible that the
+referent object may no longer exist at the time this method would be called.
+-->
+<!ELEMENT context ((template | component)*)>
+<!ATTLIST context
+	id ID #REQUIRED
+	after-inject NMTOKEN #IMPLIED
+	before-clear NMTOKEN #IMPLIED
+	>
+
+<!--
+The template element describes common dependencies and/or lifecycle methods for
+a user-defined group of components.
+
+A template can be imagined as an "abstract" class - it cannot be assembled by
+Aglpyh, but components (and other templates) may "extend" it.
+
+The template/@id attribute MUST be a value that uniquely identifies a
+template within a context.
+
+The template/@parent-id attribute refers to another template or component
+that provides the basis for this template. The positional and keyword
+initialization arguments described by the parent take precedence; the parent's
+positional arguments are used as the leftmost positional arguments when calling
+this template's initializer, and any additional positional arguments described
+in this template are appended. Keyword arguments and attributes described in
+this template extend or override those described by the parent. (In this
+respect, parents behave similarly to partial functions.)
+
+The template/@after-inject attribute identifies a method name that will be
+called (if it exists) on an object of any component that uses this template
+after all of its dependencies have been injected, but before the object is
+returned to the caller.
+This method will be called with NO arguments (positional or keyword).
+This method will NOT be called on singleton, borg, or weakref objects that have
+been successfully retrieved from cache (i.e. it will only be called when those
+objects are initially created).
+
+The template/@before-clear attribute identifies a method name that will be
+called (if it exists) on an object of any component that uses this template
+when it is explicitly removed from cache via Assembler.clear_singletons(),
+Assembler.clear_borgs(), and Assembler.clear_weakrefs(), respectively.
+This method will be called with NO arguments (positional or keyword).
+This method is IGNORED for prototype components (a warning will be issued if
+it is specified).
+This method MIGHT NOT be called for weakref objects when the weakref cache is
+cleared. This is due to the nature of weak references - it is possible that the
+referent object may no longer exist at the time this method would be called.
+
+NOTE: template/@after-inject and template/@before-clear have a higher
+precedence than context/@after-inject and context/@before-clear when
+determining which lifecycle methods will be called for a given object.
+-->
+<!ELEMENT template (init?, attributes?)>
+<!ATTLIST template
+	id ID #REQUIRED
+	parent-id IDREF #IMPLIED
+	after-inject NMTOKEN #IMPLIED
+	before-clear NMTOKEN #IMPLIED
+	>
+
+<!--
+The component element describes an importable Python class or function and the
+dependencies it requires (either as initialization arguments or post-
+initialization attributes, or both).
+
+The component/@id attribute MUST be a value that uniquely identifies a
+component within a context.
+
+The component/@dotted-name attribute MUST be a Python dotted-name
+(e.g. "xml.dom.Node") identifying the type of the component. This attribute is
+required IF the component/@id is not a dotted-name.
+
+According to these rules, the following three components each define a distinct
+variation of the "app.Thing" type:
+	(1) <component id="app.Thing">
+	(2) <component id="alternate-thing" dotted-name="app.Thing">
+	(3) <component id="experimental-thing" dotted-name="app.Thing">
+
+The different variations of "app.Thing" could then be assembled as follows:
+	assembler.assemble("app.Thing")			 # returns variation (1)
+	assembler.assemble("alternate-thing")	   # returns variation (2)
+	assembler.assemble("experimental-thing")	# returns variation (3)
+
+The component/@strategy attribute specifies the manner in which components
+are assembled (see the AssemblyStrategies entity). If it is not specified,
+it defaults to "prototype".
+
+The component/@parent-id attribute refers to another template or component
+that provides the basis for this component. The positional and keyword
+initialization arguments described by a component's parent take precedence;
+the parent's positional arguments are used as the leftmost positional arguments
+when calling the component's initializer, and any additional positional
+arguments described in the component are appended. Keyword arguments and
+attributes described in the component extend or override those described by the
+component's template. (In this respect, parents behave similarly to partial
+functions.)
+
+The component/@after-inject attribute identifies a method name that will be
+called (if it exists) on an object of this component after all of its
+dependencies have been injected, but before the object is returned to the
+caller.
+This method will be called with NO arguments (positional or keyword).
+This method will NOT be called on singleton, borg, or weakref objects that have
+been successfully retrieved from cache (i.e. it will only be called when those
+objects are initially created).
+
+The component/@before-clear attribute identifies a method name that will be
+called (if it exists) on an object of this component when it is explicitly
+removed from cache via Assembler.clear_singletons(), Assembler.clear_borgs(),
+and Assembler.clear_weakrefs(), respectively.
+This method will be called with NO arguments (positional or keyword).
+This method is IGNORED for prototype components (a warning will be issued if
+it is specified).
+This method MIGHT NOT be called for weakref objects when the weakref cache is
+cleared. This is due to the nature of weak references - it is possible that the
+referent object may no longer exist at the time this method would be called.
+
+NOTE: component/@after-inject and component/@before-clear have a higher
+precedence than any parent template or component's corresponding attributes
+when determining which lifecycle methods will be called for a given object.
+-->
+<!ELEMENT component (init?, attributes?)>
+<!ATTLIST component
+	id ID #REQUIRED
+	dotted-name NMTOKEN #IMPLIED
+	factory-name NMTOKEN #IMPLIED
+	member-name NMTOKEN #IMPLIED
+	strategy (%AssemblyStrategies;) "prototype"
+	parent-id IDREF #IMPLIED
+	after-inject NMTOKEN #IMPLIED
+	before-clear NMTOKEN #IMPLIED
+	>
+
+<!--
+The init element describes any number of positional and/or keyword arguments
+used to initialize an object.
+-->
+<!ELEMENT init (arg*)>
+
+<!--
+The arg element describes a single positional or keyword argument passed to an
+initializer.
+
+WARNING: The <eval> element is deprecated and will be removed in release 3.0.0.
+
+The arg/@keyword attribute specifies the name of a keyword argument.
+
+If an arg element does not have a "keyword" attribute, it is treated as a
+positional argument.
+
+Note that the sequence of positional arg elements is significant; these
+arguments will be passed to the component's initializer in the SAME order in
+which they are declared.
+
+The arg/@reference attribute can be used as shorthand notation for specifying
+that an argument's value is a reference to another component defined in the
+same context.
+
+For example, the following two <arg> definitions are synonymous:
+	(1) <arg><reference id="some-component"/></arg>
+	(2) <arg reference="some-component"/>
+-->
+<!ELEMENT arg (%PyBuiltins; | reference | eval)?>
+<!ATTLIST arg
+	keyword NMTOKEN #IMPLIED
+	reference IDREF #IMPLIED
+	>
+
+<!--
+The attributes element describes any number of fields, setter mehtods, or
+properties of an object.
+-->
+<!ELEMENT attributes (attribute*)>
+
+<!--
+The attribute element describes a single field, setter method, or property of
+a component.
+
+WARNING: The <eval> element is deprecated and will be removed in release 3.0.0.
+
+The attribute/@name attribute specifies the name of a field, setter method, or
+property of an object.
+
+The attribute/@reference attribute can be used as shorthand notation for
+specifying that an attribute's value is a reference to another component
+defined in the same context.
+
+For example, the following two <attribute> definitions are synonymous:
+	(1) <attribute><reference id="some-component"/></attribute>
+	(2) <attribute reference="some-component"/>
+-->
+<!ELEMENT attribute (%PyBuiltins; | reference | eval)?>
+<!ATTLIST attribute
+	name NMTOKEN #REQUIRED
+	reference IDREF #IMPLIED
+	>
+
+<!-- The none element represents the Python built-in constant None. -->
+<!ELEMENT none EMPTY>
+
+<!-- The true element represents the Python built-in constant True. -->
+<!ELEMENT true EMPTY>
+
+<!-- The false element represents the Python built-in constant False. -->
+<!ELEMENT false EMPTY>
+
+<!--
+The bytes element's child text node is transcoded from the XML document's
+encoding (default UTF-8) to another encoding.
+
+The XML parser handles the task of decoding the child text node, and Aglyph
+handles the task of encoding to a target character set, which may be specified
+by the document author using the bytes/@encoding attribute (see the ATTLIST for
+the bytes element, below).
+
+It is not necessary to include quotes (single or double) in the child text
+node; the node value itself is used as the value.
+
+When Aglyph is running under Python 2, the runtime value's type will be 'str'.
+
+When Aglyph is running under Python 3, the runtime value's type will be
+'bytes'.
+
+The bytes/@encoding attribute identifies the target encoding (i.e. character
+set) for the byte element's child text node value. If not specified, the XML
+document's encoding is used (default UTF-8).
+
+Aglyph uses the "strict" error mode when encoding. If the child text node value
+contains bytes that cannot be represented in the target encoding, a
+UnicodeEncodeError will be raised.
+-->
+<!ELEMENT bytes (#PCDATA)>
+<!ATTLIST bytes
+	encoding CDATA #IMPLIED>
+
+<!--
+When Aglyph is running under Python 2, the str element's child text node is
+transcoded from the XML document's encoding (default UTF-8) to another
+encoding. In this case, a str element is interpreted the same as a bytes
+element.
+
+When Aglyph is running under Python 3, the str element's child text node is
+treated as Unicode text (the XML parser handles the task of decoding the text
+node value from the document's encoding).
+
+It is not necessary to include quotes (single or double) in the child text
+node; the node value itself is used as the text value.
+
+The runtime value's type will be always be 'str', whether Aglyph is running
+under Python 2 or 3.
+
+When Aglyph is running under Python 2, the str/@encoding attribute identifies
+the target encoding (i.e. character set) for the str element's child text node
+value. If not specified, the XML document's encoding is used (default UTF-8).
+
+Aglyph uses the "strict" error mode when encoding. If the child text node value
+contains bytes that cannot be represented in the target encoding, a
+UnicodeEncodeError will be raised.
+
+When Aglyph is running under Python 3, the str/@encoding attribute is not
+processed (since a Python 3 str is Unicode text). If it is specified, Aglyph
+logs a WARNING-level message to the "aglyph.context.XMLContext" log channel.
+-->
+<!ELEMENT str (#PCDATA)>
+<!ATTLIST str
+	encoding CDATA #IMPLIED>
+
+<!--
+The unicode element's child text node is treated as Unicode text. The XML
+parser handles the task of decoding the text node value from the document's
+encoding (default UTF-8).
+
+It is not necessary to include quotes (single or double) in the child text
+node; the node value itself is used as the string value.
+
+When Aglyph is running under Python 2, the runtime value's type will be
+'unicode'.
+
+When Aglyph is running under Python 3, the runtime value's type will be 'str'.
+-->
+<!ELEMENT unicode (#PCDATA)>
+
+<!--
+The int element's child text node represents a Python int.
+
+When Aglyph is running under Python 2, the runtime value of an <int> element
+MAY be 'long'.
+
+The int/@base attribute indicates the base for conversion of the <int>'s child
+text node to an int type. If not specified, the Python default (10) is implied.
+-->
+<!ELEMENT int (#PCDATA)>
+<!ATTLIST int
+	base CDATA #IMPLIED>
+
+<!-- The float element's child text node represents a Python float.
+
+Aglyph recognizes the special (case-insensitive) values "NaN", "Inf"/"+Inf",
+and "-Inf"
+-->
+<!ELEMENT float (#PCDATA)>
+
+<!--
+The list element represents a Python list.
+
+Each child element represents an item in the list.
+
+WARNING: The <eval> element is deprecated and will be removed in release 3.0.0.
+-->
+<!ELEMENT list (%PyBuiltins; | reference | eval)*>
+
+<!--
+The tuple element represents a Python tuple.
+
+Each child element represents an item in the tuple.
+
+WARNING: The <eval> element is deprecated and will be removed in release 3.0.0.
+-->
+<!ELEMENT tuple (%PyBuiltins; | reference | eval)*>
+
+<!-- The dict element represents a Python dictionary. -->
+<!ELEMENT dict (item*)>
+
+<!-- The item element represents a key/value pair in a Python dictionary. -->
+<!ELEMENT item (key, value)>
+
+<!--
+The key element's child element represents the key portion of a Python
+dictionary key/value pair.
+
+If the key element's child element is an eval or reference, the object that
+results from evaluating the expression or assembling the referenced component
+MUST implement the __hash__ protocol.
+
+WARNING: The <eval> element is deprecated and will be removed in release 3.0.0.
+
+The key/@reference attribute can be used as shorthand notation for specifying
+that a dictionary key is a reference to another component defined in the same
+context.
+
+For example, the following two <key> definitions are synonymous:
+	(1) <key><reference id="some-hashable-component"/></key>
+	(2) <key reference="some-hashable-component"/>
+-->
+<!ELEMENT key (%PyHashables; | reference | eval)?>
+<!ATTLIST key
+	reference IDREF #IMPLIED
+	>
+
+<!--
+The value element's child element represents the value portion of a Python
+dictionary key/value pair.
+
+WARNING: The <eval> element is deprecated and will be removed in release 3.0.0.
+
+The value/@reference attribute can be used as shorthand notation for specifying
+that a dictionary value is a reference to another component defined in the same
+context.
+
+For example, the following two <value> definitions are synonymous:
+	(1) <value><reference id="some-component"/></value>
+	(2) <value reference="some-component"/>
+-->
+<!ELEMENT value (%PyBuiltins; | reference | eval)?>
+<!ATTLIST value
+	reference IDREF #IMPLIED
+	>
+
+<!--
+The reference element is a placeholder that refers to a component described
+elsewhere in this context.
+
+The reference/@id attribute value MUST correspond to a component/@id
+attribute value in this context.
+
+At assembly time, Aglyph will look up the component identified by this
+reference/@id value and assemble the component according to its definition.
+-->
+<!ELEMENT reference EMPTY>
+<!ATTLIST reference
+	id IDREF #REQUIRED
+	>
+
+<!--
+The eval element's child text node must contain an expression that can be
+evaluated by the Python built-in function 'eval()'.
+
+The environment for eval expressions is RESTRICTED subset of __builtins__ (see
+the documentation of the 'aglyph.context.XMLContext._parse_eval()' method for
+details).
+
+DEPRECATED: The <eval> element will be removed in release 3.0.0. Its use is not
+recommended; use component definitions instead.
+-->
+<!ELEMENT eval (#PCDATA)>
+

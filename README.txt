@@ -14,24 +14,24 @@ HOMEPAGE: http://www.ninthtest.net/aglyph-python-dependency-injection/
 AUTHOR: Matthew Zipay <mattz@ninthtest.net>
 LICENSE: MIT License (see the LICENSE.txt file)
 
-Aglyph is a Dependency Injection framework for Python 2.6+, supporting
+Aglyph is a Dependency Injection framework for Python 2.7+, supporting
 type 2 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on CPython (http://www.python.org/) 2.6 - 3.3, and on recent
-versions of the PyPy (http://pypy.org/>),
+Aglyph runs on CPython (http://www.python.org/) 2.7 and 3.1 - 3.4, and
+on recent versions of the PyPy (http://pypy.org/>),
 Jython (http://www.jython.org/), IronPython (http://ironpython.net/),
 and Stackless Python (http://www.stackless.com/) variants.
 
 Aglyph can assemble "prototype" components (a new instance is created
 every time), "singleton" components (the same instance is returned every
-time), and "borg" components (a new instance is created every time, but
-all instances of the same class share the same internal state).
+time), "borg" components (a new instance is created every time, but
+all instances of the same class share the same internal state), and
+"weakref" components (the same instance is returned as long as there is
+at least one "live" reference to the instance in the running
+application).
 
 Aglyph can be configured using a declarative XML syntax, or
 programmatically in pure Python.
-
-Aglyph is not a "full stack;" only dependency injection support is
-provided.
 
 For the definitive introduction to the Dependency Injection pattern,
 please read Martin Fowler's article "Inversion of Control Containers and
@@ -85,7 +85,9 @@ to install Aglyph:
 Alternatively, install into a virtualenv using "pip install Aglyph".
 
 Verify that the installation was successful by importing the 'aglyph'
-module from a Python interpreter:
+module from a Python interpreter and checking the version:
 
 >>> import aglyph
+>>> aglyph.__version__
+'2.1.0'
 

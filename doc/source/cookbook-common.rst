@@ -1,6 +1,6 @@
-**********************
+======================
 Common usage scenarios
-**********************
+======================
 
 All examples are shown with XML configuration *and* programmatic configuration,
 where appropriate.
@@ -9,6 +9,8 @@ where appropriate.
 * :ref:`builtin-components`
 * :ref:`component-reference`
 * :ref:`deferred-resolution`
+* :ref:`after-inject-lifecycle-method`
+* :ref:`before-clear-lifecycle-method`
 * :ref:`avoid-circular-deps`
 
 .. _simple-component:
@@ -434,6 +436,125 @@ In a *bindings.py* module::
                                      UNA="Unassigned",
                                      OPE="Open (Assigned)",
                                      CLO="Closed")))
+
+.. _after-inject-lifecycle-method:
+
+Declare a method to be called on an object after its dependencies have been injected
+====================================================================================
+
+.. versionadded:: 2.1.0
+
+At times it may be desirable (or necessary) to call an "initialization" method
+on an assembled object before it is returned to the caller for use. For this
+purpose, Aglyph allows you to declare such a method name at the context,
+template, and/or component level.
+
+.. note::
+   Please refer to :ref:`The lifecycle method lookup process
+   <lifecycle-method-lookup-process>` to understand how Aglyph determines
+   *which* lifecycle method to call on an object when multiple options are
+   declared at the context, template, and/or component level for a given
+   object.
+
+In the following examples, we assume that all of the objects implement a
+``prepare()`` method. In such cases, a context-level ``after_inject`` lifecycle
+method may be appropriate. Alternatively, it could be declared in a template
+(see :doc:`cookbook-templating`).
+
+Regardless of the configuration approach, the behavior is that the assembled
+object's ``prepare()`` method is called **before** the object is returned from
+the assembler or binder to the caller.
+
+Using declarative XML configuration
+-----------------------------------
+
+Note the use of the *after-inject* attribute on the ``<context>`` element::
+
+   <?xml version="1.0" ?>
+   <context id="cookbook-context" after-inject="prepare">
+      <component id="object-a" dotted-name="cookbook.PreparableObjectA" />
+      <component id="object-b" dotted-name="cookbook.PreparableObjectB" />
+      <component id="object-c" dotted-name="cookbook.PreparableObjectC" />
+   </context>
+
+Using programmatic Binder configuration
+---------------------------------------
+
+Note the use of the *after_inject* keyword argument to
+:class:`aglyph.binder.Binder`::
+
+   from aglyph.binder import Binder
+
+   binder = Binder("cookbook-binder", after_inject="prepare")
+   binder.bind("object-a", to="cookbook.PreparableObjectA")
+   binder.bind("object-b", to="cookbook.PreparableObjectB")
+   binder.bind("object-c", to="cookbook.PreparableObjectC")
+
+.. _before-clear-lifecycle-method:
+
+Declare a method to be called on a *singleton*, *borg*, or *weakref* object before it is cleared from cache
+===========================================================================================================
+
+.. versionadded:: 2.1.0
+
+At times it may be desirable (or necessary) to call a "finalization" method on
+a cached object before it is cleared from Aglyph's internal cache. For this
+purpose, Aglyph allows you to declare such a method name at the context,
+template, and/or component level.
+
+.. note::
+   Please refer to :ref:`The lifecycle method lookup process
+   <lifecycle-method-lookup-process>` to understand how Aglyph determines
+   *which* lifecycle method to call on an object when multiple options are
+   declared at the context, template, and/or component level for a given
+   object.
+
+Following is an example that declares a *singleton* `GNU dbm
+<http://www.gnu.org.ua/software/gdbm/>`_ key/data store using Python's
+:mod:`dbm.gnu` module. The store is configured to be opened in "fast" mode,
+meaning that writes are not synchronized. When using GDBM, it is important that
+every file opened is also closed (which causes any pending writes to be
+synchronized - i.e. written to disk). The example shows how to declare that the
+``close()`` method is to be called before the cached GDBM object is evicted
+from the Aglyph singleton cache.
+
+Using declarative XML configuration
+-----------------------------------
+
+Here we declare the ``close()`` method for the ``before_clear`` lifecycle state
+of the component by using the *before-clear* attribute of the ``<component>``
+element::
+
+   <?xml version="1.0" ?>
+   <context id="cookbook-context">
+      <component id="store" dotted-name="dbm.gnu" factory-name="open"
+            strategy="singleton" before-clear="close">
+         <init>
+            <arg><str>/var/cookbook-store.db</str></arg>
+            <arg><str>cf</str></arg>
+         </init>
+      </component>
+   </context>
+
+Using programmatic Binder configuration
+---------------------------------------
+
+Here we use the *before_clear* keyword argument when binding the GDBM store
+object::
+
+   from aglyph.binder import Binder
+
+   binder = Binder("cookbook-binder")
+   (binder.bind("store", to="dbm.gnu", factory="open",
+                strategy="singleton", before_clear="close").
+       init("/var/cookbook-store.db", "cf"))
+
+.. warning::
+   Be careful when declaring ``before_clear`` lifecycle methods for *weakref*
+   component objects, as the nature of weak references means that Aglyph
+   **cannot** guarantee that the object still exists when the
+   :meth:`aglyph.assembler.Assembler.clear_weakrefs` method is called! Please
+   refer to :mod:`weakref` for details.
 
 .. _avoid-circular-deps:
 

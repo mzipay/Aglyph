@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +29,14 @@ releasing the cache lock.
 
 """
 
-from __future__ import with_statement
-
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 import logging
+import warnings
+
+from aglyph import AglyphDeprecationWarning
+
 try:
     import threading
     threading_ = threading
@@ -59,6 +61,12 @@ class _LockingCache(dict):
     provide the desired type of lock (e.g. :func:`threading.Lock` or
     :func:`threading.RLock`).
 
+    .. versionadded:: 2.1.0
+       This class now acts as a `context manager
+       <https://docs.python.org/3/library/stdtypes.html#typecontextmanager>`_
+       using `the with statement
+       <https://docs.python.org/3/reference/compound_stmts.html#with>`_
+
     """
 
     __logger = logging.getLogger("%s._LockingCache" % __name__)
@@ -72,9 +80,43 @@ class _LockingCache(dict):
         super(_LockingCache, self).__init__()
         self.__lock = lock
 
+    def __enter__(self):
+        """Acquire the cache lock."""
+        self.__lock.acquire()
+        return self
+
+    def __exit__(self, e_type, e_obj, tb):
+        """Release the cache lock.
+
+        :arg e_type: the exception class if an exception occurred while\
+                     executing the body of the ``with`` statement, else\
+                     ``None``
+        :arg Exception e_value: the exception object if an exception\
+                                occurred while executing the body of\
+                                the ``with`` statement, else ``None``
+        :arg tb: the traceback if an exception occurred while executing\
+                 the body of the ``with`` statement, else ``None``
+
+        .. note::
+           If an exception occurred, it will be logged but allowed to
+           propagate.
+
+        """
+        self.__lock.release()
+        if (e_obj is not None):
+            self.__logger.error(
+                "exception occurred while cache lock was held: %s", str(e_obj))
+
     @property
     def lock(self):
-        """a read-only property for the lock object"""
+        """a read-only property for the lock object
+
+        .. deprecated:: 2.1.0::
+           use ``with cache`` instead of ``with cache.lock``
+
+        """
+        warnings.warn(AglyphDeprecationWarning("_LockingCache.lock",
+                                               replacement="'with cache:'"))
         return self.__lock
 
     def __repr__(self):
@@ -88,22 +130,18 @@ class MutexCache(_LockingCache):
     If the lock is held, any attempt to acquire it will block until the
     holding thread releases the lock.
 
-    >>> cache = MutexCache()
-    >>> cache.lock.locked()
-    False
-    >>> with cache.lock:
-    ...     cache.lock.locked()
-    ...
-    True
-    >>> cache.lock.locked()
-    False
+    To use a mutex cache::
+
+        cache = MutexCache()
+        ...
+        with cache:
+            # check-then-act
 
     """
 
     __logger = logging.getLogger("%s.MutexCache" % __name__)
 
     def __init__(self):
-        self.__logger.debug("TRACE")
         super(MutexCache, self).__init__(threading_.Lock())
 
 
@@ -116,24 +154,17 @@ class ReentrantMutexCache(_LockingCache):
     same lock more than once, allowing nested access to a shared
     resource by a single thread.)
 
-    >>> cache = ReentrantMutexCache()
-    >>> cache.lock._count
-    0
-    >>> with cache.lock:
-    ...     cache.lock._count
-    ...     with cache.lock:
-    ...         cache.lock._count
-    ...
-    1
-    2
-    >>> cache.lock._count
-    0
+    To use a re-entrant mutex cache::
+
+        cache = ReentrantMutexCache()
+        ...
+        with cache:
+            # check-then-act
 
     """
 
     __logger = logging.getLogger("%s.ReentrantMutexCache" % __name__)
 
     def __init__(self):
-        self.__logger.debug("TRACE")
         super(ReentrantMutexCache, self).__init__(threading_.RLock())
 

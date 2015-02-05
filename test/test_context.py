@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 """Test cases and runner for the :mod:`aglyph.context` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.2"
+__version__ = "2.1.0"
 
 import functools
 import logging
@@ -33,10 +33,17 @@ import unittest
 
 from aglyph import AglyphError
 from aglyph.compat import DataType, is_python_2
-from aglyph.component import Component, Evaluator, Reference, Strategy
+from aglyph.component import (
+    Component,
+    Evaluator,
+    Reference,
+    Strategy,
+    Template,
+)
 from aglyph.context import Context, XMLContext
 
-from test import enable_debug_logging, find_basename, skip_if
+from test import (enable_debug_logging, find_basename, py_builtin_module,
+                  skip_if)
 
 try:
     float("NaN")
@@ -62,6 +69,20 @@ __all__ = [
 
 # don't use __name__ here; can be run as "__main__"
 _logger = logging.getLogger("test.test_context")
+
+# PYVER: unittest.TestCase.assertIsNone is missing in Jython 2.5.3
+if (not hasattr(unittest.TestCase, "assertIsNone")):
+    def _assert_is_none(self, obj, msg=None):
+        if (obj is not None):
+            self.fail(msg if (msg is not None) else "%r is not None" % obj)
+    unittest.TestCase.assertIsNone = _assert_is_none
+
+# PYVER: unittest.TestCase.assertIsNotNone is missing in Jython 2.5.3
+if (not hasattr(unittest.TestCase, "assertIsNotNone")):
+    def _assert_is_not_none(self, obj, msg=None):
+        if (obj is None):
+            self.fail(msg if (msg is not None) else "%r is None" % obj)
+    unittest.TestCase.assertIsNotNone = _assert_is_not_none
 
 # Python 2/3 compatibility
 # * u"..." is valid syntax in Python 2, but raises SyntaxError in Python 3
@@ -96,17 +117,52 @@ class ContextTest(unittest.TestCase):
     """Test the :class:`aglyph.context.Context` class."""
 
     def setUp(self):
-        self.context = Context(self.id().rsplit('.', 1)[-1])
+        self.context = Context(str(self))
 
     def tearDown(self):
         self.context = None
 
+    def test_init_with_id(self):
+        context = Context("test_init_with_id")
+        self.assertEqual("test_init_with_id", context.context_id)
+        self.assertIsNone(context.after_inject)
+        self.assertIsNone(context.before_clear)
+
+    def test_init_with_lifecycle_methods(self):
+        context = Context("test_init_with_lifecycle_methods",
+                          after_inject="context_after_inject",
+                          before_clear="context_before_clear")
+        self.assertEqual("context_after_inject", context.after_inject)
+        self.assertEqual("context_before_clear", context.before_clear)
+
+    def test_get_component_doesnt_return_template(self):
+        self.context["a-template"] = Template("a-template")
+        self.assertTrue("a-template" in self.context)
+        self.assertIsNone(self.context.get_component("a-template"))
+
+    def test_get_component(self):
+        self.context["a-component"] = Component("a-component")
+        self.assertTrue("a-component" in self.context)
+        self.assertIsNotNone(self.context.get_component("a-component"))
+
+    def test_iter_components(self):
+        self.context["template1"] = Template("template1")
+        self.context["component1"] = Component("component1")
+        self.context["template2"] = Template("template2")
+        self.context["component2"] = Component("component2")
+        expected = ["component1", "component2"]
+        self.assertEqual(expected,
+                         sorted([c.unique_id
+                                 for c in self.context.iter_components()]))
+
+    # Context.add will be removed in 3.0.0
     def test_add_duplicate_id(self):
         component = Component("alpha", "test.dummy.Alpha")
         duplicate = Component("alpha", "test.dummy.create_alpha")
         self.context.add(component)
         self.assertRaises(AglyphError, self.context.add, duplicate)
 
+    # Context.add will be removed in 3.0.0
     def test_add(self):
         component1 = Component("test.dummy.Alpha")
         component2 = Component("alpha", "test.dummy.create_alpha")
@@ -118,6 +174,7 @@ class ContextTest(unittest.TestCase):
         self.assertTrue("alpha" in self.context)
         self.assertTrue("alpha-alternate" in self.context)
 
+    # Context.add_or_replace will be removed in 3.0.0
     def test_add_or_replace(self):
         component = Component("alpha", "test.dummy.Alpha")
         duplicate = Component("alpha", "test.dummy.create_alpha")
@@ -128,14 +185,16 @@ class ContextTest(unittest.TestCase):
                          self.context["alpha"].dotted_name)
         self.assertTrue(replaced is component)
 
+    # Context.remove will be removed in 3.0.0
     def test_remove_not_in_context(self):
         self.assertFalse("alpha" in self.context)
         self.assertTrue(self.context.remove("alpha") is None)
 
+    # Context.remove will be removed in 3.0.0
     def test_remove(self):
         self.context.add(Component("beta", "test.dummy.Beta"))
         self.assertTrue("beta" in self.context)
-        self.assertEqual("beta", self.context.remove("beta").component_id)
+        self.assertEqual("beta", self.context.remove("beta").unique_id)
         self.assertFalse("beta" in self.context)
 
 
@@ -143,18 +202,17 @@ class XMLContextTest(unittest.TestCase):
     """Test the :class:`aglyph.context.XMLContext` class."""
 
     _CONTEXT_TEMPLATE = as_text("""\
-<?xml version="1.0" encoding="%%s"?>
-<!DOCTYPE context SYSTEM "../resources/aglyph-context-%s.dtd">
-<context id="%%s">
-    %%%%s
-</context>""" % __version__)
+<?xml version="1.0" encoding="%s"?>
+<!DOCTYPE context SYSTEM "../resources/aglyph-context.dtd">
+<context id="%s">
+    %%s
+</context>""")
 
     def setUp(self):
         self.context_template = self._get_context_template()
 
     def _get_context_template(self, encoding="utf-8"):
-        context_id = self.id().rsplit('.', 1)[-1]
-        return self._CONTEXT_TEMPLATE % (encoding, context_id)
+        return self._CONTEXT_TEMPLATE % (encoding, str(self).split()[0])
 
     def tearDown(self):
         self.context_template = None
@@ -209,25 +267,29 @@ class XMLContextTest(unittest.TestCase):
                           self.context_template %
                           as_text('<component/>'))
 
-    def test_parse_component_id_is_dottedname(self):
+    def test_parse_component_defaults(self):
         context = self._init_context(self.context_template % as_text(
                                      '<component id="test.dummy.Beta"/>'))
         component = context["test.dummy.Beta"]
-        self.assertEqual("test.dummy.Beta", component.component_id)
+        self.assertTrue(component.__class__ is Component)
+        self.assertEqual("test.dummy.Beta", component.unique_id)
         self.assertEqual("test.dummy.Beta", component.dotted_name)
+        self.assertIsNone(component.factory_name)
+        self.assertIsNone(component.member_name)
+        self.assertEqual("prototype", component.strategy)
+        self.assertIsNone(component.parent_id)
+        self.assertIsNone(component.after_inject)
+        self.assertIsNone(component.before_clear)
+        self.assertEqual([], component.args)
+        self.assertEqual({}, component.keywords)
+        self.assertEqual({}, component.attributes)
 
     def test_parse_component_unique_id(self):
         context = self._init_context(self.context_template % as_text(
                     '<component id="beta" dotted-name="test.dummy.Beta"/>'))
         component = context["beta"]
-        self.assertEqual("beta", component.component_id)
+        self.assertEqual("beta", component.unique_id)
         self.assertEqual("test.dummy.Beta", component.dotted_name)
-
-    def test_parse_component_prototype_implicit(self):
-        context = self._init_context(self.context_template % as_text(
-                                     '<component id="test.dummy.Beta"/>'))
-        self.assertEqual(Strategy.PROTOTYPE,
-                         context["test.dummy.Beta"].strategy)
 
     def test_parse_component_prototype_explicit(self):
         context = self._init_context(
@@ -249,6 +311,12 @@ class XMLContextTest(unittest.TestCase):
                 '<component id="test.dummy.Beta" strategy="borg"/>'))
         self.assertEqual(Strategy.BORG, context["test.dummy.Beta"].strategy)
 
+    def test_parse_component_weakref(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Beta" strategy="weakref"/>'))
+        self.assertEqual(Strategy.WEAKREF, context["test.dummy.Beta"].strategy)
+
     def test_parse_component_factory_name(self):
         context = self._init_context(
             self.context_template % as_text(
@@ -263,6 +331,94 @@ class XMLContextTest(unittest.TestCase):
                     'dotted-name="test.dummy.Epsilon" '
                     'member-name="ATTRIBUTE" />'))
         self.assertEqual("ATTRIBUTE", context["epsilon-member"].member_name)
+
+    def test_parse_component_with_parent(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Alpha" '
+                    'parent-id="the-parent-id" />'))
+        self.assertEqual("the-parent-id",
+                         context["test.dummy.Alpha"].parent_id)
+
+    def test_parse_component_with_after_inject(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Alpha" '
+                    'after-inject="component_after_inject" />'))
+        self.assertEqual("component_after_inject",
+                         context["test.dummy.Alpha"].after_inject)
+
+    def test_parse_component_prototype_ignores_before_clear(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Alpha" '
+                    'before-clear="component_before_clear" />'))
+        self.assertIsNone(context["test.dummy.Alpha"].before_clear)
+
+    def test_parse_component_singleton_with_before_clear(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Alpha" strategy="singleton" '
+                    'before-clear="component_before_clear" />'))
+        self.assertEqual("component_before_clear",
+                         context["test.dummy.Alpha"].before_clear)
+
+    def test_parse_component_borg_with_before_clear(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Alpha" strategy="borg" '
+                    'before-clear="component_before_clear" />'))
+        self.assertEqual("component_before_clear",
+                         context["test.dummy.Alpha"].before_clear)
+
+    def test_parse_component_weakref_with_before_clear(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<component id="test.dummy.Alpha" strategy="weakref" '
+                    'before-clear="component_before_clear" />'))
+        self.assertEqual("component_before_clear",
+                         context["test.dummy.Alpha"].before_clear)
+
+    def test_parse_template_missing_id(self):
+        self.assertRaises(KeyError, self._init_context,
+                          self.context_template %
+                          as_text('<template/>'))
+
+    def test_parse_template_defaults(self):
+        context = self._init_context(self.context_template % as_text(
+                                     '<template id="test.dummy.Alpha" />'))
+        template = context["test.dummy.Alpha"]
+        self.assertTrue(template.__class__ is Template)
+        self.assertEqual("test.dummy.Alpha", template.unique_id)
+        self.assertIsNone(template.parent_id)
+        self.assertIsNone(template.after_inject)
+        self.assertIsNone(template.before_clear)
+        self.assertEqual([], template.args)
+        self.assertEqual({}, template.keywords)
+        self.assertEqual({}, template.attributes)
+
+    def test_parse_template_with_parent(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<template id="a-template" parent-id="the-parent-id" />'))
+        self.assertEqual("the-parent-id",
+                         context["a-template"].parent_id)
+
+    def test_parse_template_with_after_inject(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<template id="a-template" '
+                    'after-inject="template_after_inject" />'))
+        self.assertEqual("template_after_inject",
+                         context["a-template"].after_inject)
+
+    def test_parse_template_with_before_clear(self):
+        context = self._init_context(
+            self.context_template % as_text(
+                '<template id="a-template" '
+                    'before-clear="template_before_clear" />'))
+        self.assertEqual("template_before_clear",
+                         context["a-template"].before_clear)
 
     def test_parse_init_empty(self):
         context = self._init_context(
@@ -773,14 +929,14 @@ class XMLContextTest(unittest.TestCase):
 
     def test_parse_reference_arg(self):
         context = self._init_context(self.context_template % as_text("""\
-<component id="obj" dotted-name="builtins.object"/>
+<component id="obj" dotted-name="%s.object"/>
 <component id="test.dummy.Alpha">
     <init>
         <arg><reference id="obj"/></arg>
         <arg keyword="keyword" reference="test.dummy.Beta"/>
     </init>
 </component>
-<component id="test.dummy.Beta"/>"""))
+<component id="test.dummy.Beta"/>""" % py_builtin_module.__name__))
         component = context["test.dummy.Alpha"]
         self.assertTrue(isinstance(component.init_args[0], Reference))
         self.assertEqual("obj", component.init_args[0])
@@ -790,7 +946,7 @@ class XMLContextTest(unittest.TestCase):
 
     def test_parse_reference_attribute(self):
         context = self._init_context(self.context_template % as_text("""\
-<component id="obj" dotted-name="builtins.object"/>
+<component id="obj" dotted-name="%s.object"/>
 <component id="test.dummy.Beta">
     <attributes>
         <attribute name="field"><reference id="obj"/></attribute>
@@ -799,7 +955,7 @@ class XMLContextTest(unittest.TestCase):
 </component>
 <component id="test.dummy.Alpha">
     <init><arg><none/></arg></init>
-</component>"""))
+</component>""" % py_builtin_module.__name__))
         component = context["test.dummy.Beta"]
         self.assertTrue(isinstance(component.attributes["field"], Reference))
         self.assertEqual("obj", component.attributes["field"])
@@ -809,10 +965,10 @@ class XMLContextTest(unittest.TestCase):
 
     def test_parse_reference_list(self):
         context = self._init_context(self.context_template % as_text("""\
-<component id="obj" dotted-name="builtins.object"/>
+<component id="obj" dotted-name="%s.object"/>
 <component id="test.dummy.Alpha">
     <init><arg><list><reference id="obj"/></list></arg></init>
-</component>"""))
+</component>""" % py_builtin_module.__name__))
         evaluator = context["test.dummy.Alpha"].init_args[0]
         self.assertTrue(isinstance(evaluator, Evaluator))
         self.assertTrue(evaluator.func is list)
@@ -821,10 +977,10 @@ class XMLContextTest(unittest.TestCase):
 
     def test_parse_reference_tuple(self):
         context = self._init_context(self.context_template % as_text("""\
-<component id="obj" dotted-name="builtins.object"/>
+<component id="obj" dotted-name="%s.object"/>
 <component id="test.dummy.Alpha">
     <init><arg><tuple><reference id="obj"/></tuple></arg></init>
-</component>"""))
+</component>""" % py_builtin_module.__name__))
         evaluator = context["test.dummy.Alpha"].init_args[0]
         self.assertTrue(isinstance(evaluator, Evaluator))
         self.assertTrue(evaluator.func is tuple)
@@ -833,8 +989,8 @@ class XMLContextTest(unittest.TestCase):
 
     def test_parse_reference_key(self):
         context = self._init_context(self.context_template % as_text("""\
-<component id="obj1" dotted-name="builtins.object"/>
-<component id="builtins.frozenset" strategy="singleton"/>
+<component id="obj1" dotted-name="%(py_builtin_module_name)s.object"/>
+<component id="%(py_builtin_module_name)s.frozenset" strategy="singleton"/>
 <component id="test.dummy.Alpha">
     <init>
         <arg>
@@ -844,25 +1000,26 @@ class XMLContextTest(unittest.TestCase):
                     <value><none/></value>
                 </item>
                 <item>
-                    <key reference="builtins.frozenset"/>
+                    <key reference="%(py_builtin_module_name)s.frozenset"/>
                     <value><none/></value>
                 </item>
             </dict>
         </arg>
     </init>
-</component>"""))
+</component>""" % {"py_builtin_module_name": py_builtin_module.__name__}))
         evaluator = context["test.dummy.Alpha"].init_args[0]
         self.assertTrue(isinstance(evaluator, Evaluator))
         self.assertTrue(evaluator.func is dict)
         self.assertTrue(isinstance(evaluator.args[0][0][0], Reference))
         self.assertEqual("obj", evaluator.args[0][0][0])
         self.assertTrue(isinstance(evaluator.args[0][1][0], Reference))
-        self.assertEqual("builtins.frozenset", evaluator.args[0][1][0])
+        self.assertEqual("%s.frozenset" % py_builtin_module.__name__,
+                         evaluator.args[0][1][0])
 
     def test_parse_reference_value(self):
         context = self._init_context(self.context_template % as_text("""\
-<component id="obj1" dotted-name="builtins.object"/>
-<component id="builtins.frozenset" strategy="singleton"/>
+<component id="obj1" dotted-name="%(py_builtin_module_name)s.object"/>
+<component id="%(py_builtin_module_name)s.frozenset" strategy="singleton"/>
 <component id="test.dummy.Alpha">
     <init>
         <arg>
@@ -873,19 +1030,20 @@ class XMLContextTest(unittest.TestCase):
                 </item>
                 <item>
                     <key><true/></key>
-                    <value reference="builtins.frozenset"/>
+                    <value reference="%(py_builtin_module_name)s.frozenset"/>
                 </item>
             </dict>
         </arg>
     </init>
-</component>"""))
+</component>""" % {"py_builtin_module_name": py_builtin_module.__name__}))
         evaluator = context["test.dummy.Alpha"].init_args[0]
         self.assertTrue(isinstance(evaluator, Evaluator))
         self.assertTrue(evaluator.func is dict)
         self.assertTrue(isinstance(evaluator.args[0][0][1], Reference))
         self.assertEqual("obj", evaluator.args[0][0][1])
         self.assertTrue(isinstance(evaluator.args[0][1][1], Reference))
-        self.assertEqual("builtins.frozenset", evaluator.args[0][1][1])
+        self.assertEqual("%s.frozenset" % py_builtin_module.__name__,
+                         evaluator.args[0][1][1])
 
     def test_parse_eval_empty(self):
         # empty element
@@ -999,10 +1157,32 @@ class XMLContextTest(unittest.TestCase):
         self.assertEqual("complex(7, 9)", partial_value.args[0])
         self.assertEqual(complex(7, 9), partial_value())
 
+    def test_parse_template_init(self):
+        context = self._init_context(self.context_template % as_text("""\
+<template id="a-template">
+    <init>
+        <arg><none /></arg>
+        <arg keyword="keyword"><str /></arg>
+    </init>
+</template>"""))
+        self.assertEqual([None], context["a-template"].args)
+        self.assertEqual({"keyword": ""}, context["a-template"].keywords)
+        self.assertEqual({}, context["a-template"].attributes)
+
+    def test_parse_template_attributes(self):
+        context = self._init_context(self.context_template % as_text("""\
+<template id="a-template">
+    <attributes>
+        <attribute name="field"><none /></attribute>
+    </attributes>
+</template>"""))
+        self.assertEqual([], context["a-template"].args)
+        self.assertEqual({}, context["a-template"].keywords)
+        self.assertEqual({"field": None}, context["a-template"].attributes)
+
 
 def suite():
     """Build the test suite for the :mod:`aglyph.context` module."""
-    _logger.debug("TRACE")
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(ContextTest))
     suite.addTest(unittest.makeSuite(XMLContextTest))

@@ -1,6 +1,6 @@
-***************************
+===========================
 Roadmap for future releases
-***************************
+===========================
 
 .. warning::
    Nothing here is set in stone. This list is simply a bucket to record my
@@ -22,6 +22,11 @@ Roadmap for future releases
   non-programmatic (i.e. text-based) configuration option for Aglyph. I'm
   mulling over :mod:`json`, :mod:`configparser`, and
   `YAML <http://www.yaml.org/>`_ at the moment.
-* I've been enjoying tinkering with `CherryPy <http://www.cherrypy.org/>`_
-  recently, and am considering putting together an Aglyph plugin.
+* Strictly speaking, a decorator-based configuration approach violates Aglyph's
+  "non-intrusive" principle. However, decorators (and annotations in Java,
+  particularly as used for DI within the `Spring Framework
+  <http://projects.spring.io/spring-framework/>`_) have *exploded* in
+  popularity over the past several years. Since Aglyph also tries to maintain
+  an opinionless stance on configuration, some kind of decorator-based approach
+  might be an option.
 

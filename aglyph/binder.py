@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -62,16 +62,22 @@ Using ``Binder``::
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
+from inspect import isclass, ismodule
 import logging
 import types
 import uuid
+import warnings
 
-from aglyph import format_dotted_name
+from aglyph import (
+    AglyphDeprecationWarning,
+    format_dotted_name,
+    _is_unbound_function,
+    _safe_repr,
+)
 from aglyph.assembler import Assembler
-from aglyph.compat import ClassAndFunctionTypes, StringTypes
-from aglyph.component import Component, Reference, Strategy
+from aglyph.component import Component, Reference, Strategy, Template
 from aglyph.context import Context
 
 __all__ = ["Binder"]
@@ -84,21 +90,33 @@ class Binder(Assembler):
 
     __logger = logging.getLogger("%s.Binder" % __name__)
 
-    def __init__(self, binder_id=None):
+    def __init__(self, binder_id=None, after_inject=None, before_clear=None):
         """
         :keyword str binder_id: a unique identifier for this binder
+        :keyword str after_inject: specifies the name of the method\
+                                   that will be called on assembled\
+                                   objects after all of their\
+                                   dependencies have been injected
+        :keyword str before_clear: specifies the name of the method\
+                                   that will be called on assembled\
+                                   objects immediately before they are\
+                                   cleared from cache
 
         If *binder_id* is not provided, a random identifier is
         generated.
+
+        .. versionadded:: 2.1.0
+           the *after_inject* and *before_clear* keyword arguments
 
         """
         self.__logger.debug("TRACE binder_id=%r", binder_id)
         if (binder_id is None):
             binder_id = uuid.uuid4()
-        super(Binder, self).__init__(Context(binder_id))
+        context = Context(binder_id, after_inject=after_inject,
+                          before_clear=before_clear)
+        super(Binder, self).__init__(context)
         self._binder_id = binder_id
         self.__logger.info("initialized %s", self)
-        self.__logger.debug("RETURN")
 
     @property
     def binder_id(self):
@@ -106,11 +124,12 @@ class Binder(Assembler):
         return self._binder_id
 
     def bind(self, component_spec, to=None, factory=None, member=None,
-             strategy=Strategy.PROTOTYPE):
+             strategy=Strategy.PROTOTYPE, parent=None, after_inject=None,
+             before_clear=None):
         """Define a component by associating the unique identifier for
         *component_spec* with the importable dotted-name for *to*.
 
-        :param component_spec: used to determine the value that will\
+        :arg component_spec: used to determine the value that will\
                                serve as the :meth:`lookup` key for\
                                objects of the component
         :keyword to: used to identify the class or function that will\
@@ -122,9 +141,21 @@ class Binder(Assembler):
                              identified by the *component_spec*\
                              argument or *to* keyword
         :keyword str strategy: specifies the component assembly strategy
+        :keyword str parent: specifies the ID of a template or\
+                             component that describes the default\
+                             dependencies and/or lifecyle methods for\
+                             this component
+        :keyword str after_inject: specifies the name of the method\
+                                   that will be called on objects of\
+                                   this component after all of its\
+                                   dependencies have been injected
+        :keyword str before_clear: specifies the name of the method\
+                                   that will be called on objects of\
+                                   this component immediately before\
+                                   they are cleared from cache
         :return: a proxy object that allows the component dependencies\
                  to be defined in chained-call fashion
-        :rtype: :class:`aglyph.binding._Binding`
+        :rtype: :class:`aglyph.binder._DependencySupportProxy`
 
         If *component_spec* is a :obj:`str`, it is used as the unique
         identifier for the component. In this case, the *to* keyword is
@@ -194,7 +225,6 @@ class Binder(Assembler):
         module.Outer.Nested ``class`` object itself.
 
         .. note::
-
            Both *factory* and *member* can be dot-separated names to
            reference nested members.
 
@@ -214,42 +244,178 @@ class Binder(Assembler):
            component assembly strategy is only supported for classes
            that do not define or inherit ``__slots__``!
 
+        .. versionadded:: 2.1.0
+           the *parent* keyword argument
+
+        If *parent* is a :obj:`str`, it is used as the unique identifier
+        for the component's parent template or component.
+
+        If *parent* is not a string, then it must be an importable
+        class, unbound function, or module. Its dotted name will be used
+        as the :attr:`Component.parent_id`.
+
+        .. versionadded:: 2.1.0
+           the *after_inject* keyword argument
+
+        *after_inject* is the name of a method *of objects of this
+        component* that will be called after **all** dependencies have
+        been injected, but before the object is returned to the caller.
+        This method will be called with **no** arguments (positional or
+        keyword). Exceptions raised by this method are not caught.
+
+        .. note::
+           ``Component.after_inject``, if specified, **replaces** either
+           :attr:`Template.after_inject` (if this component also
+           specifies :attr:`parent_id`) or
+           :attr:`aglyph.context.Context.after_inject`.
+
+        .. versionadded:: 2.1.0
+           the *before_clear* keyword argument
+
+        *before_clear* is the name of a method *of objects of this
+        component* that will be called immediately before the object is
+        cleared from cache via
+        :meth:`aglyph.assembler.Assembler.clear_singletons()`,
+        :meth:`aglyph.assembler.Assembler.clear_borgs()`, or
+        :meth:`aglyph.assembler.Assembler.clear_weakrefs()`.
+
+        .. note::
+           ``Component.before_clear``, if specified, **replaces** either
+           :attr:`Template.before_clear` (if this component also
+           specifies :attr:`parent_id`) or
+           :attr:`aglyph.context.Context.before_clear`.
+
+        .. warning::
+           The *before_clear* keyword argument has no meaning for and is
+           ignored by "prototype" components. If *before_clear* is
+           specified for a prototype, a :class:`RuntimeWarning` will be
+           issued.
+
+           For "weakref" components, there is a possibility that the
+           object no longer exists at the moment when the *before_clear*
+           method would be called. In such cases, the *before_clear*
+           method is **not** called. No warning is issued, but a
+           :attr:`logging.WARNING` message is emitted.
+
         """
-        self.__logger.debug("TRACE %r, to=%r, strategy=%r", component_spec, to,
-                           strategy)
+        self.__logger.debug(
+            "TRACE %r, to=%r, factory=%r, member=%r, strategy=%r, parent=%r, "
+            "after_inject=%r, before_clear=%r",
+            component_spec, to, factory, member, strategy, parent,
+            after_inject, before_clear)
         component_id = self._identify(component_spec)
         if (to is None):
             dotted_name = component_id
         else:
             dotted_name = self._identify(to)
+        parent_id = self._identify(parent) if (parent is not None) else None
         component = Component(component_id, dotted_name=dotted_name,
                               factory_name=factory, member_name=member,
-                              strategy=strategy)
-        self._context.add(component)
+                              strategy=strategy, parent_id=parent_id,
+                              after_inject=after_inject,
+                              before_clear=before_clear)
+        self._context[component.unique_id] = component
         self.__logger.info("bound %r to %r (%r)", component_spec, to,
                            dotted_name)
-        binding = _Binding(component)
-        self.__logger.debug("RETURN %r", binding)
-        return binding
+        proxy = _DependencySupportProxy(component)
+        self.__logger.debug("RETURN %r", proxy)
+        return proxy
 
-    def _identify(self, component_spec):
-        """Generate a unique identifier for *component_spec*.
+    def describe(self, template_spec, parent=None, after_inject=None,
+                 before_clear=None):
+        """Define a template using the unique identifier derived from
+        *template_spec*.
 
-        :param component_spec: an **importable** class, function, or\
-                               module; or a :obj:`str`
-        :return: *component_spec* unchanged (if it is a :obj:`str`),\
-                 else *component_spec*'s importable dotted name
-        :rtype: :obj:`str`
+        :arg template_spec: used to determine the value that will serve\
+                            as the unique identifier for the template
+        :keyword str parent: specifies the ID of a template or\
+                             component that describes the default\
+                             dependencies and/or lifecyle methods for\
+                             this template
+        :keyword str after_inject: specifies the name of the method\
+                                   that will be called on objects of\
+                                   components that refer to this\
+                                   template's ID as the\
+                                   :attr:`Component.parent_id`\
+                                   immediately after all component\
+                                   dependencies have been injected
+        :keyword str before_clear: specifies the name of the method\
+                                   that will be called on objects of\
+                                   components that refer to this\
+                                   template's ID as the\
+                                   :attr:`Component.parent_id`\
+                                   when the objects are removed from\
+                                   any internal cache
+        :return: a proxy object that allows the template dependencies\
+                 to be defined in chained-call fashion
+        :rtype: :class:`aglyph.binder._DependencySupportProxy`
 
-        If *component_spec* is a string, it is assumed to already
-        represent a unique identifier and is returned unchanged.
-        Otherwise, *component_spec* is assumed to be an **importable**
-        class, function, or module, and its dotted name is returned (see
-        :func:`aglyph.format_dotted_name`).
+        If *template_spec* is a :obj:`str`, it is used as the unique
+        identifier for the template. Otherwise, *template_spec* must be
+        an importable class, unbound function, or module. Its dotted
+        name will be used as the template identifier.
+
+        If *parent* is a :obj:`str`, it is used as the unique identifier
+        for the component's parent template or component.
+
+        If *parent* is not a string, then it must be an importable
+        class, unbound function, or module. Its dotted name will be used
+        as the :attr:`Component.parent_id`.
+
+        *after_inject* is the name of a method (of objects of components
+        that reference this template) that will be called after **all**
+        dependencies have been injected, but before the object is
+        returned to the caller.
+
+        The method named by *after_inject* will be called with **no**
+        arguments (positional or keyword). Exceptions raised by this
+        method are ignored (though a :class:`RuntimeWarning` will be
+        issued).
+
+        .. note::
+           ``Template.after_inject``, if specified, **replaces** any
+           after-inject method named by its parent or by
+           :attr:`aglyph.context.Context.after_inject`.
+
+        *before_clear* is the name of a method (of objects of components
+        that reference this template) that will be called when the
+        object is cleared from cache via
+        :meth:`Assembler.clear_singletons()`,
+        :meth:`Assembler.clear_borgs()`, or
+        :meth:`Assembler.clear_weakrefs()`.
+
+        .. note::
+           ``Template.before_clear``, if specified, **replaces** any
+           before-clear method named by its parent or by
+           :attr:`aglyph.context.Context.before_clear`.
+
+        .. warning::
+           The *before_clear* keyword argument has no meaning for and is
+           ignored by "prototype" components. If *before_clear* is
+           specified for a prototype, a :class:`RuntimeWarning` will be
+           issued.
+
+           For "weakref" components, there is a possibility that the
+           object no longer exists at the moment when the *before_clear*
+           method would be called. In such cases, the *before_clear*
+           method is **not** called. No warning is issued, but a
+           :attr:`logging.WARNING` message is emitted.
 
         """
-        return (component_spec if (type(component_spec) in StringTypes)
-                else format_dotted_name(component_spec))
+        self.__logger.debug(
+            "TRACE %r, parent=%r, after_inject=%r, before_clear=%r",
+            template_spec, parent, after_inject, before_clear)
+        template_id = self._identify(template_spec)
+        parent_id = self._identify(parent) if (parent is not None) else None
+        template = Template(template_id, parent_id=parent_id,
+                            after_inject=after_inject,
+                            before_clear=before_clear)
+        self._context[template.unique_id] = template
+        self.__logger.info("described template %r with ID %r)",
+                           template_spec, template_id)
+        proxy = _DependencySupportProxy(template)
+        self.__logger.debug("RETURN %r", proxy)
+        return proxy
 
     def lookup(self, component_spec):
         """Return an instance of the component specified by
@@ -259,22 +425,33 @@ class Binder(Assembler):
         function, or a user-defined unique identifier, that was
         previously bound by a call to :func:`bind`.
 
+        .. deprecated:: 2.1.0
+           use :meth:`assemble` instead.
+
         """
         self.__logger.debug("TRACE %r", component_spec)
-        component_id = self._identify(component_spec)
-        obj = self.assemble(component_id)
-        self.__logger.debug("RETURN %r", type(obj))
+        warnings.warn(AglyphDeprecationWarning("Binder.lookup",
+                                               replacement="Binder.assemble"))
+        obj = self.assemble(component_spec)
+        # do not log str/repr of assembled objects; may contain sensitive data
+        self.__logger.debug("RETURN %s", _safe_repr(obj))
         return obj
 
 
-class _Binding(object):
-    """Instances of ``_Binding`` are returned as proxy objects from the
-    :meth:`Binder.bind` method.
+class _DependencySupportProxy(object):
+    """Instances of ``__DependencySupportProxy`` are returned as proxy
+    objects from the :meth:`Binder.bind` and :meth:`Binder.describe`
+    methods.
 
-    A ``_Binding`` allows component dependencies to be defined in
-    chained-call fashion::
+    A ``_DependencySupportProxy`` allows component dependencies to be
+    defined in chained-call fashion::
 
-        Binder().bind(...).init(*args, **keywords).attributes(**keywords)
+       binder = Binder()
+       binder.bind(...).init(*args, **keywords).attributes(**keywords)
+       # - or -
+       (binder.describe(...).
+           init(*args, **keywords).
+           attributes(**keywords))
 
     .. note::
        This class should not be imported or otherwise directly
@@ -282,45 +459,52 @@ class _Binding(object):
 
     """
 
-    __slots__ = ["_component"]
+    __slots__ = ["_depsupport"]
 
-    __logger = logging.getLogger("%s._Binding" % __name__)
+    __logger = logging.getLogger("%s._DependencySupportProxy" % __name__)
 
-    def __init__(self, component):
+    def __init__(self, depsupport):
         """
-        :param aglyph.component.Component component:\
-           the object that was created by a call to :meth:`Binder.bind`
+        :arg depsupport: a :class:`Component` or :class:`Template` that\
+                         was created by :meth:`Binder.bind` or\
+                         :meth:`Binder.describe`, respectively
 
         """
-        self.__logger.debug("TRACE %r", component)
-        self._component = component
+        self.__logger.debug("TRACE %r", depsupport)
+        self._depsupport = depsupport
 
     def init(self, *args, **keywords):
         """Define the initialization dependencies (i.e. positional
-        and/or keyword arguments) for the component.
+        and/or keyword arguments) for the component or template.
 
-        :param tuple args: the positional argument dependencies
-        :param dict keywords: the keyword argument dependencies
+        :arg tuple args: the positional argument dependencies
+        :arg dict keywords: the keyword argument dependencies
         :return: a reference to ``self`` (enables chained calls)
 
         If any argument value is a class, unbound function, or module
-        type, it is automatically turned into an
-        :class:`aglyph.component.Reference`. This allows for a kind of
-        "shorthand" in the binding of components and dependencies, but
-        requires that such a component/dependency be identified by its
-        dotted name. For example::
+        type, it is automatically turned into a :class:`Reference`::
 
+           # SomeClass becomes
+           # ``Reference(format_dotted_name(SomeClass))``
            binder.bind("thing", to="module.Thing").init(SomeClass)
-           binder.bind(SomeClass).init(...).attributes(...)
 
-        In the above case, ``SomeClass`` will be automatically turned
-        into a ``Reference``. Assuming ``SomeClass`` is defined in a
-        module named "my.package", this means that the "thing" component
-        will have an initialization dependency on a component with the
-        identifier and dotted name "my.package.SomeClass".
+        .. warning::
+           In the above example, there **must** exist a component that
+           has the ID "package.module.SomeClass"::
 
-        If more flexibility is needed, simply create and pass in an
-        :class:`aglyph.component.Reference` by hand.
+              binder.bind(SomeClass).init(...).attributes(...)
+              # - or -
+              (binder.bind("package.module.SomeClass").
+                  init(...).attributes(...))
+
+           If more flexibility is needed, simply create and pass in an
+           explicit :class:`Reference`::
+
+              (binder.bind("something", to=SomeClass).
+                  init(...).attributes(...))
+              ...
+              (binder.bind("thing", to="module.Thing").
+                  init(Reference("something")))
 
         .. versionchanged:: 2.0.0
            Successive calls to this method on the same instance have a
@@ -329,78 +513,101 @@ class _Binding(object):
         """
         self.__logger.debug("TRACE *%r, **%r", args, keywords)
         reference = self._reference
-        self._component.init_args.extend([reference(arg) for arg in args])
-        self._component.init_keywords.update(
+        self._depsupport.args.extend([reference(arg) for arg in args])
+        self._depsupport.keywords.update(
             dict([(keyword, reference(arg))
                   for (keyword, arg) in keywords.items()]))
-        self.__logger.debug("RETURN %r", self)
         return self
 
-    def attributes(self, **keywords):
+    def attributes(self, *nvpairs, **keywords):
         """Define the setter dependencies (i.e. attributes, setter
         methods, and/or properties) for the component.
 
-        :param dict keywords: the attribute, setter method, and/or\
-                              property dependencies
+        :arg tuple nvpairs: an **ordered** N-tuple of ``(name, value)``\
+                            2-tuples that describe the attribute,\
+                            setter method, and/or property dependencies
+        :arg dict keywords: the attribute, setter method, and/or\
+                            property dependencies
         :return: a reference to ``self`` (enables chained calls)
 
-        Each key in *keywords* corresponds to the name of a simple
-        attribute, setter method, or property.
+        .. versionadded:: 2.1.0::
+           the *nvpairs* parameter.
 
-        If any value in *keywords* is a class, unbound function, or
-        module type, it is automatically turned into an
-        :class:`aglyph.component.Reference`. This allows for a kind of
-        "shorthand" in the binding of components and dependencies, but
-        requires that such a component/dependency be identified by its
-        dotted name. For example::
+        If the order in which attribute/setter/property dependencies are
+        injected is significant, use *nvpairs* to control the order;
+        otherwise, if order of injection doesn't matter, it is simpler
+        to use *keywords*.
+
+        In each ``(name, value)`` 2-tuple of *nvpairs*, ``name``
+        corresponds to the name of a simple attribute, setter method, or
+        property::
 
            (binder.bind("thing", to="module.Thing").
-               attributes(set_something=SomeClass))
-           binder.bind(SomeClass).init(...).attributes(...)
+               attributes(("id", 1), ("set_name", "First thing")))
 
-        In the above case, ``SomeClass`` will be automatically turned
-        into a ``Reference``. Assuming ``SomeClass`` is defined in a
-        module named "my.package", this means that the "thing" component
-        will have a setter dependency (``set_something``) on a component
-        with the identifier and dotted name "my.package.SomeClass".
+        Each key in *keywords* corresponds to the name of a simple
+        attribute, setter method, or property::
 
-        If more flexibility is needed, simply create and pass in an
-        :class:`aglyph.component.Reference` by hand.
+           (binder.bind("thing", to="module.Thing").
+               attributes(id=1, set_name="First thing"))
+
+        If any value in *nvpairs* or *keywords* is a class, unbound
+        function, or module type, it is automatically turned into a
+        :class:`Reference`::
+
+           # SomeClass becomes
+           # ``Reference(format_dotted_name(SomeClass))``
+           (binder.bind("thing", to="module.Thing").
+               attributes(id=1, set_class=SomeClass))
+
+        .. warning::
+           In the above example, there **must** exist a component that
+           has the ID "package.module.SomeClass"::
+
+              binder.bind(SomeClass).init(...).attributes(...)
+              # - or -
+              (binder.bind("package.module.SomeClass").
+                  init(...).attributes(...))
+
+           If more flexibility is needed, simply create and pass in an
+           explicit :class:`Reference`::
+
+              (binder.bind("something", to=SomeClass).
+                  init(...).attributes(...))
+              ...
+              (binder.bind("thing", to="module.Thing").
+                  attributes(id=1, set_class=Reference("something")))
 
         .. versionchanged:: 2.0.0
            Successive calls to this method on the same instance have a
            cumulative effect.
 
         """
-        if (self.__logger.isEnabledFor(logging.DEBUG)):
-            # do not log possibly sensitive data
-            self.__logger.debug("TRACE **%r",
-                dict([(k, type(v)) for (k, v) in keywords.items()]))
+        self.__logger.debug("TRACE *%r, **%r", nvpairs, keywords)
         reference = self._reference
-        self._component.attributes.update(
+        for (name, value) in nvpairs:
+            self._depsupport.attributes[name] = reference(value)
+        self._depsupport.attributes.update(
             dict([(name, reference(value))
                   for (name, value) in keywords.items()]))
-        self.__logger.debug("RETURN self")
         return self
 
     def _reference(self, obj):
         """Convert *obj* into a component reference, if applicable.
 
-        :param obj: an object representing a component dependency
+        :arg obj: an object representing a component dependency
 
         If *obj* is a class, unbound function, or module, then an
         :class:`aglyph.component.Reference` to *obj* is returned.
         Otherwise, *obj* itself is returned.
 
         """
-        obj_type = type(obj)
-        if ((obj_type in ClassAndFunctionTypes) or
-                (obj_type is types.ModuleType)):
+        if (isclass(obj) or _is_unbound_function(obj) or ismodule(obj)):
             return Reference(format_dotted_name(obj))
         else:
             return obj
 
     def __repr__(self):
         return "%s.%s(%r)" % (self.__class__.__module__,
-                              self.__class__.__name__, self._component)
+                              self.__class__.__name__, self._depsupport)
 

@@ -1,6 +1,6 @@
-****************************
+============================
 Aglyph 1.1.1 testing summary
-****************************
+============================
 
 .. versionchanged:: 1.1.1
    The Aglyph test suite is no longer executed under

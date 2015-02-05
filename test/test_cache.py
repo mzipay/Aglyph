@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 from __future__ import with_statement
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "1.1.2"
+__version__ = "2.1.0"
 
 import logging
 # do not use dummy_threading for testing! (let it fail)
@@ -37,8 +37,8 @@ from aglyph.cache import MutexCache, ReentrantMutexCache
 from test import enable_debug_logging
 
 __all__ = [
-    "PrimitiveCacheTest",
-    "ReentrantCacheTest",
+    "MutexCacheTest",
+    "ReentrantMutexCacheTest",
     "suite"
 ]
 
@@ -85,7 +85,6 @@ class ReentrantMutexCacheTest(unittest.TestCase):
 
 def suite():
     """Build the test suite for the :mod:`aglyph.cache` module."""
-    _logger.debug("TRACE")
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(MutexCacheTest))
     suite.addTest(unittest.makeSuite(ReentrantMutexCacheTest))

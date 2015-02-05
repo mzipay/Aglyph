@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,20 @@
 """Test cases and runner for the :mod:`aglyph.component` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 import functools
 import logging
 import unittest
 
 from aglyph import AglyphError
-from aglyph.component import Component, Evaluator, Reference, Strategy
+from aglyph.component import (
+    Component,
+    Evaluator,
+    Reference,
+    Strategy,
+    Template,
+)
 
 from test import enable_debug_logging
 from test.dummy import Alpha
@@ -45,36 +51,119 @@ __all__ = [
 # don't use __name__ here; can be run as "__main__"
 _logger = logging.getLogger("test.test_component")
 
+# PYVER: unittest.TestCase.assertIsNone is missing in Jython 2.5.3
+if (not hasattr(unittest.TestCase, "assertIsNone")):
+    def _assert_is_none(self, obj, msg=None):
+        if (obj is not None):
+            self.fail(msg if (msg is not None) else "%r is not None" % obj)
+    unittest.TestCase.assertIsNone = _assert_is_none
+
+
+class TemplateTest(unittest.TestCase):
+    """Test the :class:`aglyph.component.Template` class."""
+
+    def test_defaults(self):
+        template = Template("test")
+        self.assertEqual("test", template.unique_id)
+        self.assertIsNone(template.parent_id)
+        self.assertIsNone(template.after_inject)
+        self.assertIsNone(template.before_clear)
+        self.assertEqual([], template.args)
+        self.assertEqual({}, template.keywords)
+        self.assertEqual({}, template.attributes)
+
+    def test_readonly_properties(self):
+        template = Template("test")
+        self.assertRaises(AttributeError, setattr, template, "unique_id", "x")
+        self.assertRaises(AttributeError, setattr, template, "parent_id", "x")
+        self.assertRaises(AttributeError, setattr, template, "after_inject",
+                          "after_inject")
+        self.assertRaises(AttributeError, setattr, template, "before_clear",
+                          "before_clear")
+        self.assertRaises(AttributeError, setattr, template, "args", [])
+        self.assertRaises(AttributeError, setattr, template, "keywords", {})
+        self.assertRaises(AttributeError, setattr, template, "attributes", {})
+
+    def test_parent_id(self):
+        template = Template("test", parent_id="parent")
+        self.assertEqual("parent", template.parent_id)
+
+    def test_after_inject(self):
+        template = Template("test", after_inject="template_after_inject")
+        self.assertEqual("template_after_inject", template.after_inject)
+
+    def test_before_clear(self):
+        template = Template("test", before_clear="template_before_clear")
+        self.assertEqual("template_before_clear", template.before_clear)
+
+    def test_attributes_are_ordered(self):
+        template = Template("test")
+        template.attributes["set_value"] = None
+        template.attributes["prop"] = None
+        template.attributes["field"] = None
+        expected_keys = ["set_value", "prop", "field"]
+        self.assertEqual(expected_keys, list(template.attributes.keys()))
+
 
 class ComponentTest(unittest.TestCase):
     """Test the :class:`aglyph.component.Component` class."""
 
-    def test_id_is_dotted_name(self):
+    def test_bad_strategy(self):
+        self.assertRaises(ValueError, Component, "test.dummy.Alpha",
+                          strategy="spam")
+
+    def test_defaults(self):
         component = Component("test.dummy.Alpha")
-        self.assertEqual("test.dummy.Alpha", component.component_id)
+        self.assertEqual("test.dummy.Alpha", component.unique_id)
+        # Component.component_id will be removed in 3.0.0
+        self.assertEqual(component.unique_id, component.component_id)
         self.assertEqual("test.dummy.Alpha", component.dotted_name)
+        self.assertIsNone(component.factory_name)
+        self.assertIsNone(component.member_name)
+        self.assertEqual(Strategy.PROTOTYPE, component.strategy)
+        self.assertIsNone(component.parent_id)
+        self.assertIsNone(component.after_inject)
+        self.assertIsNone(component.before_clear)
+        self.assertEqual([], component.args)
+        # Component.init_args will be removed in 3.0.0
+        self.assertEqual(component.args, component.init_args)
+        self.assertEqual({}, component.keywords)
+        # Component.init_keywords will be removed in 3.0.0
+        self.assertEqual(component.keywords, component.init_keywords)
+        self.assertEqual({}, component.attributes)
 
     def test_unique_id_and_dotted_name(self):
         comonent = Component("alpha", "test.dummy.Alpha")
         self.assertEqual("alpha", comonent.component_id)
         self.assertEqual("test.dummy.Alpha", comonent.dotted_name)
 
-    def test_bad_strategy(self):
-        self.assertRaises(ValueError, Component, "test.dummy.Alpha",
-                          strategy="spam")
-
-    def test_default_strategy(self):
-        component = Component("test.dummy.Alpha")
-        self.assertEqual(Strategy.PROTOTYPE, component.strategy)
-
     def test_readonly_properties(self):
         component = Component("alpha", "test.dummy.Alpha")
+        self.assertRaises(AttributeError, setattr, component, "unique_id", "x")
+        # Component.component_id will be removed in 3.0.0
         self.assertRaises(AttributeError, setattr, component, "component_id",
-                          "beta")
+                          "x")
         self.assertRaises(AttributeError, setattr, component, "dotted_name",
                           "test.dummy.Beta")
+        self.assertRaises(AttributeError, setattr, component, "factory_name",
+                          "factory")
+        self.assertRaises(AttributeError, setattr, component, "member_name",
+                          "member")
         self.assertRaises(AttributeError, setattr, component, "strategy",
                           Strategy.SINGLETON)
+        self.assertRaises(AttributeError, setattr, component, "parent_id",
+                          "parent")
+        self.assertRaises(AttributeError, setattr, component, "after_inject",
+                          "after_inject")
+        self.assertRaises(AttributeError, setattr, component, "before_clear",
+                          "before_clear")
+        self.assertRaises(AttributeError, setattr, component, "args", [])
+        # Component.init_args will be removed in 3.0.0
+        self.assertRaises(AttributeError, setattr, component, "init_args", [])
+        self.assertRaises(AttributeError, setattr, component, "keywords", {})
+        # Component.init_keywords will be removed in 3.0.0
+        self.assertRaises(AttributeError, setattr, component, "init_keywords", {})
+        self.assertRaises(AttributeError, setattr, component, "attributes", {})
 
     def test_explicit_prototype_strategy(self):
         component = Component("test.dummy.Alpha", strategy=Strategy.PROTOTYPE)
@@ -88,11 +177,17 @@ class ComponentTest(unittest.TestCase):
         component = Component("test.dummy.Alpha", strategy=Strategy.BORG)
         self.assertEqual(Strategy.BORG, component.strategy)
 
-    def test_default_dependencies(self):
+    def test_explicit_weakref_strategy(self):
+        component = Component("test.dummy.Alpha", strategy=Strategy.WEAKREF)
+        self.assertEqual(Strategy.WEAKREF, component.strategy)
+
+    def test_attributes_are_ordered(self):
         component = Component("test.dummy.Alpha")
-        self.assertEqual([], component.init_args)
-        self.assertEqual({}, component.init_keywords)
-        self.assertEqual({}, component.attributes)
+        component.attributes["set_value"] = None
+        component.attributes["prop"] = None
+        component.attributes["field"] = None
+        expected_keys = ["set_value", "prop", "field"]
+        self.assertEqual(expected_keys, list(component.attributes.keys()))
 
     def test_factory_name(self):
         component = Component("epsilon-factory",
@@ -116,6 +211,35 @@ class ComponentTest(unittest.TestCase):
                           dotted_name="test.dummy.Epsilon",
                           factory_name="class_factory",
                           member_name="ATTRIBUTE")
+
+    def test_parent_id(self):
+        component = Component("test.dummy.Alpha", parent_id="alpha-parent")
+        self.assertEqual("alpha-parent", component.parent_id)
+
+    def test_after_inject(self):
+        component = Component("test.dummy.Alpha",
+                              after_inject="component_after_inject")
+        self.assertEqual("component_after_inject", component.after_inject)
+
+    def test_prototype_ignores_before_clear(self):
+        component = Component("test.dummy.Alpha",
+                              before_clear="component_before_clear")
+        self.assertIsNone(component.before_clear)
+
+    def test_component_singleton_before_clear(self):
+        component = Component("test.dummy.Alpha", strategy="singleton",
+                              before_clear="component_before_clear")
+        self.assertEqual("component_before_clear", component.before_clear)
+
+    def test_component_borg_before_clear(self):
+        component = Component("test.dummy.Alpha", strategy="borg",
+                              before_clear="component_before_clear")
+        self.assertEqual("component_before_clear", component.before_clear)
+
+    def test_component_weakref_before_clear(self):
+        component = Component("test.dummy.Alpha", strategy="weakref",
+                              before_clear="component_before_clear")
+        self.assertEqual("component_before_clear", component.before_clear)
 
 
 class EvaluatorTest(unittest.TestCase):
@@ -242,8 +366,8 @@ class ReferenceTest(unittest.TestCase):
 
 def suite():
     """Build the test suite for the :mod:`aglyph.component` module."""
-    _logger.debug("TRACE")
     suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(TemplateTest))
     suite.addTest(unittest.makeSuite(ComponentTest))
     suite.addTest(unittest.makeSuite(EvaluatorTest))
     suite.addTest(unittest.makeSuite(ReferenceTest))

@@ -1,6 +1,6 @@
-***************
+===============
 Aglyph cookbook
-***************
+===============
 
 .. toctree::
    :maxdepth: 3
@@ -8,5 +8,7 @@ Aglyph cookbook
    cookbook-understanding
    cookbook-configuration
    cookbook-common
+   cookbook-templating
    cookbook-notable
+   cookbook-integration
 

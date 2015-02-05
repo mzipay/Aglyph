@@ -1,6 +1,6 @@
-***************************
+===========================
 Getting started with Aglyph
-***************************
+===========================
 
 During this brief tutorial, you will download and install Aglyph, build a
 simple Python application based on the *MovieLister* component discussed in
@@ -13,11 +13,11 @@ the Aglyph approach to Dependency Injection.
 This tutorial is a "whirlwind tour" of Aglyph that covers only the basics. Once
 you have completed the steps, read the :doc:`cookbook` for additional
 guidelines and examples. Also review the :doc:`api-ref` and the
-:download:`Aglyph context DTD <../../resources/aglyph-context-2.0.0.dtd>` to
+:download:`Aglyph context DTD <../../resources/aglyph-context.dtd>` to
 understand the details.
 
 The tutorial assumes that you are familiar with Python development in general,
-and that Python 2.6+ is already installed on your system:
+and that Python 2.7+ is already installed on your system:
 
 * `Download Python <http://www.python.org/download/>`_
 * Browse `Dive Into Python 2 <http://diveintopython.net/>`_ and/or
@@ -72,7 +72,7 @@ shell::
 
    hg clone https://bitbucket.org/mzipay/aglyph
    cd aglyph
-   hg pull && hg update release-2.0.0
+   hg pull && hg update release-2.1.0
    python setup.py install
 
 Install into a virtual environment
@@ -88,12 +88,12 @@ Regardless of installation method, verify that the installation was successful
 by importing the :mod:`aglyph` module from a Python interpreter. For example::
 
    $ python
-   Python 3.3.3 (default, Nov 23 2013, 16:24:30) 
-   [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin
+   Python 3.4.2 (default, Nov 12 2014, 18:23:59) 
+   [GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.54)] on darwin
    Type "help", "copyright", "credits" or "license" for more information.
    >>> import aglyph
    >>> aglyph.__version__
-   '2.0.0'
+   '2.1.0'
 
 2. Download, extract, and run the *movielisterapp* application
 ==============================================================
@@ -389,7 +389,7 @@ In Aglyph, a context is defined by the :class:`aglyph.context.Context` class. A
 specialized subclass, :class:`aglyph.context.XMLContext`, is provided to allow a
 context to be defined declaratively in an XML document. Such XML documents
 must conform to the :download:`Aglyph context DTD
-<../../resources/aglyph-context-2.0.0.dtd>`.
+<../../resources/aglyph-context.dtd>`.
 
 .. versionadded:: 1.1.0
    The :class:`aglyph.binder.Binder` class offers a "programmatic
@@ -454,8 +454,8 @@ Some interesting things to note here:
       dotted_name: NAME ('.' NAME)*
 
    .. seealso::
-      `Full Grammar specification - Python v3.3.3 documentation
-      <http://docs.python.org/release/3.3.3/reference/grammar.html>`_
+      `Full Grammar specification
+      <http://docs.python.org/release/3/reference/grammar.html>`_
 
 Notice that the *movies.lister.MovieLister* component is being injected with a
 reference to the *movies.finder.MovieFinder* component, which describes an
@@ -605,7 +605,7 @@ assembly strategy, **prototype**, which means that each time a component is
 assembled, a new object is created, initialized, wired, and returned.
 
 This is not always desired (or appropriate), so Aglyph also supports
-**singleton** and **borg** assembly strategies.
+**singleton**, **borg**, and **weakref** assembly strategies.
 
 For details of what each assembly strategy implies, please refer to
 :obj:`aglyph.component.Strategy`.
@@ -614,6 +614,9 @@ For details of what each assembly strategy implies, please refer to
 
    `Singleton? We don't need no stinkin' singleton: the Borg design pattern (Python recipe) <http://code.activestate.com/recipes/66531-singleton-we-dont-need-no-stinkin-singleton-the-bo/>`_
       Alex Martelli's original Borg recipe (from ActiveState Python Recipes)
+
+   Module :mod:`weakref`
+      Documentation of the :mod:`weakref` standard module.
 
 Modify *movielisterapp* to use a singleton ``ColonDelimitedMovieFinder``
 ------------------------------------------------------------------------
@@ -761,7 +764,7 @@ Suggested next steps:
 #. Read the :doc:`cookbook`.
 #. Read the :doc:`api-ref`.
 #. Read the :download:`Aglyph context DTD
-   <../../resources/aglyph-context-2.0.0.dtd>`. The DTD is fully commented, and
+   <../../resources/aglyph-context.dtd>`. The DTD is fully commented, and
    explains some of the finer points of using XML configuration.
 #. Examine the Aglyph test cases (part of the distribution; located in the
    *tests/* directory).

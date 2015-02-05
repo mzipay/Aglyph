@@ -1,6 +1,6 @@
-*****************************************
+=========================================
 Understand the general features of Aglyph
-*****************************************
+=========================================
 
 .. _version-impl-support:
 
@@ -8,7 +8,8 @@ Aglyph supports Python 2 and 3 (CPython), PyPy, Stackless, IronPython, and Jytho
 =================================================================================
 
 The single Aglyph distribution and API is 100% compatible across Python
-language versions 2.6 - 3.3 (except 3.0) and the implementations listed below:
+language versions 2.7 - 3.4 (excluding 3.0) and the implementations listed
+below:
 
 * `CPython <http://www.python.org/>`_
 * `PyPy <http://pypy.org/>`_

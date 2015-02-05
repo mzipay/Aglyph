@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,60 +26,173 @@ dependencies.
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
-import collections
-import functools
+from collections import namedtuple
+from functools import partial
 import logging
+import warnings
 
-from aglyph import AglyphError
-from aglyph.compat import is_callable, StringTypes, TextType
+from aglyph import AglyphDeprecationWarning, AglyphError, _safe_repr
+from aglyph.compat import is_callable, OrderedDict, StringTypes, TextType
 
 __all__ = [
     "Component",
     "Evaluator",
+    "LifecycleState",
     "Reference",
     "Strategy",
+    "Template",
 ]
 
 _logger = logging.getLogger(__name__)
 
-Strategy = collections.namedtuple("Strategy",
-                                  ["PROTOTYPE", "SINGLETON", "BORG"])(
-                                   "prototype", "singleton", "borg")
+Strategy = namedtuple("Strategy",
+                      ("PROTOTYPE", "SINGLETON", "BORG", "WEAKREF"))(
+                       "prototype", "singleton", "borg", "weakref")
 """Define the component assembly strategies implemented by Aglyph.
-
-**"prototype"**
-   A new object is always created, initialized, wired, and returned.
-
-   .. note::
-      "prototype" is the default assembly strategy for Aglyph
-      components.
-
-**"singleton"**
-   The cached object is returned if it exists. Otherwise, the object is
-   created, initialized, wired, cached, and returned.
-
-   Singleton component objects are cached by their
-   :attr:`Component.component_id`.
-
-**"borg"**
-   A new instance is always created. The shared-state is assigned to the
-   new instance's ``__dict__`` if it exists. Otherwise, the new instance
-   is initialized and wired, its instance ``__dict__`` is cached, and
-   then the instance is returned.
-
-   Borg component instance shared-states are cached by the
-   :attr:`Component.component_id`.
-
-   .. warning::
-      * The borg assembly strategy is **only** supported for
-        components that are non-builtin classes.
-      * The borg assembly strategy is **not** supported for
-        classes that define or inherit a ``__slots__`` member.
 
 .. versionchanged:: 2.0.0
    ``Strategy`` is now a named tuple. In prior versions, it was a class.
+
+.. rubric:: "prototype"
+
+A new object is always created, initialized, wired, and returned.
+
+.. note::
+   "prototype" is the default assembly strategy for Aglyph components.
+
+.. rubric:: "singleton"
+
+The cached object is returned if it exists. Otherwise, the object is
+created, initialized, wired, cached, and returned.
+
+Singleton component objects are cached by :attr:`Component.unique_id`.
+
+.. rubric:: "borg"
+
+A new instance is always created. The shared-state is assigned to the
+new instance's ``__dict__`` if it exists. Otherwise, the new instance is
+initialized and wired, its instance ``__dict__`` is cached, and then the
+instance is returned.
+
+Borg component instance shared-states are cached by
+:attr:`Component.component_id`.
+
+.. warning::
+   * The borg assembly strategy is **only** supported for
+     components that are non-builtin classes.
+   * The borg assembly strategy is **not** supported for
+     classes that define or inherit a ``__slots__`` member.
+
+.. rubric:: "weakref"
+
+.. versionadded:: 2.1.0
+
+In the simplest terms, this is a "prototype" that can exhibit
+"singleton" behavior: as long as there is at least one "live" reference
+to the assembled object in the application runtime, then requests to
+assemble this component will return the same (cached) object.
+
+When the only reference to the assembled object that remains is the
+cached weak reference, the Python garbage collector is free to destroy
+the object, at which point it is automatically removed from the Aglyph
+cache.
+
+Subsequent requests to assemble the same component will cause a new
+object to be created, initialized, wired, cached (as a weak reference),
+and returned.
+
+.. note::
+   Please refer to the :mod:`weakref` module for a detailed explanation
+   of weak reference behavior.
+
+"""
+
+LifecycleState = namedtuple("LifecycleState",
+                            ("AFTER_INJECT", "BEFORE_CLEAR"))(
+                             "after_inject", "before_clear")
+"""Define the lifecycle states for which Aglyph will call object methods
+on your behalf.
+
+.. _lifecycle-methods:
+
+.. rubric:: Lifecycle methods
+
+Lifecycle methods are called with **no arguments** (positional or
+keyword).
+
+If a called lifecycle method raises an exception, the exception is
+caught, logged at :attr:`logging.ERROR` level (including a traceback) to
+the "aglyph.assembler.Assembler" channel, and a :class:`RuntimeWarning`
+is issued.
+
+A method may be registered for a lifecycle state by specifying the
+method name at the context (least specific), template, and/or component
+(most specific) level.
+
+.. note::
+   Aglyph only calls **one** method on an object for any lifecycle
+   state. Refer to **The lifecycle method lookup process** (below) for
+   details.
+
+Aglyph recognizes the following lifecycle states:
+
+.. rubric:: "after_inject"
+
+A component object is in this state after **all** dependencies (both
+initialization arguments and attributes) have been injected into a
+newly-created instance, but before the object is cached and/or returned
+to the caller.
+
+Aglyph will only call **one** "after_inject" method on any object, and
+will determine which method to call by using the lookup process
+described below.
+
+.. rubric:: "before_clear"
+
+A component object is in this state after is has been removed from an
+internal cache (singleton, borg, or weakref), but before the object
+itself is actually discarded.
+
+Aglyph will only call **one** "before_clear" method on any object, and
+will determine which method to call by using the lookup process
+described below.
+
+.. _lifecycle-method-lookup-process:
+
+.. rubric:: The lifecycle method lookup process
+
+Lifecyle methods may be specified at the context (least specific),
+template, and component (most specific) levels.
+
+In order to determine which named method is called for a particular
+object, Aglyph looks up the appropriate lifecycle method name in the
+following order, using the **first** one found that is not ``None``
+*and* is actually defined on the object:
+
+#. The method named by the object's ``Component.<lifecycle-state>``
+   property.
+#. If the object's :attr:`Component.parent_id` is not ``None``, the
+   method named by the corresponding parent
+   ``Template.<lifecycle-state>`` or ``Component.<lifecycle-state>``
+   property.
+   (If necessary, lookup continues by examining the
+   parent-of-the-parent and so on.)
+#. The method named by the ``Context.<lifecycle-state>`` property.
+
+When Aglyph finds a named lifecycle method that applies to an object,
+but the object itself does not define that method, a
+:attr:`logging.WARNING` message is emitted.
+
+.. note::
+  Either a :class:`Component` or :attr:`Template` may serve as the
+  parent identified by a ``parent_id``.
+
+  However, only a :class:`Component` may actually be assembled into
+  a usable object. (A :attr:`Template` is like an abstract class -
+  it defines common dependencies and/or lifecycle methods, but it
+  cannot be assembled.)
 
 """
 
@@ -124,10 +237,28 @@ class Reference(TextType):
 _logger.debug("Reference extends %r", TextType)
 
 
-class Evaluator(object):
+class _InitializationSupport(object):
+
+    __slots__ = ["_args", "_keywords"]
+
+    def __init__(self):
+        super(_InitializationSupport, self).__init__()
+        self._args = []
+        self._keywords = {}
+
+    @property
+    def args(self):
+        return self._args
+
+    @property
+    def keywords(self):
+        return self._keywords
+
+
+class Evaluator(_InitializationSupport):
     """Perform lazy creation of objects."""
 
-    __slots__ = ["_func", "_args", "_keywords"]
+    __slots__ = ["_func"]
 
     __logger = logging.getLogger("%s.Evaluator" % __name__)
 
@@ -168,7 +299,7 @@ class Evaluator(object):
            *another* ``Evaluator``).
 
         """
-        self.__logger.debug("TRACE %r *%r, **%r", func, args, keywords)
+        self.__logger.debug("TRACE %r, *%r, **%r", func, args, keywords)
         super(Evaluator, self).__init__()
         if (not is_callable(func)):
             raise TypeError("%s is not callable" % type(func).__name__)
@@ -180,16 +311,6 @@ class Evaluator(object):
     def func(self):
         """The :obj:`callable` that creates new objects *(read-only)*."""
         return self._func
-
-    @property
-    def args(self):
-        """The positional arguments to :attr:`func` *(read-only)*."""
-        return self._args
-
-    @property
-    def keywords(self):
-        """The keyword arguments to :attr:`func` *(read-only)*."""
-        return self._keywords
 
     def __call__(self, assembler):
         """Call ``func(*args, **keywords)`` and return the new object.
@@ -211,7 +332,8 @@ class Evaluator(object):
         resolved_keywords = dict([(keyword, resolve(arg, assembler))
                                   for (keyword, arg) in keywords.items()])
         obj = self._func(*resolved_args, **resolved_keywords)
-        self.__logger.debug("RETURN %r", obj)
+        # do not log str/repr of assembled objects; may contain sensitive data
+        self.__logger.debug("RETURN %s", _safe_repr(obj))
         return obj
 
     def _resolve(self, arg, assembler):
@@ -230,7 +352,7 @@ class Evaluator(object):
             return assembler.assemble(arg)
         elif (isinstance(arg, Evaluator)):
             return arg(assembler)
-        elif (isinstance(arg, functools.partial)):
+        elif (isinstance(arg, partial)):
             return arg()
         elif (isinstance(arg, dict)):
             # either keys or values may themselves be References, partials, or
@@ -252,30 +374,180 @@ class Evaluator(object):
                                         self._func, self._args, self._keywords)
 
 
-class Component(object):
+class _DependencySupport(_InitializationSupport):
+
+    __slots__ = ["_attributes"]
+
+    def __init__(self):
+        super(_DependencySupport, self).__init__()
+        self._attributes = OrderedDict()
+
+    @property
+    def attributes(self):
+        return self._attributes
+
+
+class Template(_DependencySupport):
+
+    __slots__ = [
+        "_after_inject",
+        "_before_clear",
+        "_parent_id",
+        "_unique_id",
+    ]
+
+    __logger = logging.getLogger("%s.Template" % __name__)
+
+    def __init__(self, template_id, parent_id=None, after_inject=None,
+                 before_clear=None):
+        """
+        :arg str template_id: context-unique identifier for this\
+                              template
+        :keyword str parent_id: specifies the ID of a template or\
+                                component that describes the default\
+                                dependencies and/or lifecyle methods\
+                                for this template
+        :keyword str after_inject: specifies the name of the method\
+                                   that will be called on objects of\
+                                   components that reference this\
+                                   template after all component\
+                                   dependencies have been injected
+        :keyword str before_clear: specifies the name of the method\
+                                   that will be called on objects of\
+                                   components that reference this\
+                                   template immediately before they are\
+                                   cleared from cache
+
+        .. note::
+           A ``Template`` cannot be assembled (it is equivalent to an
+           abstract class).
+
+           However, a :class:`Component` can also serve as a template,
+           so if you need the ability to assemble an object *and* use
+           its definition as the basis for other components, then define
+           the default dependencies and/or lifecycle methods in a
+           :class:`Component` and use that component's ID as the
+           :attr:`Component.parent_id` in other components.
+
+        *unique_id* must be a user-provided identifier that is unique
+        within the context to which this template is added. A component
+        may then be instructed to use a template by specifying the same
+        value for :attr:`Component.parent_id`.
+
+        *parent_id* is **another** :attr:`Component.unique_id` or
+        :attr:`Template.unique_id` in the same context that descibes
+        **this** template's default dependencies and/or lifecycle
+        methods.
+
+        *after_inject* is the name of a method *of objects of this
+        component* that will be called after **all** dependencies have
+        been injected, but before the object is returned to the caller.
+        This method will be called with **no** arguments (positional or
+        keyword). Exceptions raised by this method are not caught.
+
+        .. note::
+           ``Template.after_inject``, if specified, **replaces**
+           :attr:`aglyph.context.Context.after_inject` for any component
+           that uses the template.
+
+        *before_clear* is the name of a method *of objects of this
+        component* that will be called immediately before the object is
+        cleared from cache via
+        :meth:`aglyph.assembler.Assembler.clear_singletons()`,
+        :meth:`aglyph.assembler.Assembler.clear_borgs()`, or
+        :meth:`aglyph.assembler.Assembler.clear_weakrefs()`.
+
+        .. note::
+           ``Template.before_clear``, if specified, **replaces**
+           :attr:`aglyph.context.Context.before_clear` for any component
+           that uses the template.
+
+        .. warning::
+           The *before_clear* keyword argument has no meaning for and is
+           ignored by "prototype" components. If *before_clear* is
+           specified for a prototype, a :class:`RuntimeWarning` will be
+           issued.
+
+           For "weakref" components, there is a possibility that the
+           object no longer exists at the moment when the *before_clear*
+           method would be called. In such cases, the *before_clear*
+           method is **not** called. No warning is issued, but a
+           :attr:`logging.WARNING` message is emitted.
+
+        """
+        self.__logger.debug(
+            "TRACE %r, parent_id=%r, after_inject=%r, before_clear=%r",
+            template_id, parent_id, after_inject, before_clear)
+        super(Template, self).__init__()
+        self._unique_id = template_id
+        self._parent_id = parent_id
+        self._after_inject = after_inject
+        self._before_clear = before_clear
+
+    @property
+    def unique_id(self):
+        """Uniquely identifies this template in a context *(read-only)*.
+
+        """
+        return self._unique_id
+
+    @property
+    def parent_id(self):
+        """Identifies this template's parent template or component
+        *(read-only)*.
+
+        """
+        return self._parent_id
+
+    @property
+    def after_inject(self):
+        """The name of the component object method that will be called
+        after **all** dependencies have been injected.
+
+        """
+        return self._after_inject
+
+    @property
+    def before_clear(self):
+        """The name of the component object method that will be called
+        immediately before the object is cleared from cache.
+
+        .. warning::
+           This property is not applicable to "prototype" component
+           objects, and is **not** guaranteed to be called for "weakref"
+           component objects.
+
+        """
+        return self._before_clear
+
+    def __repr__(self):
+        return "%s.%s(%r, parent_id=%r, after_inject=%r, before_clear=%r)" % (
+            self.__class__.__module__, self.__class__.__name__,
+            self._unique_id, self._parent_id, self._after_inject,
+            self._before_clear)
+
+
+class Component(Template):
     """Define a component and the dependencies needed to create a new
     object of that component at runtime.
 
     """
 
     __slots__ = [
-        "_attributes",
-        "_component_id",
         "_dotted_name",
         "_factory_name",
-        "_init_args",
-        "_init_keywords",
         "_member_name",
-        "_strategy"
+        "_strategy",
     ]
 
     __logger = logging.getLogger("%s.Component" % __name__)
 
     def __init__(self, component_id, dotted_name=None, factory_name=None,
-                 member_name=None, strategy=Strategy.PROTOTYPE):
+                 member_name=None, strategy=Strategy.PROTOTYPE,
+                 parent_id=None, after_inject=None, before_clear=None):
         """
-        :param str component_id: uniquely identifies this component\
-                                 within a context
+        :arg str component_id: context-unique identifier for this\
+                               component
         :keyword str dotted_name: an **importable** dotted name
         :keyword str factory_name: names a :obj:`callable` member of\
                                    the object identified by\
@@ -284,13 +556,26 @@ class Component(object):
                                   identified by *component_id* or\
                                   *dotted_name*
         :keyword str strategy: specifies the component assembly strategy
+        :keyword str parent_id: specifies the ID of a template or\
+                                component that describes the default\
+                                dependencies and/or lifecyle methods\
+                                for this component
+        :keyword str after_inject: specifies the name of the method\
+                                   that will be called on objects of\
+                                   this component after all of its\
+                                   dependencies have been injected
+        :keyword str before_clear: specifies the name of the method\
+                                   that will be called on objects of\
+                                   this component immediately before\
+                                   they are cleared from cache
         :raise aglyph.AglyphError: if both *factory_name* and\
                                    *member_name* are specified
         :raise ValueError: if *strategy* is not a recognized assembly\
                            strategy
 
-        *component_id* must be a user-provided unique component
-        identifier or an **importable** dotted name (see
+        *component_id* must be a user-provided identifier that is unique
+        within the context to which this component is added. An
+        **importable** dotted name may be used (see
         :func:`aglyph.resolve_dotted_name`).
 
         *dotted_name*, if provided, must be an **importable** dotted
@@ -356,16 +641,66 @@ class Component(object):
            is only supported for classes that **do not** define or
            inherit ``__slots__``!
 
-        Once a ``Component`` instance is initialized, the ``init_args``
-        (list), ``init_keywords`` (dict), and ``attributes`` (dict)
-        members can be modified in-place to define the dependencies that
-        must be injected into objects of this component at assembly
-        time. For example::
+        .. versionadded:: 2.1.0
+           the *parent_id* keyword argument
+
+        *parent_id* is the context-unique ID of a :class:`Template` (or
+        another ``Component``) that defines default dependencies and/or
+        lifecycle methods for this component.
+
+        .. versionadded:: 2.1.0
+           the *after_inject* keyword argument
+
+        *after_inject* is the name of a method *of objects of this
+        component* that will be called after **all** dependencies have
+        been injected, but before the object is returned to the caller.
+        This method will be called with **no** arguments (positional or
+        keyword). Exceptions raised by this method are not caught.
+
+        .. note::
+           ``Component.after_inject``, if specified, **replaces** either
+           :attr:`Template.after_inject` (if this component also
+           specifies :attr:`parent_id`) or
+           :attr:`aglyph.context.Context.after_inject`.
+
+        .. versionadded:: 2.1.0
+           the *before_clear* keyword argument
+
+        *before_clear* is the name of a method *of objects of this
+        component* that will be called immediately before the object is
+        cleared from cache via
+        :meth:`aglyph.assembler.Assembler.clear_singletons()`,
+        :meth:`aglyph.assembler.Assembler.clear_borgs()`, or
+        :meth:`aglyph.assembler.Assembler.clear_weakrefs()`.
+
+        .. note::
+           ``Component.before_clear``, if specified, **replaces** either
+           :attr:`Template.before_clear` (if this component also
+           specifies :attr:`parent_id`) or
+           :attr:`aglyph.context.Context.before_clear`.
+
+        .. warning::
+           The *before_clear* keyword argument has no meaning for and is
+           ignored by "prototype" components. If *before_clear* is
+           specified for a prototype, a :class:`RuntimeWarning` will be
+           issued.
+
+           For "weakref" components, there is a possibility that the
+           object no longer exists at the moment when the *before_clear*
+           method would be called. In such cases, the *before_clear*
+           method is **not** called. No warning is issued, but a
+           :attr:`logging.WARNING` message is emitted.
+
+        Once a ``Component`` instance is initialized, the ``args``
+        (:obj:`list`), ``keywords`` (:obj:`dict`), and ``attributes``
+        (:class:`collections.OrderedDict`) members can be modified
+        in-place to define the dependencies that must be injected into
+        objects of this component at assembly time. For example::
 
            component = Component("http.client.HTTPConnection")
-           component.init_args.append("www.ninthtest.net")
-           component.init_args.append(80)
-           component.init_keywords["strict"] = True
+           component.args.append("www.ninthtest.net")
+           component.args.append(80)
+           component.keywords["strict"] = True
            component.attributes["set_debuglevel"] = 1
 
         In Aglyph, a component may:
@@ -376,18 +711,23 @@ class Component(object):
         * identify other components as dependencies (using a
           :class:`Reference`)
         * be used by other components as a dependency
+        * use common dependencies and behaviors (*after_inject*,
+          *before_clear*) defined in a
+          :class:`aglyph.component.Template`
         * use any combination of the above behaviors
 
         """
         self.__logger.debug(
             "TRACE %r, dotted_name=%r, factory_name=%r, member_name=%r, "
-            "strategy=%r", component_id, dotted_name, factory_name,
-            member_name, strategy)
-        super(Component, self).__init__()
+            "strategy=%r, parent_id=%r, after_inject=%r, before_clear=%r",
+            component_id, dotted_name, factory_name, member_name, strategy,
+            parent_id, after_inject, before_clear)
         if ((factory_name is not None) and (member_name is not None)):
             raise AglyphError(
                 "only one of factory_name or member_name may be specified")
-        self._component_id = component_id
+        super(Component, self).__init__(component_id, parent_id=parent_id,
+                                        after_inject=after_inject,
+                                        before_clear=before_clear)
         if (dotted_name is not None):
             self._dotted_name = dotted_name
         else:
@@ -398,14 +738,26 @@ class Component(object):
             self._strategy = strategy
         else:
             raise ValueError("unrecognized assembly strategy %r" % strategy)
-        self._init_args = []
-        self._init_keywords = {}
-        self._attributes = {}
+        if ((strategy == Strategy.PROTOTYPE) and (before_clear is not None)):
+            self._before_clear = None
+            warning_msg = (
+                "ignoring before_clear=%r for prototype component %r" %
+                (before_clear, component_id))
+            self.__logger.warning(warning_msg)
+            warnings.warn(RuntimeWarning(warning_msg))
 
     @property
     def component_id(self):
-        """The unique component identifier *(read-only)*."""
-        return self._component_id
+        """The unique component identifier *(read-only)*.
+
+        .. deprecated:: 2.1.0
+           use :attr:`unique_id` instead.
+
+        """
+        warnings.warn(
+            AglyphDeprecationWarning("Component.component_id",
+                                     replacement="Component.unique_id"))
+        return self._unique_id
 
     @property
     def dotted_name(self):
@@ -580,31 +932,44 @@ class Component(object):
     @property
     def init_args(self):
         """The positional arguments for constructor injection of
-        component object dependencies *(read-only)*.
+        component object dependencies.
+
+        .. deprecated:: 2.1.0
+           use :attr:`args` instead.
+
+        .. note::
+           This property may not be set; it must be modified by
+           reference.
 
         """
-        return self._init_args
+        warnings.warn(AglyphDeprecationWarning("Component.init_args",
+                                               replacement="Component.args"))
+        return self.args
 
     @property
     def init_keywords(self):
         """The keyword arguments for constructor injection of component
-        object dependencies *(read-only)*.
+        object dependencies.
+
+        .. deprecated:: 2.1.0
+           use :attr:`keywords` instead.
+
+        .. note::
+           This property may not be set; it must be modified by
+           reference.
 
         """
-        return self._init_keywords
-
-    @property
-    def attributes(self):
-        """The name/value attributes for setter injection of component
-        object dependencies *(read-only)*.
-
-        """
-        return self._attributes
+        warnings.warn(
+            AglyphDeprecationWarning("Component.init_keywords",
+                                     replacement="Component.keywords"))
+        return self.keywords
 
     def __repr__(self):
         return ("%s.%s(%r, dotted_name=%r, factory_name=%r, member_name=%r, "
-                "strategy=%r)") % (self.__class__.__module__,
-                                   self.__class__.__name__, self._component_id,
-                                   self._dotted_name, self._factory_name,
-                                   self._member_name, self._strategy)
+                "strategy=%r, parent_id=%r, after_inject=%r, "
+                "before_clear=%r)") % (
+                    self.__class__.__module__, self.__class__.__name__,
+                    self._unique_id, self._dotted_name, self._factory_name,
+                    self._member_name, self._strategy, self._parent_id,
+                    self._after_inject, self._before_clear)
 

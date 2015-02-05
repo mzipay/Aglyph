@@ -1,6 +1,6 @@
-*****************************
+=============================
 Other notable usage scenarios
-*****************************
+=============================
 
 * :ref:`staticmethod-classmethod-nestedclass-component`
 * :ref:`member-component`
@@ -465,19 +465,22 @@ use *any* XML parser; simply pass an instance of the subclass to
 
 .. _clear-caches:
 
-Clear the Aglyph singleton and/or borg memory caches
-====================================================
+Clear the Aglyph singleton, weakref, and borg memory caches
+===========================================================
 
 :class:`aglyph.assembler.Assembler` automatically caches objects of
-**singleton** components and share-state dictionaries of **borg** components in
-memory. There is no eviction strategy by default.
+**singleton** and **weakref** components, as well as the shared-state
+dictionaries of **borg** components, in memory. There is no automatic eviction
+strategy.
 
 These caches may be cleared explicitly by calling
-:meth:`aglyph.assembler.Assembler.clear_singletons` or
+:meth:`aglyph.assembler.Assembler.clear_singletons`,
+:meth:`aglyph.assembler.Assembler.clear_weakrefs`,  or
 :meth:`aglyph.assembler.Assembler.clear_borgs`, respectively. Each method
 returns a list of component IDs that were evicted.
 
-.. note::
-   The ``clear_singletons()`` and ``clear_borgs()`` methods are also available
-   on :class:`aglyph.binder.Binder` instances.
+.. warning::
+   There are some limitations on weakref caching, particularly with respect to
+   :ref:`lifecycle methods <lifecycle-methods>`. Please see
+   :meth:`aglyph.assembler.Assembler.clear_weakrefs` for details.
 

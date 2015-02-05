@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,22 +30,29 @@ testing).
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 __all__ = [
     "Alpha",
     "Beta",
     "create_alpha",
     "create_beta",
+    "create_delta",
     "DEFAULT",
     "Delta",
+    "Eta",
     "Gamma",
     "Epsilon",
-    "EPSILON"
+    "EPSILON",
+    "LIFECYCLE_EXCEPTION",
+    "ZETA",
 ]
 
 #: used as a default instead of ``None`` (easier testing)
 DEFAULT = object()
+
+#: used to signal that a lifecycle method should raise an exception
+LIFECYCLE_EXCEPTION = object()
 
 
 # PYVER: extending object is implicit in Python >= 3.0
@@ -73,9 +80,10 @@ class Alpha(object):
     def _get_prop(self):
         return self._prop
 
-    def _set_prop(self, prop):
-        self._prop = prop
+    def _set_prop(self, value):
+        self._prop = value
 
+    # PYVER: Jython 2.5.3 can't handle @prop.setter
     prop = property(_get_prop, _set_prop)
 
 
@@ -134,6 +142,14 @@ class Delta(Gamma):
         Gamma.__init__(self, DEFAULT, keyword=keyword)
 
 
+def create_delta(keyword=DEFAULT, field=DEFAULT, value=DEFAULT, prop=DEFAULT):
+    delta = Delta(keyword=keyword)
+    delta.field = field
+    delta.set_value(value)
+    delta.prop = prop
+    return delta
+
+
 class Epsilon(Alpha):
     """Class used to test factory and member assembly."""
 
@@ -165,4 +181,122 @@ EPSILON = Epsilon("arg", keyword="keyword")
 
 #: Module-level member used to test member assembly.
 ZETA = Epsilon.Zeta(keyword="keyword")
+
+
+class Eta(Beta):
+    """Class used to test lifecycle methods."""
+
+    class Theta(Delta):
+
+        def __init__(self):
+            Delta.__init__(self)
+            self.called_prepare = False
+            self.called_dispose = False
+
+        def prepare(self):
+            if (not self.called_prepare):
+                self.called_prepare = True
+            else:
+                raise Exception("already called prepare()")
+
+        def dispose(self):
+            if (not self.called_dispose):
+                self.called_dispose = True
+            else:
+                raise Exception("already called dispose()")
+
+    THETA = Theta()
+
+    def __init__(self):
+        super(Eta, self).__init__()
+        self.called_context_after_inject = False
+        self.called_context_before_clear = False
+        self.called_template_after_inject = False
+        self.called_template_before_clear = False
+        self.called_component_after_inject = False
+        self.called_component_before_clear = False
+        self.called_after_inject_raise = False
+        self.called_before_clear_raise = False
+
+    def context_after_inject(self):
+        if (not self.called_context_after_inject):
+            self.called_context_after_inject = True
+        else:
+            raise Exception("already called context_after_inject()")
+
+    def context_before_clear(self):
+        if (not self.called_context_before_clear):
+            self.called_context_before_clear = True
+        else:
+            raise Exception("already called context_before_clear()")
+
+    def template_after_inject(self):
+        if (not self.called_template_after_inject):
+            self.called_template_after_inject = True
+        else:
+            raise Exception("already called template_after_inject()")
+
+    def template_before_clear(self):
+        if (not self.called_template_before_clear):
+            self.called_template_before_clear = True
+        else:
+            raise Exception("already called template_before_clear()")
+
+    def component_after_inject(self):
+        if (not self.called_component_after_inject):
+            self.called_component_after_inject = True
+        else:
+            raise Exception("already called component_after_inject()")
+
+    def component_before_clear(self):
+        if (not self.called_component_before_clear):
+            self.called_component_before_clear = True
+        else:
+            raise Exception("already called component_before_clear()")
+
+    def after_inject_raise(self):
+        self.called_after_inject_raise = True
+        raise Exception("after_inject_raise")
+
+    def before_clear_raise(self):
+        self.called_before_clear_raise = True
+        raise Exception("before_clear_raise")
+
+
+class Iota(object):
+
+    def __init__(self):
+        # PYVER: identity arguments to super() are implicit in Python >= 3.0
+        super(Iota, self).__init__()
+        self.__ordinality = 1
+        self._field = DEFAULT
+        self._value = DEFAULT
+        self._prop = DEFAULT
+
+    def _get_field(self):
+        return self._field
+
+    def _set_field(self, value):
+        self._field = (self.__ordinality, value)
+        self.__ordinality += 1
+
+    # PYVER: Jython 2.5.3 can't handle @field.setter
+    field = property(_get_field, _set_field)
+
+    def get_value(self):
+        return self._value
+
+    def set_value(self, value):
+        self._value = (self.__ordinality, value)
+        self.__ordinality += 1
+
+    def _get_prop(self):
+        return self._prop
+
+    def _set_prop(self, value):
+        self._prop = (self.__ordinality, value)
+        self.__ordinality += 1
+
+    # PYVER: Jython 2.5.3 can't handle @prop.setter
+    prop = property(_get_prop, _set_prop)
 

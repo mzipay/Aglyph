@@ -4,6 +4,11 @@
 
 .. automodule:: aglyph.component
 
+.. autodata:: aglyph.component.LifecycleState
+
+.. autoclass:: aglyph.component.Template
+   :members:
+
 .. autoclass:: aglyph.component.Component
    :members:
 

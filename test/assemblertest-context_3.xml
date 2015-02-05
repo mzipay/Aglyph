@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE context SYSTEM "../../resources/aglyph-context-2.0.0.dtd">
-<context id="assemblertest-context">
+<!DOCTYPE context SYSTEM "../resources/aglyph-context.dtd">
+<context id="assemblertest-context" after-inject="context_after_inject"
+		before-clear="context_before_clear">
 	<component id="the-object" dotted-name="builtins.object"
 			strategy="singleton"/>
 	<component id="strings" dotted-name="builtins.dict">
@@ -323,4 +324,96 @@
 			<arg keyword="keyword"><str>ignored</str></arg>
 		</init>
 	</component>
+	<!-- ordered attributes -->
+	<component id="test.dummy.Iota">
+		<attributes>
+			<attribute name="set_value"><str>VALUE</str></attribute>
+			<attribute name="prop"><str>PROP</str></attribute>
+			<attribute name="field"><str>FIELD</str></attribute>
+		</attributes>
+	</component>
+	<!-- Tests for weakref components -->
+	<component id="weak-alpha" dotted-name="test.dummy.Alpha"
+			strategy="weakref">
+		<init>
+			<arg><list/></arg>
+		</init>
+	</component>
+	<!-- Tests for templates -->
+	<template id="arg-template">
+		<init>
+			<arg><str>ARG</str></arg>
+		</init>
+	</template>
+	<component id="epsilon-using-arg-template" dotted-name="test.dummy.Epsilon"
+			parent-id="arg-template" />
+	<component id="epsilon-multi-arg" dotted-name="test.dummy.create_epsilon"
+			parent-id="arg-template">
+		<init>
+			<arg><str>ARG2</str></arg>
+		</init>
+	</component>
+	<template id="create_alpha-template">
+		<init>
+			<arg><str>TEMPLATE_ARG</str></arg>
+		</init>
+	</template>
+	<component id="create_alpha-collect-args"
+			dotted-name="test.dummy.create_alpha"
+			parent-id="create_alpha-template">
+		<init>
+			<arg><str>COMPONENT_ARG</str></arg>
+		</init>
+	</component>
+	<template id="create_delta-template">
+		<init>
+			<arg keyword="keyword"><str>KEYWORD</str></arg>
+		</init>
+	</template>
+	<component id="create_delta-collect-keywords"
+			dotted-name="test.dummy.create_delta"
+			parent-id="create_delta-template">
+		<init>
+			<arg keyword="field"><str>FIELD</str></arg>
+			<arg keyword="keyword"><str>OVERRIDE_KEYWORD</str></arg>
+		</init>
+	</component>
+	<template id="delta-template">
+		<attributes>
+			<attribute name="field"><str>FIELD</str></attribute>
+			<attribute name="set_value"><str>VALUE</str></attribute>
+		</attributes>
+	</template>
+	<component id="delta-collect-attributes" dotted-name="test.dummy.Delta"
+			parent-id="delta-template">
+		<attributes>
+			<attribute name="set_value"><str>OVERRIDE_VALUE</str></attribute>
+			<attribute name="prop"><str>PROP</str></attribute>
+		</attributes>
+	</component>
+	<!-- Tests for lifecycle methods -->
+	<template id="lifecycle-template" after-inject="template_after_inject"
+			before-clear="template_before_clear" />
+	<!-- after inject -->
+	<component id="after-inject-raise" dotted-name="test.dummy.Eta"
+			after-inject="after_inject_raise"/>
+	<component id="context-after-inject" dotted-name="test.dummy.Eta" />
+	<component id="template-after-inject" dotted-name="test.dummy.Eta"
+			parent-id="lifecycle-template"/>
+	<component id="component-after-inject" dotted-name="test.dummy.Eta"
+			after-inject="component_after_inject"/>
+	<component id="nested-after-inject" dotted-name="test.dummy"
+			factory-name="Eta.Theta" after-inject="prepare" />
+	<!-- before clear -->
+	<component id="before-clear-raise" dotted-name="test.dummy.Eta"
+			strategy="singleton" before-clear="before_clear_raise"/>
+	<component id="context-before-clear" dotted-name="test.dummy.Eta"
+			strategy="singleton" />
+	<component id="template-before-clear" dotted-name="test.dummy.Eta"
+			strategy="singleton" parent-id="lifecycle-template"/>
+	<component id="component-before-clear" dotted-name="test.dummy.Eta"
+			strategy="singleton" before-clear="component_before_clear"/>
+	<component id="nested-before-clear" dotted-name="test.dummy"
+			factory-name="Eta.Theta" strategy="singleton"
+			before-clear="dispose" />
 </context>

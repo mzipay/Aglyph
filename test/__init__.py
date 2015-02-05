@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,10 +36,17 @@ import unittest
 __all__ = [
     "enable_debug_logging",
     "find_basename",
+    "py_builtin_module",
     "skip_if"
 ]
 
 _logger = logging.getLogger(__name__)
+
+# PYVER: "__builtin__" in Python < 3.0, "builtins" in Python >= 3.0
+try:
+    py_builtin_module = __import__("__builtin__")
+except ImportError:
+    py_builtin_module = __import__("builtins")
 
 try:
     skip_if = unittest.skipIf

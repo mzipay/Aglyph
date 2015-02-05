@@ -1,11 +1,11 @@
-******************************************
+==========================================
 Choose a configuration approach for Aglyph
-******************************************
+==========================================
 
 Aglyph explicitly supports two methods of configuration:
 
 1. Declarative XML configuration conforming to the
-   :download:`Aglyph context DTD <../../resources/aglyph-context-2.0.0.dtd>`
+   :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`
 2. Programmatic configuration via :class:`aglyph.binder.Binder`
 
 Opinions vary widely on the merits of XML (particularly for configuration), but
@@ -23,7 +23,7 @@ Declarative XML configuration
 =============================
 
 An Aglyph context can be defined in an XML document that conforms to the
-:download:`Aglyph context DTD <../../resources/aglyph-context-2.0.0.dtd>`.
+:download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`.
 
 The XML context document is parsed by :class:`aglyph.context.XMLContext`, which
 is just a subclass of :class:`aglyph.context.Context` that knows how to
@@ -37,7 +37,7 @@ can then be used to create an :class:`aglyph.assembler.Assembler`:
 
 .. note::
    The
-   :download:`Aglyph context DTD <../../resources/aglyph-context-2.0.0.dtd>` is
+   :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>` is
    provided primarily as a reference. The :class:`aglyph.context.XMLContext`
    class uses a non-validating parser by default.
 
@@ -153,8 +153,8 @@ encoding. This can be problematic on Python 2, because the default string
 encoding used by the Unicode implementation is typically ASCII::
 
    $ python2.7
-   Python 2.7.6 (default, Nov 12 2013, 13:10:34) 
-   [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin
+   Python 2.7.9 (default, Dec 13 2014, 15:13:49) 
+   [GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.56)] on darwin
    Type "help", "copyright", "credits" or "license" for more information.
    >>> import sys
    >>> sys.getdefaultencoding()
@@ -170,8 +170,8 @@ can instruct ``XMLContext`` to use a different default encoding (it uses the
 value of :func:`sys.getdefaultencoding` by default)::
 
    $ python2.7
-   Python 2.7.6 (default, Nov 12 2013, 13:10:34) 
-   [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin
+   Python 2.7.9 (default, Dec 13 2014, 15:13:49) 
+   [GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.56)] on darwin
    Type "help", "copyright", "credits" or "license" for more information.
    >>> from aglyph.assembler import Assembler
    >>> from aglyph.context import XMLContext
@@ -189,9 +189,9 @@ If we run the same example under Python 3 (which uses "UTF-8" as the default
 encoding), we still get correct results, but without the need to explicitly set
 the default encoding on the ``XMLContext``::
 
-   $ python3.3
-   Python 3.3.3 (default, Nov 23 2013, 16:24:30) 
-   [GCC 4.2.1 (Apple Inc. build 5666) (dot 3)] on darwin
+   $ python3.4
+   Python 3.4.2 (default, Nov 12 2014, 18:23:59) 
+   [GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.54)] on darwin
    Type "help", "copyright", "credits" or "license" for more information.
    >>> from aglyph.assembler import Assembler
    >>> from aglyph.context import XMLContext
@@ -227,7 +227,7 @@ Python 2, but representes *Unicode text* as of Python 3.0:
 +----------+-------------------+-------------------+
 
 The :download:`Aglyph context DTD
-<../../resources/aglyph-context-2.0.0.dtd>` defines ``<bytes>``, ``<str>``,
+<../../resources/aglyph-context.dtd>` defines ``<bytes>``, ``<str>``,
 and ``<unicode>`` elements that correspond to the types in the table above, but
 treats the element content differently depending on the version of Python under
 which Aglyph is running:

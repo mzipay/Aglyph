@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2014 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006-2015 Matthew Zipay <mattz@ninthtest.net>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -44,13 +44,14 @@ been tested with Aglyph.**
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 import logging
 import platform
+import warnings
 import xml.etree.ElementTree as ET
 
-from aglyph import AglyphError, _warn_deprecated
+from aglyph import AglyphDeprecationWarning, AglyphError
 from aglyph.compat import DoctypeTreeBuilder, is_ironpython
 
 __all__ = ["CLRXMLParser", "XmlReaderTreeBuilder"]
@@ -212,7 +213,7 @@ else:
 
         """
 
-        def __init__(self, *args, **keywords):
+        def __new__(self, *args, **keywords):
             raise AglyphError(".NET CLR is not available")
 
 
@@ -236,6 +237,9 @@ class XmlReaderTreeBuilder(CLRXMLParser):
     """
 
     def __init__(self, validating=False):
-        _warn_deprecated("aglyph.compat.ipyetree.XmlReaderTreeBuilder")
+        warnings.warn(
+            AglyphDeprecationWarning(
+                "aglyph.compat.ipyetree.XmlReaderTreeBuilder",
+                replacement="aglyph.compat.ipyetree.CLRXMLParser"))
         super(XmlReaderTreeBuilder, self).__init__(validating=validating)
 

@@ -35,7 +35,7 @@ programmatically in pure Python.
 """,
     author="Matthew Zipay",
     author_email="mattz@ninthtest.net",
-    url="http://www.ninthtest.net/aglyph-python-dependency-injection/",
+    url="http://ninthtest.net/aglyph-python-dependency-injection/",
     download_url="http://sourceforge.net/projects/aglyph/files/aglyph/",
     packages=["aglyph", "aglyph.compat", "aglyph.integration"],
     test_suite="test",

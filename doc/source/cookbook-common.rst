@@ -41,7 +41,7 @@ In the XML context document *"cookbook-context.xml"*::
    <context id="cookbook-context">
        <component id="http.client.HTTPConnection">
            <init>
-               <arg><str>www.ninthtest.net</str></arg>
+               <arg><str>ninthtest.net</str></arg>
                <arg><int>80</int>
                <arg keyword="timeout"><int>5</int></arg>
            </init>
@@ -67,7 +67,7 @@ so that they are unique::
    <context id="cookbook-context">
        <component id="ninthtest-net-conx" dotted-name="http.client.HTTPConnection">
            <init>
-               <arg><str>www.ninthtest.net</str></arg>
+               <arg><str>ninthtest.net</str></arg>
                <arg><int>80</int>
                <arg keyword="timeout"><int>5</int></arg>
            </init>
@@ -99,7 +99,7 @@ Using :class:`aglyph.binder.Binder` to describe a simple component in a
    from aglyph.binder import Binder
 
    binder = Binder("cookbook-binder")
-   binder.bind(HTTPConnection).init("www.ninthtest.net", 80, timeout=5)
+   binder.bind(HTTPConnection).init("ninthtest.net", 80, timeout=5)
 
 To assemble and use the component:
 
@@ -118,7 +118,7 @@ dotted name, we must give them unique component IDs::
    
    binder = Binder("cookbook-binder")
    (binder.bind("ninthtest-net-conx", to=HTTPConnection).
-       init("www.ninthtest.net", 80, timeout=5))
+       init("ninthtest.net", 80, timeout=5))
    (binder.bind("python-org-conx", to=HTTPConnection).
        init("www.python.org", 80, timeout=5))
 
@@ -225,7 +225,7 @@ In the *"cookbook-context.xml"* document::
    <context id="cookbook-context">
        <component id="ninthtest-home-page" dotted-name="urllib.request.Request">
            <init>
-               <arg><str>http://www.ninthtest.net/</str></arg>
+               <arg><str>http://ninthtest.net/</str></arg>
            </init>
        </component>
        <component id="ninthtest-url" dotted-name="urllib.request.urlopen">
@@ -257,7 +257,7 @@ In a *bindings.py* module::
    
    binder = Binder("cookbook-binder")
    (binder.bind("ninthtest-home-page", to=Request).
-       init("http://www.ninthtest.net/"))
+       init("http://ninthtest.net/"))
    (binder.bind("ninthtest-url", to=urlopen).
        init(Reference("ninthtest-home-page"), timeout=5))
 

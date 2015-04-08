@@ -698,7 +698,7 @@ class Component(Template):
         objects of this component at assembly time. For example::
 
            component = Component("http.client.HTTPConnection")
-           component.args.append("www.ninthtest.net")
+           component.args.append("ninthtest.net")
            component.args.append(80)
            component.keywords["strict"] = True
            component.attributes["set_debuglevel"] = 1

@@ -22,9 +22,5 @@ doc/build
 doc/bootswatch
 doc/cherrypy
 test-versions-variants.*
-test_integration-env2.7
-test_integration-env3.1
-test_integration-env3.2
-test_integration-env3.3
-test_integration-env3.4
+test_integration-*-env
 

@@ -2,6 +2,8 @@
 Understand the general features of Aglyph
 =========================================
 
+:Release: |release|
+
 .. _version-impl-support:
 
 Aglyph supports Python 2 and 3 (CPython), PyPy, Stackless, IronPython, and Jython

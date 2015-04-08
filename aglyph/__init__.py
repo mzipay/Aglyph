@@ -33,12 +33,14 @@ channel in your application's logging configuration (see
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
 
-# always the current version of Aglyph
+# always the current version of Aglyph (see http://semver.org/)
 MAJOR = 2
 MINOR = 1
 PATCH = 0
-VERSION = (MAJOR, MINOR, PATCH)
-__version__ = "%d.%d.%d" % VERSION
+PRERELEASE = ""
+METADATA = "+doc.1"
+VERSION = (MAJOR, MINOR, PATCH, PRERELEASE, METADATA)
+__version__ = "%d.%d.%d%s%s" % VERSION
 
 from inspect import isclass, ismethod, ismodule, isroutine
 import logging

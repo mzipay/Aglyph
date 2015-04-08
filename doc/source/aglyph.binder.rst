@@ -2,6 +2,8 @@
 :mod:`aglyph.binder` --- The Aglyph component binder
 ====================================================
 
+:Release: |release|
+
 .. automodule:: aglyph.binder
 
 .. autoclass:: aglyph.binder.Binder

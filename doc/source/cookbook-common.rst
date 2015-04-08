@@ -2,6 +2,8 @@
 Common usage scenarios
 ======================
 
+:Release: |release|
+
 All examples are shown with XML configuration *and* programmatic configuration,
 where appropriate.
 

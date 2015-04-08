@@ -2,6 +2,8 @@
 Aglyph cookbook
 ===============
 
+:Release: |release|
+
 .. toctree::
    :maxdepth: 3
 

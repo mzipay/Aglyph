@@ -10,9 +10,14 @@ SECTIONS
 INTRODUCTION
 ========================================================================
 
-HOMEPAGE: http://www.ninthtest.net/aglyph-python-dependency-injection/
-AUTHOR: Matthew Zipay <mattz@ninthtest.net>
-LICENSE: MIT License (see the LICENSE.txt file)
+HOMEPAGE:
+   http://ninthtest.net/aglyph-python-dependency-injection/
+
+AUTHOR:
+   Matthew Zipay <mattz@ninthtest.net>
+
+LICENSE:
+   MIT License (see the LICENSE.txt file)
 
 Aglyph is a Dependency Injection framework for Python 2.7+, supporting
 type 2 (setter) and type 3 (constructor) injection.

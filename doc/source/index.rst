@@ -57,7 +57,7 @@ The Aglyph version is always defined as the ``__version__`` member of the
 
 >>> import aglyph
 >>> aglyph.__version__
-'2.1.0'
+'2.1.0+doc.1'
 
 The :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`
 includes the Aglyph version in the filename and in a header comment.

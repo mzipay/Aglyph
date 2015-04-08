@@ -2,6 +2,8 @@
 :mod:`aglyph.compat.ipyetree` --- an *ElementTree* parser for *IronPython*
 ==========================================================================
 
+:Release: |release|
+
 .. automodule:: aglyph.compat.ipyetree
 
 .. class:: CLRXMLParser(target=None, validating=False)

@@ -2,6 +2,8 @@
 Other notable usage scenarios
 =============================
 
+:Release: |release|
+
 * :ref:`staticmethod-classmethod-nestedclass-component`
 * :ref:`member-component`
 * :ref:`impl-specific-component`

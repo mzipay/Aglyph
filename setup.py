@@ -10,7 +10,7 @@ except ImportError:
 from setuptools import setup
 
 setup(name="Aglyph",
-      version="2.1.0",
+      version="2.1.0+doc.1",
       description="Aglyph is a Dependency Injection framework for Python "
                   "2.7+, supporting type 2 (setter) and type 3 (constructor) "
                   "injection.",

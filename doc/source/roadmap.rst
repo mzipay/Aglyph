@@ -9,6 +9,9 @@ Roadmap for future releases
    The next release may or may not include any of items listed here, and
    might even include items *not* listed here.
 
+* Support for `Python 3.1 <https://www.python.org/download/releases/3.1.5/>`_
+  **will be dropped**. This *may* happen as early as release 2.2.0, but
+  *definitely* before 3.0.0.
 * There isn't really a need for :class:`aglyph.assembler.Assembler` and
   :class:`aglyph.binder.Binder` to be separate classes. I will likely absorb
   all of the Binder functionality into Assembler and deprecate Binder. (This

@@ -2,6 +2,8 @@
 Component inheritance using templates
 =====================================
 
+:Release: |release|
+
 .. versionadded:: 2.1.0
 
 Aglyph supports a form of inheritance by allowing developers to declare that a

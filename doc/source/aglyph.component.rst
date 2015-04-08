@@ -2,6 +2,8 @@
 :mod:`aglyph.component` --- Defining components and their dependencies
 ======================================================================
 
+:Release: |release|
+
 .. automodule:: aglyph.component
 
 .. autodata:: aglyph.component.LifecycleState

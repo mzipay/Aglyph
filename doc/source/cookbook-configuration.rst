@@ -2,6 +2,8 @@
 Choose a configuration approach for Aglyph
 ==========================================
 
+:Release: |release|
+
 Aglyph explicitly supports two methods of configuration:
 
 1. Declarative XML configuration conforming to the

@@ -2,6 +2,8 @@
 Integrating Aglyph
 ==================
 
+:Release: |release|
+
 * :ref:`aglyph-config-cherrpy`
 * :ref:`aglyph-di-plugin`
 * :ref:`aglyph-di-plugin-lifecycle`

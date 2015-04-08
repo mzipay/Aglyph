@@ -2,6 +2,8 @@
 :mod:`aglyph.assembler` --- The Aglyph component assembler
 ==========================================================
 
+:Release: |release|
+
 .. automodule:: aglyph.assembler
 
 .. autoclass:: aglyph.assembler.Assembler

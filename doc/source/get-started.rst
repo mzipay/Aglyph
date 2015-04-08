@@ -2,6 +2,8 @@
 Getting started with Aglyph
 ===========================
 
+:Release: |release|
+
 During this brief tutorial, you will download and install Aglyph, build a
 simple Python application based on the *MovieLister* component discussed in
 `Inversion of Control Containers and the Dependency Injection pattern

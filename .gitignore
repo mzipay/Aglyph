@@ -7,7 +7,7 @@
 __pycache__/
 MANIFEST
 Aglyph.egg-info/
-aglyph-dev-env/
+aglyph-*-env/
 resources/movielisterapp-*.zip
 example/movielisterapp-aglyph.sh
 example/movielisterapp-basic.sh
@@ -15,8 +15,5 @@ NOTES.txt
 build/
 dist/
 doc/build/
-doc/bootswatch/
-doc/cherrypy/
 test-versions-variants.*
-test_integration-*-env/
 

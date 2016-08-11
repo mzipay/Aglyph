@@ -23,7 +23,7 @@
 """Test cases and runner for the :mod:`aglyph.assembler` module."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 import gc
 import logging
@@ -585,6 +585,18 @@ class AssemblerTest(unittest.TestCase):
         self.assertEqual(["nested-before-clear"],
                          self.assembler.clear_singletons())
         self.assertTrue(theta.called_dispose)
+
+    def test_builtin_immutable_component_assembly_3(self):
+        assembler = Assembler(
+            XMLContext(find_basename("issues-2-new_instance-immutables.xml")))
+
+        module_name = "__builtin__" if is_python_2 else "builtins"
+
+        s = assembler.assemble("%s.str" % module_name)
+        self.assertEqual("test", s)
+
+        t = assembler.assemble("%s.tuple" % module_name)
+        self.assertEqual(('t', 'e', 's', 't'), t)
 
 
 def suite():

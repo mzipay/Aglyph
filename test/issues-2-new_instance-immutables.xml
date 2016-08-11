@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE context SYSTEM "../resources/aglyph-context.dtd">
+<context id="issues-2"><!-- https://github.com/mzipay/Aglyph/issues/2 -->
+   <component id="builtins.str">
+      <init>
+         <arg><str>test</str></arg>
+      </init>
+   </component>
+   <component id="__builtin__.str">
+      <init>
+         <arg><str>test</str></arg>
+      </init>
+   </component>
+   <component id="builtins.tuple">
+      <init>
+         <arg reference="builtins.str" />
+      </init>
+   </component>
+   <component id="__builtin__.tuple">
+      <init>
+         <arg reference="__builtin__.str" />
+      </init>
+   </component>
+</context>
+

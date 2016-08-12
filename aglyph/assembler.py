@@ -38,10 +38,9 @@ references), and **weakref** component instance weak references.
 from __future__ import with_statement
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 from functools import partial
-from inspect import isclass
 import logging
 import warnings
 import weakref
@@ -463,12 +462,8 @@ class Assembler(object):
         if (component.member_name is None):
             (args, keywords) = self._resolve_args_and_keywords(component)
             try:
-                if (isclass(initializer)):
-                    obj = new_instance(initializer)
-                    obj.__init__(*args, **keywords)
-                else:
-                    # use the __call__ protocol
-                    obj = initializer(*args, **keywords)
+                # issues/2: always use the __call__ protocol to initialize
+                obj = initializer(*args, **keywords)
             except:
                 # PYVER: Jython 2.5.3 can't handle "except Exception as e",
                 #        but Python 3 won't accept "except Exception, e"

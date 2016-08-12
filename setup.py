@@ -10,16 +10,13 @@ except ImportError:
 from setuptools import setup
 
 setup(name="Aglyph",
-      version="2.1.0+doc.1",
-      description="Aglyph is a Dependency Injection framework for Python "
-                  "2.7+, supporting type 2 (setter) and type 3 (constructor) "
+      version="2.1.1",
+      description="Aglyph is a Dependency Injection framework for Python, "
+                  "supporting type 2 (setter) and type 3 (constructor) "
                   "injection.",
       long_description="""\
-Aglyph is a Dependency Injection framework for Python 2.7+, supporting
-type 2 (setter) and type 3 (constructor) injection.
-
-Aglyph runs on CPython (http://www.python.org/) 2.7 and 3.1 - 3.4, and on
-recent versions of the PyPy (http://pypy.org/>),
+Aglyph runs on CPython (http://www.python.org/) 2.7 and 3.3+, and on recent
+versions of the PyPy (http://pypy.org/>),
 Jython (http://www.jython.org/), IronPython (http://ironpython.net/),
 and Stackless Python (http://www.stackless.com/) variants.
 
@@ -49,10 +46,9 @@ programmatically in pure Python.
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.1",
-        "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: IronPython",
         "Programming Language :: Python :: Implementation :: Jython",

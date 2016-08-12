@@ -2,16 +2,16 @@
 
 http://ninthtest.net/aglyph-python-dependency-injection/
 
-[![Latest Version](https://pypip.in/version/Aglyph/badge.svg?text=version)](https://pypi.python.org/pypi/Aglyph/)
-[![Supported Python versions](https://pypip.in/py_versions/Aglyph/badge.svg)](https://pypi.python.org/pypi/Aglyph/)
-[![Supported Python implementations](https://pypip.in/implementation/Aglyph/badge.svg)](https://pypi.python.org/pypi/Aglyph/)
-[![License](https://pypip.in/license/Aglyph/badge.svg)](https://pypi.python.org/pypi/Aglyph/)
+[![PyPI version](https://img.shields.io/pypi/v/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph/)
+![Python version](https://img.shields.io/pypi/pyversions/Aglyph.svg)
+![Python implementation](https://img.shields.io/pypi/implementation/Aglyph.svg)
+![License](https://img.shields.io/pypi/l/Aglyph.svg)
 
 ## Introduction
 
 Aglyph is a Dependency Injection framework for Python that...
 
-* is non-obtrusive (no dependencies beyond the Python standard library; no need
+* is non-intrusive (no dependencies beyond the Python standard library; no need
   to decorate your existing sources or adhere to any specific style
   conventions)
 * can inject even 3rd-party dependencies **and dependents**
@@ -29,7 +29,7 @@ Aglyph is a Dependency Injection framework for Python that...
 
 ## Installation
 
-[![Wheel Status](https://pypip.in/wheel/Aglyph/badge.svg)](https://pypi.python.org/pypi/Aglyph/)
+[![Wheel availability](https://img.shields.io/pypi/wheel/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph/)
 
 The easiest way to install Aglyph is to use [pip](https://pip.pypa.io/):
 
@@ -44,7 +44,7 @@ To verify that an installation was successful:
 ```python
 >>> import aglyph
 >>> aglyph.__version__
-'2.1.0'
+'2.1.1'
 ```
 
 ### Source installation

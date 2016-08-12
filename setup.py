@@ -1,41 +1,52 @@
 # -*- coding: UTF-8 -*-
 
-# workaround for setuptools/logging/multiprocessing bug
-# (see http://bugs.python.org/issue15881#msg170215)
-try:
-    import multiprocessing
-except ImportError:
-    pass
-
 from setuptools import setup
 
-setup(name="Aglyph",
-      version="2.1.1",
-      description="Aglyph is a Dependency Injection framework for Python, "
-                  "supporting type 2 (setter) and type 3 (constructor) "
-                  "injection.",
-      long_description="""\
-Aglyph runs on CPython (http://www.python.org/) 2.7 and 3.3+, and on recent
-versions of the PyPy (http://pypy.org/>),
-Jython (http://www.jython.org/), IronPython (http://ironpython.net/),
-and Stackless Python (http://www.stackless.com/) variants.
-
-Aglyph can assemble "prototype" components (a new instance is created
-every time), "singleton" components (the same instance is returned every
-time), "borg" components (a new instance is created every time, but all
-instances of the same class share the same internal state), and "weakref"
-components (the same instance is returned as long as there is at least one
-"live" reference to the instance in the running application).
-
-Aglyph can be configured using a declarative XML syntax, or
-programmatically in pure Python.
+setup(
+    name="Aglyph",
+    version="3.0.0",
+    description=
+        "Aglyph is a Dependency Injection framework for Python, "
+        "supporting type 2 (setter) and type 3 (constructor) injection.",
+    long_description="""\
+* supports type 2 (setter) and type 3 (constructor) dependency injection
+* can assemble *prototype*, *singleton*, *borg*, and *weakref* components
+* supports templates (i.e. component inheritance) and lifecycle methods
+* works with any kind of object creation pattern you'll encounter:
+  * constructor
+  * factory function or method
+  * object creation hidden behind attribute or property access
+* is configured declaratively, either programmatically through a fluent API or
+  using a simple XML syntax (see the `Aglyph DTD
+  <https://github.com/mzipay/Aglyph/blob/master/resources/aglyph-context.dtd>`_)
+* is non-intrusive:
+  * only one dependency (`Autologging
+    <http://ninthtest.net/python-autologging/>`_) beyond the Python standard
+    library
+  * does not require modification of existing source code (i.e. no
+    decorators, specific naming conventions, or any other kind of
+    syntactic "magic" necessary)
+* can inject not only 3rd-party dependencies, but also **dependents**
+* runs on Python 2.7 and 3.3+ using the same codebase
+* is proactively tested on `CPython <https://www.python.org/>`_,
+  `Jython <http://www.jython.org/>`_, `IronPython <http://ironpython.net/>`_,
+  `PyPy <http://pypy.org/>`_, and
+  `Stackless Python <https://bitbucket.org/stackless-dev/stackless/wiki/Home>`_
+* is fully logged *and traced* for ease of troubleshooting (note: tracing is
+  disabled by default, and can be activated by setting an environment variable)
 """,
     author="Matthew Zipay",
     author_email="mattz@ninthtest.net",
     url="http://ninthtest.net/aglyph-python-dependency-injection/",
-    download_url="http://sourceforge.net/projects/aglyph/files/",
-    packages=["aglyph", "aglyph.compat", "aglyph.integration"],
-    test_suite="test",
+    download_url="http://sourceforge.net/projects/aglyph/files/aglyph/",
+    packages=[
+        "aglyph",
+        "aglyph.integration",
+    ],
+    install_requires=[
+        "Autologging>=1.1.0",
+    ],
+    test_suite="test.suite",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Framework :: CherryPy",
@@ -56,8 +67,15 @@ programmatically in pure Python.
         "Programming Language :: Python :: Implementation :: Stackless",
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
-        "Topic :: Software Development :: Libraries :: Python Modules"],
+        "Topic :: Software Development :: Libraries :: Python Modules",
+    ],
     license="MIT License",
-    keywords=["dependency injection", "inversion of control", "DI", "IoC",
-              "service locator"])
+    keywords=[
+        "dependency injection",
+        "DI",
+        "inversion of control",
+        "IoC",
+        "service locator"
+    ]
+)
 

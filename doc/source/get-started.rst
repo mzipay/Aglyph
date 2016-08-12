@@ -19,12 +19,12 @@ guidelines and examples. Also review the :doc:`api-ref` and the
 understand the details.
 
 The tutorial assumes that you are familiar with Python development in general,
-and that Python 2.7+ is already installed on your system:
+and that Python 2.7 or 3.3+ is already installed on your system:
 
 * `Download Python <http://www.python.org/download/>`_
-* Browse `Dive Into Python 2 <http://diveintopython.net/>`_ and/or
+* Browse `Dive Into Python 2 <http://www.diveintopython.net/>`_ and/or
   `The Python 2 Tutorial <http://docs.python.org/2/tutorial/index.html>`_
-* Browse `Dive Into Python 3 <http://diveintopython3.net/>`_ and/or
+* Browse `Dive Into Python 3 <http://www.diveintopython3.net/>`_ and/or
   `The Python 3 Tutorial <http://docs.python.org/3/tutorial/index.html>`_
 
 .. note::
@@ -65,16 +65,15 @@ directory::
 
    python setup.py install
 
-Clone the Aglyph Mercurial repository from BitBucket
-----------------------------------------------------
+Clone the Aglyph repository from GitHub
+---------------------------------------
 
-To install from a clone of the `Aglyph Mercurial repository from BitBucket
-<https://bitbucket.org/mzipay/aglyph>`_, execute the following commands from a
+To install the latest release from a clone of the `Aglyph repository
+<https://github.com/mzipay/Aglyph>`_, execute the following commands from a
 shell::
 
-   hg clone https://bitbucket.org/mzipay/aglyph
-   cd aglyph
-   hg pull && hg update release-2.1.0
+   git clone https://github.com/mzipay/Aglyph.git
+   cd Aglyph
    python setup.py install
 
 Install into a virtual environment
@@ -90,12 +89,12 @@ Regardless of installation method, verify that the installation was successful
 by importing the :mod:`aglyph` module from a Python interpreter. For example::
 
    $ python
-   Python 3.4.2 (default, Nov 12 2014, 18:23:59) 
-   [GCC 4.2.1 Compatible Apple LLVM 6.0 (clang-600.0.54)] on darwin
+   Python 3.5.2 (default, Jun 27 2016, 16:22:09)
+   [GCC 4.2.1 Compatible Apple LLVM 7.0.2 (clang-700.1.81)] on darwin
    Type "help", "copyright", "credits" or "license" for more information.
    >>> import aglyph
    >>> aglyph.__version__
-   '2.1.0'
+   '2.1.1'
 
 2. Download, extract, and run the *movielisterapp* application
 ==============================================================
@@ -110,8 +109,7 @@ tutorial source code (including the already-populated SQLite database).
 
 .. note::
    Both ZIP files are also available under the *examples/* directory if you
-   cloned the `Aglyph Mercurial repository from BitBucket
-   <https://bitbucket.org/mzipay/aglyph>`_).
+   cloned the `Aglyph repository <https://github.com/mzipay/Aglyph>`_.
 
 .. warning::
    Jython users will not be able to run the tutorial code because the standard

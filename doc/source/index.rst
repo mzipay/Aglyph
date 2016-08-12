@@ -4,10 +4,10 @@ Aglyph --- Dependency Injection for Python
 
 :Release: |release|
 
-Aglyph is a Dependency Injection framework for Python 2.7+, supporting type 2
+Aglyph is a Dependency Injection framework for Python, supporting type 2
 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on `CPython <http://www.python.org/>`_ 2.7 and 3.1 - 3.4, and on
+Aglyph runs on `CPython <http://www.python.org/>`_ 2.7 and 3.3+, and on
 recent versions of the `PyPy <http://pypy.org/>`_,
 `Jython <http://www.jython.org/>`_, `IronPython <http://ironpython.net/>`_, and
 `Stackless Python <http://www.stackless.com/>`_ variants. See :doc:`testing`
@@ -57,7 +57,7 @@ The Aglyph version is always defined as the ``__version__`` member of the
 
 >>> import aglyph
 >>> aglyph.__version__
-'2.1.0+doc.1'
+'2.1.1'
 
 The :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`
 includes the Aglyph version in the filename and in a header comment.

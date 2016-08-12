@@ -1,33 +1,18 @@
 ============================
-What's new in release 2.1.0?
+What's new in release 2.1.1?
 ============================
 
-* `Python 2.6 <http://www.python.org/download/releases/2.6/>`_ is no longer
-  supported (and Aglyph 2.1.0 will not run on Python 2.6 without patching).
-* Aglyph now supports :ref:`lifecycle methods <lifecycle-methods>`, which may
-  be declared at the context, template, and/or component level for the "after
-  injection" and "before clear" lifecycle states.
-* Aglyph now supports a form of component "inheritance" through
-  :class:`aglyph.component.Template` (XML ``<template>``). Refer to
-  :doc:`cookbook-templating` for examples.
-* The :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>` has
-  been updated to support both lifecycle methods and templates.
-* The :mod:`aglpyh.integration` package has been added to support integrating
-  Aglyph with other projects. Aglyph 2.1.0 introduces `CherryPy
-  <http://www.cherrypy.org/>`_ integration using the classes defined in
-  :mod:`aglyph.integration.cherrypy`. Refer to :doc:`cookbook-integration` for
-  examples.
-* The caches defined in :mod:`aglyph.cache` are now implemented as `context
-  managers <https://docs.python.org/3/library/stdtypes.html#typecontextmanager>`_,
-  and the public ``lock`` members have been deprecated.
-* A "safe" representation is now used to log assembled objects, ensuring that
-  possibly sensitive data is not logged.
-* Deprecated classes and functions now issue
-  :class:`aglyph.AglyphDeprecationWarning`.
+* Aglyph is no longer actively tested against `Python 3.2
+  <http://www.python.org/download/releases/3.2/>`_ (see
+  `3.2 Lifespan <https://www.python.org/dev/peps/pep-0392/#lifespan>`_).
+* Fix for `issues/2 <https://github.com/mzipay/Aglyph/issues/2>`_ allowing
+  builtin immutables to be used as components.
+* Documentation updates to fix various hyperlinks.
 
 Previous releases of Aglyph
 ===========================
 
+* :doc:`whats-new-2_1_0`
 * :doc:`whats-new-2_0_0`
 * :doc:`whats-new-1_1_1`
 * :doc:`whats-new-1_1_0`

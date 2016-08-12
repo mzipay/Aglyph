@@ -93,9 +93,3 @@ Aglyph 2.0.0 testing summary
 |         | Java-1.7.0_17-Java_HotSpot-TM-_Client_VM,_23.7-b01,_Oracle_Corporation-on-Windows_7-6.1-x86 Java HotSpot(TM) Client VM (Oracle Corporation)         |
 +---------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Previous releases of Aglyph
-===========================
-
-* :doc:`testing-1_1_1`
-* :doc:`testing-1_1_0`
-

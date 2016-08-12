@@ -6,6 +6,7 @@ http://ninthtest.net/aglyph-python-dependency-injection/
 ![Python version](https://img.shields.io/pypi/pyversions/Aglyph.svg)
 ![Python implementation](https://img.shields.io/pypi/implementation/Aglyph.svg)
 ![License](https://img.shields.io/pypi/l/Aglyph.svg)
+[![Wheel availability](https://img.shields.io/pypi/wheel/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph)
 
 ## Introduction
 

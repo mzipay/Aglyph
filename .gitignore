@@ -4,8 +4,10 @@
 *.log
 *.bak
 *.swp
+*.tmp
 __pycache__/
 MANIFEST
+.eggs/
 Aglyph.egg-info/
 aglyph-*-env/
 resources/movielisterapp-*.zip

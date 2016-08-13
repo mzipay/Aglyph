@@ -109,12 +109,12 @@ def suite():
         test_CLRXMLParser,
         test_AglyphDefaultXMLParser,
         # aglyph.component
-        #test_Reference,
-        #test_InitializationSupport,
-        #test_Evaluator,
-        #test_DependencySupport,
-        #test_Template,
-        #test_Component,
+        test_Reference,
+        test_InitializationSupport,
+        test_Evaluator,
+        test_DependencySupport,
+        test_Template,
+        test_Component,
         # aglyph.context
         #test_Context,
         #test_XMLContext,
@@ -139,12 +139,12 @@ def suite():
     suite.addTest(test_CLRXMLParser.suite())
     suite.addTest(test_AglyphDefaultXMLParser.suite())
     # aglyph.component
-    #suite.addTest(test_Reference.suite())
-    #suite.addTest(test_InitializationSupport.suite())
-    #suite.addTest(test_Evaluator.suite())
-    #suite.addTest(test_DependencySupport.suite())
-    #suite.addTest(test_Template.suite())
-    #suite.addTest(test_Component.suite())
+    suite.addTest(test_Reference.suite())
+    suite.addTest(test_InitializationSupport.suite())
+    suite.addTest(test_Evaluator.suite())
+    suite.addTest(test_DependencySupport.suite())
+    suite.addTest(test_Template.suite())
+    suite.addTest(test_Component.suite())
     # aglyph.context
     #suite.addTest(test_Context.suite())
     #suite.addTest(test_XMLContext.suite())

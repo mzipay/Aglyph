@@ -1,99 +1,198 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2016 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
 
-"""Utility functions and classes for all unit test modules."""
+"""Utilities and common setup for all unit test modules."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.0.0"
 
-import functools
-import inspect
+from inspect import getsourcefile
 import logging
 import logging.config
 import os
-import sys
 import unittest
 
+from aglyph._compat import is_python_3
+
+# always force tracing when running test suite
+os.environ["AUTOLOGGING_TRACED_NOOP"] = ""
+os.environ["AGLYPH_TRACED"] = "1"
+
+from autologging import TRACE
+
 __all__ = [
-    "enable_debug_logging",
+    "as_encoded_bytes",
+    "as_unicode_text",
+    "assertRaisesWithMessage",
     "find_basename",
-    "py_builtin_module",
-    "skip_if"
+    "suite",
 ]
 
-_logger = logging.getLogger(__name__)
 
-# PYVER: "__builtin__" in Python < 3.0, "builtins" in Python >= 3.0
-try:
-    py_builtin_module = __import__("__builtin__")
-except ImportError:
-    py_builtin_module = __import__("builtins")
-
-try:
-    skip_if = unittest.skipIf
-except AttributeError:
-    # PYVER: unittest.skipIf is not available in all versions of Python
-    def skip_if(condition, reason):
-        if (condition):
-            def decorator(test_func):
-                @functools.wraps(test_func)
-                def skip_wrapper(*args, **kwargs):
-                    sys.stderr.write("\nSKIPPED %s (%s)\n" %
-                                     (test_func.__name__, reason))
-                return skip_wrapper
-            return decorator
-        else:
-            return lambda test_func: test_func
-
-
-def enable_debug_logging(suite):
-    """Log *DEBUG* and above to a file.
-
-    The logging filename is determined by taking the source filename of
-    the *suite* function and replacing the ".py" extension with a ".log"
-    extension.
-
-    The log file is always overwritten (i.e. it is opened in 'w' mode).
+#PYVER: can use TestCase.assertRaises as a context manager in 3.1+
+def assertRaisesWithMessage(
+        test_case, e_expected, callable_, *args, **keywords):
+    """Assert that *callable_* raises a specific exception, whose type
+    and message must match those of *e_expected*.
 
     """
-    py_filename = os.path.abspath(inspect.getsourcefile(suite))
-    log_filename = os.path.splitext(py_filename)[0] + ".log"
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s %(name)s %(funcName)s %(message)s",
-        filename=log_filename,
-        filemode='w'
-    )
-    # PYVER: logging.captureWarnings is only available in Python 2.7+
     try:
-        logging.captureWarnings(True)
-    except AttributeError:
-        pass
-    _logger.debug("RETURN %r", log_filename)
-    return log_filename
+        callable_(*args, **keywords)
+    except type(e_expected) as e_actual:
+        test_case.assertEqual(str(e_expected), str(e_actual))
+    else:
+        test_case.fail("did not raise %r" % e_expected)
+
+
+def as_encoded_bytes(s, to_encoding):
+    """Return *s* as encoded byte data.
+
+    The string *s* should be defined in a test module as a UTF-8
+    string literal.
+
+    """
+    return (
+        s.encode(to_encoding) if is_python_3 else
+        s.decode("utf-8").encode(to_encoding))
+
+
+def as_unicode_text(s):
+    """Return *s* as unicode text.
+
+    The string *s* should be defined in a test module as a UTF-8
+    string literal.
+
+    """
+    return s if is_python_3 else s.decode("utf-8")
 
 
 def find_basename(basename):
     """Locate *basename* relative to the ``test`` package."""
-    init_filename = inspect.getsourcefile(find_basename)
+    init_filename = getsourcefile(find_basename)
     return os.path.join(os.path.dirname(init_filename), basename)
+
+
+def suite():
+    from test import (
+        # aglyph
+        #test_format_dotted_name,
+        #test_identify,
+        #test_importable,
+        #test_resolve_dotted_name,
+        # aglyph._compat
+        test_compat,
+        test_is_string,
+        test_name_of,
+        test_new_instance,
+        test_DoctypeTreeBuilder,
+        test_CLRXMLParser,
+        test_AglyphDefaultXMLParser,
+        # aglyph.component
+        #test_Reference,
+        #test_InitializationSupport,
+        #test_Evaluator,
+        #test_DependencySupport,
+        #test_Template,
+        #test_Component,
+        # aglyph.context
+        #test_Context,
+        #test_XMLContext,
+        # aglyph.assembler
+        #test_ReentrantMutexCache,
+        #test_Assembler,
+    )
+
+    suite = unittest.TestSuite()
+
+    # aglyph
+    #suite.addTest(test_importable.suite())
+    #suite.addTest(test_format_dotted_name.suite())
+    #suite.addTest(test_resolve_dotted_name.suite())
+    #suite.addTest(test_identify.suite())
+    # aglyph._compat
+    suite.addTest(test_compat.suite())
+    suite.addTest(test_is_string.suite())
+    suite.addTest(test_name_of.suite())
+    suite.addTest(test_new_instance.suite())
+    suite.addTest(test_DoctypeTreeBuilder.suite())
+    suite.addTest(test_CLRXMLParser.suite())
+    suite.addTest(test_AglyphDefaultXMLParser.suite())
+    # aglyph.component
+    #suite.addTest(test_Reference.suite())
+    #suite.addTest(test_InitializationSupport.suite())
+    #suite.addTest(test_Evaluator.suite())
+    #suite.addTest(test_DependencySupport.suite())
+    #suite.addTest(test_Template.suite())
+    #suite.addTest(test_Component.suite())
+    # aglyph.context
+    #suite.addTest(test_Context.suite())
+    #suite.addTest(test_XMLContext.suite())
+    # aglyph.assembler
+    #suite.addTest(test_ReentrantMutexCache.suite())
+    #suite.addTest(test_Assembler.suite())
+
+    return suite
+
+
+logging.config.dictConfig({
+    "version": 1,
+    "formatters": {
+        "with-thread-id": {
+            "format":
+                "[%(levelname)-9s %(thread)08x %(name)s %(funcName)s]\n"
+                    "%(message)s",
+        },
+    },
+    "handlers": {
+        "combined-file": {
+            "class": "logging.FileHandler",
+            "formatter": "with-thread-id",
+            "filename": os.path.normpath(
+                os.path.join(
+                    os.path.dirname(suite.__code__.co_filename), "..",
+                    "test.log")),
+            "mode": 'w'
+        },
+    },
+    "loggers": {
+        "test": {
+            "level": logging.DEBUG,
+            "propagate": False,
+            "handlers": ["combined-file"],
+        },
+        "aglyph": {
+            "level": TRACE,
+            "propagate": False,
+            "handlers": ["combined-file"],
+        }
+    },
+})
+
+# don't use __name__ here; can be run as "__main__"
+_log = logging.getLogger("test")
+
+# all the way down here so that the logging configuration is in place before
+# anything from the "aglyph" namespace is imported
+from aglyph import __version__
 

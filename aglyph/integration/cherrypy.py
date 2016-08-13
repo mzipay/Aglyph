@@ -1,49 +1,62 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2016 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
 
 """Classes and utilities for integrating Aglyph with
 `CherryPy <http://www.cherrypy.org/>`_.
 
 .. versionadded:: 2.1.0
 
-An example using :class:`aglyph.context.XMLContext`::
+An example using XML configuration::
 
    from aglyph.assembler import Assembler
    from aglyph.context import XMLContext
    from aglyph.integration.cherrypy import AglyphDIPlugin
    import cherrypy
-   
+
    context = XMLContext("my-aglyph-context.xml")
    assembler = Assembler(context)
+
    cherrypy.engine.aglyph = AglyphDIPlugin(cherrypy.engine, assembler)
    cherrypy.engine.aglyph.subscribe()
 
-An example using :class:`aglyph.binder.Binder`::
+An example using the fluent configuration API::
 
    from aglyph.integration.cherrypy import AglyphDIPlugin
-   from bindings import binder
+   from aglyph.context import Context
    import cherrypy
-   
-   cherrypy.engine.aglyph = AglyphDIPlugin(cherrypy.engine, binder)
+
+   context = Context("my-aglyph-context")
+   context.template(...)
+   context.prototype(...)
+   context.singleton(...)
+   context.borg(...)
+   context.weakref(...)
+   # and so on
+   assembler = Assembler(context)
+
+   cherrypy.engine.aglyph = AglyphDIPlugin(cherrypy.engine, assembler)
    cherrypy.engine.aglyph.subscribe()
 
 In either scenario, you can now use Aglyph to assemble components in
@@ -62,9 +75,14 @@ an object whose dotted name is a component ID)::
 from __future__ import absolute_import
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.1.0"
 
 import logging
+
+# for logging, use self.bus.log rather than self.__log
+from autologging import traced
+
+from aglyph import __version__
+from aglyph.compat import name_of
 
 from cherrypy.process.plugins import SimplePlugin
 
@@ -72,9 +90,10 @@ __all__ = [
     "AglyphDIPlugin",
 ]
 
-_logger = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
+@traced
 class AglyphDIPlugin(SimplePlugin):
     """A `CherryPy <http://www.cherrypy.org/>`_ `plugin
     <https://cherrypy.readthedocs.org/en/latest/extend.html#plugins>`_
@@ -108,15 +127,14 @@ class AglyphDIPlugin(SimplePlugin):
 
     def __init__(self, bus, assembler, eager_init=True):
         """
-        :arg cherrypy.process.wspbus.Bus bus:\
+        :arg cherrypy.process.wspbus.Bus bus:
            the CherryPy Web Site Process Bus
-        :arg aglyph.assembler.Assembler assembler:\
+        :arg aglyph.assembler.Assembler assembler:
            the configured Aglyph assembler (or binder)
-        :keyword bool eager_init: if ``True``, all *singleton* and\
-                                  *borg* components in the assembler's\
-                                  context will be pre-assembed and\
-                                  cached when the Aglyph DI plugin is\
-                                  started
+        :keyword bool eager_init:
+           if ``True``, all *singleton* and *borg* components in the
+           assembler's context will be pre-assembed and cached when the
+           Aglyph DI plugin is started
 
         """
         SimplePlugin.__init__(self, bus)
@@ -132,10 +150,10 @@ class AglyphDIPlugin(SimplePlugin):
     def eager_init(self, flag):
         """Set the eager initialization flag.
 
-        :arg bool flag: whether (``True``) or not (``False``) the\
-                        Aglyph DI plugin should pre-assemble and cache\
-                        all *singleton* and *borg* components when the\
-                        plugin is (re)started
+        :arg bool flag:
+           whether (``True``) or not (``False``) the Aglyph DI plugin
+           should pre-assemble and cache all *singleton* and *borg*
+           components when the plugin is (re)started
 
         """
         self._eager_init = flag
@@ -173,7 +191,7 @@ class AglyphDIPlugin(SimplePlugin):
            are subscribed.
 
         """
-        if (self._eager_init):
+        if self._eager_init:
             self.bus.log(
                 "initializing Aglyph singleton and borg component objects")
             self.init_singletons()
@@ -211,10 +229,11 @@ class AglyphDIPlugin(SimplePlugin):
     def assemble(self, component_spec):
         """Return the object assembled according to *component_spec*.
 
-        :arg component_spec: a string representing a component dotted\
-                             name or unique ID; or an importable class,\
-                             function, or module
-        :return: a complete object with all of its resolved dependencies
+        :arg component_spec:
+           a string representing a component dotted name or unique ID;
+           or an importable class, function, or module
+        :return:
+           a complete object with all of its resolved dependencies
 
         This method handles messages published to the
         **aglyph-assemble** channel.
@@ -226,30 +245,34 @@ class AglyphDIPlugin(SimplePlugin):
     def init_singletons(self):
         """Assemble and cache all singleton component objects.
 
-        :return: the initialized singleton component IDs
-        :rtype: :obj:`list`
+        :return:
+           the initialized singleton component IDs
+        :rtype:
+           :obj:`list`
 
         This method handles messages published to the
         **aglyph-init-singletons** channel.
 
         """
         singleton_ids = self._assembler.init_singletons()
-        if (singleton_ids):
+        if singleton_ids:
             self.bus.log("initialized singletons %s" % repr(singleton_ids))
         return singleton_ids
 
     def clear_singletons(self):
         """Evict all cached singleton component objects.
 
-        :return: the evicted singleton component IDs
-        :rtype: :obj:`list`
+        :return:
+           the evicted singleton component IDs
+        :rtype:
+           :obj:`list`
 
         This method handles messages published to the
         **aglyph-clear-singletons** channel.
 
         """
         singleton_ids = self._assembler.clear_singletons()
-        if (singleton_ids):
+        if singleton_ids:
             self.bus.log("cleared singletons %s" % repr(singleton_ids))
         return singleton_ids
 
@@ -257,45 +280,56 @@ class AglyphDIPlugin(SimplePlugin):
         """Assemble and cache the shared-states for all borg component
         objects.
 
-        :return: the initialized borg component IDs
-        :rtype: :obj:`list`
+        :return:
+           the initialized borg component IDs
+        :rtype:
+           :obj:`list`
 
         This method handles messages published to the
         **aglyph-init-borgs** channel.
 
         """
         borg_ids = self._assembler.init_borgs()
-        if (borg_ids):
+        if borg_ids:
             self.bus.log("initialized borgs %s" % repr(borg_ids))
         return borg_ids
 
     def clear_borgs(self):
         """Evict all cached borg component shared-states.
 
-        :return: the evicted borg component IDs
-        :rtype: :obj:`list`
+        :return:
+           the evicted borg component IDs
+        :rtype:
+           :obj:`list`
 
         This method handles messages published to the
         **aglyph-clear-borgs** channel.
 
         """
         borg_ids = self._assembler.clear_borgs()
-        if (borg_ids):
+        if borg_ids:
             self.bus.log("cleared borgs %s" % repr(borg_ids))
         return borg_ids
 
     def clear_weakrefs(self):
         """Evict all cached weakref component objects.
 
-        :return: the evicted weakref component IDs
-        :rtype: :obj:`list`
+        :return:
+           the evicted weakref component IDs
+        :rtype:
+           :obj:`list`
 
         This method handles messages published to the
         **aglyph-clear-weakrefs** channel.
 
         """
         weakref_ids = self._assembler.clear_weakrefs()
-        if (weakref_ids):
+        if weakref_ids:
             self.bus.log("cleared weakrefs %s" % repr(weakref_ids))
         return weakref_ids
+
+    def __repr__(self):
+        return "%s.%s(%r, %r, eager_init=%r)" % (
+            self.__class__.__module__, name_of(self.__class__),
+            self.bus, self._assembler, self._eager_init)
 

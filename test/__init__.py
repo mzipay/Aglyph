@@ -116,8 +116,8 @@ def suite():
         test_Template,
         test_Component,
         # aglyph.context
-        #test_Context,
-        #test_XMLContext,
+        test_Context,
+        test_XMLContext,
         # aglyph.assembler
         #test_ReentrantMutexCache,
         #test_Assembler,
@@ -146,8 +146,8 @@ def suite():
     suite.addTest(test_Template.suite())
     suite.addTest(test_Component.suite())
     # aglyph.context
-    #suite.addTest(test_Context.suite())
-    #suite.addTest(test_XMLContext.suite())
+    suite.addTest(test_Context.suite())
+    suite.addTest(test_XMLContext.suite())
     # aglyph.assembler
     #suite.addTest(test_ReentrantMutexCache.suite())
     #suite.addTest(test_Assembler.suite())

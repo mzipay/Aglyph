@@ -1,59 +1,109 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006-2016 Matthew Zipay <mattz@ninthtest.net>
+# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
 
 """The classes in this module are used to define components and their
-dependencies.
+dependencies within an Aglyph context (:class:`aglyph.context.Context`).
+
+.. rubric:: Components and Templates
+
+:class:`aglyph.component.Component` tells an
+:class:`aglyph.assembler.Assembler` how to create objects of a
+particular type. The component defines the initialization and/or
+attribute dependencies for objects of that type, as well as the assembly
+strategy and any lifecycle methods that should be called.
+
+:class:`aglyph.component.Template` is used to describe dependencies
+(initialization and/or attribute) and lifecylce methods that are shared
+by multiple components. Templates are similar to abstract classes; they
+cannot be assembled, but are instead used as "parents" of other
+components (or templates) to achieve a sort of "configuration
+inheritance."
+
+.. note::
+   Both ``Component`` and ``Template`` may serve as the parent of any
+   other component or template; but only components may be assembled.
+
+.. rubric:: References and Evaluators
+
+A :class:`aglyph.component.Reference` may be used as the value of any
+initialization argument (positional or keyword) or attribute in a
+component or template. Its value must be the unique ID of a
+**component** in the same context. At assembly time, the assembler will
+resolve the reference into an object of the component to which it
+refers.
+
+An :class:`aglyph.component.Evaluator` is similar to a
+:func:`functools.partial` object. It stores a callable factory (function
+or class) and related initialization arguments, and can be called
+repeatedly to produce new objects. (Unlike a :func:`functools.partial`
+object, though, an ``Evaluator`` will resolve any initialization
+argument that is a :class:`aglyph.component.Reference`,
+:func:`functools.partial`, or ``Evaluator`` **before** calling the
+factory.)
+
+.. rubric:: Strategies and Lifecycle methods
+
+:data:`aglyph.component.Strategy` defines the assembly strategies
+supported by Aglyph (*"prototype"*, *"singleton"*, *"borg"*, and
+*"weakref"*).
+
+:data:`LifecycleState` defines assmebly states for components at
+which Aglyph supports calling named methods on the objects of those
+components. (Such methods may be used to perform specialized
+initialization or disposal, for example.)
 
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
-__version__ = "2.1.0"
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from functools import partial
+from inspect import isclass, ismodule, isroutine
 import logging
 import warnings
 
-from aglyph import AglyphDeprecationWarning, AglyphError, _safe_repr
-from aglyph.compat import is_callable, OrderedDict, StringTypes, TextType
+from autologging import logged, traced
+
+from aglyph import AglyphError, _identify, __version__
+from aglyph._compat import is_string, name_of, TextType
 
 __all__ = [
-    "Component",
-    "Evaluator",
+    "Strategy",
     "LifecycleState",
     "Reference",
-    "Strategy",
+    "Evaluator",
     "Template",
+    "Component",
 ]
 
-_logger = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
-Strategy = namedtuple("Strategy",
-                      ("PROTOTYPE", "SINGLETON", "BORG", "WEAKREF"))(
-                       "prototype", "singleton", "borg", "weakref")
+Strategy = namedtuple(
+    "Strategy", ["PROTOTYPE", "SINGLETON", "BORG", "WEAKREF"])(
+        "prototype", "singleton", "borg", "weakref")
 """Define the component assembly strategies implemented by Aglyph.
-
-.. versionchanged:: 2.0.0
-   ``Strategy`` is now a named tuple. In prior versions, it was a class.
 
 .. rubric:: "prototype"
 
@@ -77,7 +127,7 @@ initialized and wired, its instance ``__dict__`` is cached, and then the
 instance is returned.
 
 Borg component instance shared-states are cached by
-:attr:`Component.component_id`.
+:attr:`Component.unique_id`.
 
 .. warning::
    * The borg assembly strategy is **only** supported for
@@ -86,8 +136,6 @@ Borg component instance shared-states are cached by
      classes that define or inherit a ``__slots__`` member.
 
 .. rubric:: "weakref"
-
-.. versionadded:: 2.1.0
 
 In the simplest terms, this is a "prototype" that can exhibit
 "singleton" behavior: as long as there is at least one "live" reference
@@ -109,9 +157,9 @@ and returned.
 
 """
 
-LifecycleState = namedtuple("LifecycleState",
-                            ("AFTER_INJECT", "BEFORE_CLEAR"))(
-                             "after_inject", "before_clear")
+LifecycleState = namedtuple(
+    "LifecycleState", ["AFTER_INJECT", "BEFORE_CLEAR"])(
+        "after_inject", "before_clear")
 """Define the lifecycle states for which Aglyph will call object methods
 on your behalf.
 
@@ -176,8 +224,7 @@ following order, using the **first** one found that is not ``None``
 #. If the object's :attr:`Component.parent_id` is not ``None``, the
    method named by the corresponding parent
    ``Template.<lifecycle-state>`` or ``Component.<lifecycle-state>``
-   property.
-   (If necessary, lookup continues by examining the
+   property. (If necessary, lookup continues by examining the
    parent-of-the-parent and so on.)
 #. The method named by the ``Context.<lifecycle-state>`` property.
 
@@ -198,18 +245,19 @@ but the object itself does not define that method, a
 
 
 class Reference(TextType):
-    """A place-holder used to refer to another :class:`Component`.
+    """A placeholder used to refer to another :class:`Component`.
 
-    A ``Reference`` is used as an alias to identify a component that is a
-    dependency of another component. The value of a ``Reference`` can be
-    either a dotted-name or a user-provided unique ID.
-
-    A ``Reference`` value MUST correspond to a component ID in the same
-    context.
+    A ``Reference`` is used as an alias to identify a component that is
+    a dependency of another component. The value of a ``Reference`` can
+    be either a dotted-name or a user-provided unique ID.
 
     A ``Reference`` can be used as an argument for an
     :class:`Evaluator`, and can be assembled directly by an
     :class:`aglyph.assembler.Assembler`.
+
+    .. warning::
+       A ``Reference`` value MUST correspond to a component ID in the
+       same context.
 
     .. note::
         In Python versions < 3.0, a ``Reference`` representing a
@@ -226,47 +274,81 @@ class Reference(TextType):
         under which Aglyph is running (:class:`unicode` under Python 2,
         :class:`str` under Python 3). This documentation shows the base
         class as ``str`` because the `Sphinx <http://sphinx-doc.org/>`_
-        documentation generator runs under CPython 3.
+        documentation generator for Aglyph runs under CPython 3.
 
     """
 
-    def __new__(cls, value):
-        return TextType.__new__(cls, value)
+    def __new__(cls, referent):
+        """Create a new reference to *referent*.
+
+        :arg referent:
+           the object that the reference will represent
+        :raise aglyph.AglyphError:
+           if *referent* is a class, function, or module but cannot be
+           imported
+
+        If *referent* is a string, it is assumed to be a valid
+        :attr:`Component.unique_id` and its value is returned as a
+        ``Reference``.
+
+        If *referent* is a class, function, or module, its
+        **importable** dotted name is returned as a ``Reference``.
+
+        .. warning::
+           If *referent* is a class, function, or module, it **must**
+           be importable.
+
+        """
+        return TextType.__new__(cls, _identify(referent))
 
 
-_logger.debug("Reference extends %r", TextType)
+_log.debug("Reference extends %r", TextType)
 
 
 class _InitializationSupport(object):
+    """The base for any class that configures type 2 (constructor)
+    injection.
+
+    """
 
     __slots__ = ["_args", "_keywords"]
 
     def __init__(self):
+        """The positional argument list and keyword argument mapping are
+        initialized to empty.
+
+        """
+        #PYVER: arguments to super() are implicit under Python 3
         super(_InitializationSupport, self).__init__()
         self._args = []
         self._keywords = {}
 
     @property
     def args(self):
+        """The positional initialization arguments."""
         return self._args
 
     @property
     def keywords(self):
+        """The keyword initialization arguments."""
         return self._keywords
 
 
+@traced
+@logged
 class Evaluator(_InitializationSupport):
     """Perform lazy creation of objects."""
 
-    __slots__ = ["_func"]
+    __slots__ = ["_factory"]
 
-    __logger = logging.getLogger("%s.Evaluator" % __name__)
-
-    def __init__(self, func, *args, **keywords):
+    def __init__(self, factory, *args, **keywords):
         """
-        :param callable func: any callable that returns an object
-        :param tuple args: the positional arguments to *func*
-        :param dict keywords: the keyword arguments to *func*
+        :param factory:
+           any callable that returns an object
+        :param tuple args:
+           the positional arguments to *func*
+        :param dict keywords:
+           the keyword arguments to *func*
 
         An ``Evaluator`` is similar to a :func:`functools.partial` in
         that they both collect a function and related arguments into a
@@ -277,14 +359,13 @@ class Evaluator(_InitializationSupport):
         that are not truly "frozen," in the sense that any argument may
         be defined as a :class:`Reference`, a :func:`functools.partial`,
         or even another ``Evaluator``, which needs to be resolved (i.e.
-        assembled/called) before calling *func*.
+        assembled/called) before calling *factory*.
 
         When an ``Evaluator`` is called, its arguments (positional and
-        keyword) are each resolve in one of the following ways:
+        keyword) are each resolved in one of the following ways:
 
         * If the argument value is a :class:`Reference`, it is assembled
-          (by an :class:`aglyph.assembler.Assembler` or
-          :class:`aglyph.binder.Binder` reference passed to
+          (by an :class:`aglyph.assembler.Assembler` reference passed to
           :meth:`__call__`)
         * If the argument value is an ``Evaluator`` or a
           :func:`functools.partial`, it is called to produce its value.
@@ -293,74 +374,64 @@ class Evaluator(_InitializationSupport):
         * If none of the above cases apply, the argument value is used
           as-is.
 
-        .. note::
-           An ``Evaluator`` can handle any level of nesting (e.g. a
-           :func:`functools.partial` within an ``Evaluator`` within
-           *another* ``Evaluator``).
-
         """
-        self.__logger.debug("TRACE %r, *%r, **%r", func, args, keywords)
+        #PYVER: arguments to super() are implicit under Python 3
         super(Evaluator, self).__init__()
-        if (not is_callable(func)):
-            raise TypeError("%s is not callable" % type(func).__name__)
-        self._func = func
-        self._args = args
+        if not callable(factory):
+            raise TypeError("%r is not callable" % factory)
+        self._factory = factory
+        self._args = list(args) # mutable args for _InitializationSupport
         self._keywords = keywords
 
     @property
-    def func(self):
+    def factory(self):
         """The :obj:`callable` that creates new objects *(read-only)*."""
-        return self._func
+        return self._factory
 
     def __call__(self, assembler):
-        """Call ``func(*args, **keywords)`` and return the new object.
+        """Call ``factory(*args, **keywords)`` and return the new object.
 
-        :param assembler: a reference to an\
-                          :class:`aglyph.assembly.Assembler` or\
-                          :class:`aglyph.binder.Binder`
-
-        *assembler* is used to assemble any :class:`Reference` that is
-        encountered in the function arguments.
+        :param aglyph.assembly.Assembler assembler:
+           the assembler that will be used to assemble any
+           :class:`Reference` encountered in this evaluator's positional
+           and keyword arguments
 
         """
-        self.__logger.debug("TRACE %r", assembler)
-        args = self._args
-        keywords = self._keywords
         resolve = self._resolve
-        resolved_args = tuple([resolve(arg, assembler) for arg in args])
+        resolved_args = tuple(resolve(arg, assembler) for arg in self._args)
         # keywords MUST be strings!
-        resolved_keywords = dict([(keyword, resolve(arg, assembler))
-                                  for (keyword, arg) in keywords.items()])
-        obj = self._func(*resolved_args, **resolved_keywords)
-        # do not log str/repr of assembled objects; may contain sensitive data
-        self.__logger.debug("RETURN %s", _safe_repr(obj))
-        return obj
+        resolved_keywords = dict(
+            [(keyword, resolve(arg, assembler))
+                for (keyword, arg) in self._keywords.items()])
+        return self._factory(*resolved_args, **resolved_keywords)
 
     def _resolve(self, arg, assembler):
         """Return the resolved *arg*.
 
-        :param arg: represents an argument (positional or keyword) to\
-                    :attr:`func`.
-        :param assembler: a reference to an\
-                          :class:`aglyph.assembly.Assembler` or\
-                          :class:`aglyph.binder.Binder`
-        :return: the resolved argument value that will actually be\
-                 passed to :attr:`func`
+        :param arg:
+           represents an argument (positional or keyword) to
+           :attr:`factory`
+        :param aglyph.assembly.Assembler assembler:
+           the assembler that will be used to resolve *arg*
+        :return:
+           the resolved argument value that will actually be passed to
+           :attr:`factory`
 
         """
-        if (isinstance(arg, Reference)):
+        if isinstance(arg, Reference):
             return assembler.assemble(arg)
-        elif (isinstance(arg, Evaluator)):
+        elif isinstance(arg, Evaluator):
             return arg(assembler)
-        elif (isinstance(arg, partial)):
+        elif isinstance(arg, partial):
             return arg()
-        elif (isinstance(arg, dict)):
+        elif isinstance(arg, dict):
             # either keys or values may themselves be References, partials, or
             # Evaluators
             resolve = self._resolve
-            return dict([(resolve(key, assembler), resolve(value, assembler))
-                         for (key, value) in arg.items()])
-        elif (hasattr(arg, "__iter__") and (not isinstance(arg, StringTypes))):
+            return dict(
+                [(resolve(key, assembler), resolve(value, assembler))
+                    for (key, value) in arg.items()])
+        elif hasattr(arg, "__iter__") and not is_string(arg):
             resolve = self._resolve
             # assumption: the iterable class supports initialization with
             # __init__(iterable)
@@ -369,25 +440,38 @@ class Evaluator(_InitializationSupport):
             return arg
 
     def __repr__(self):
-        return "%s.%s(%r, *%r **%r)" % (self.__class__.__module__,
-                                        self.__class__.__name__,
-                                        self._func, self._args, self._keywords)
+        return "%s.%s(%r, *%r **%r)" % (
+            self.__class__.__module__, name_of(self.__class__),
+            self._factory, self._args, self._keywords)
 
 
 class _DependencySupport(_InitializationSupport):
+    """The base for any class that configures both type 1 (setter) and
+    type 2 (constructor) injection.
+
+    """
 
     __slots__ = ["_attributes"]
 
     def __init__(self):
+        """The field/property/setter mapping is initialized to empty."""
+        #PYVER: arguments to super() are implicit under Python 3
         super(_DependencySupport, self).__init__()
         self._attributes = OrderedDict()
 
     @property
     def attributes(self):
+        """The field/property/setter mapping."""
         return self._attributes
 
 
+@traced
+@logged
 class Template(_DependencySupport):
+    """Support for configuring type 1 (setter) and type 2 (constructor)
+    injection, and lifecycle methods.
+
+    """
 
     __slots__ = [
         "_after_inject",
@@ -396,27 +480,28 @@ class Template(_DependencySupport):
         "_unique_id",
     ]
 
-    __logger = logging.getLogger("%s.Template" % __name__)
-
-    def __init__(self, template_id, parent_id=None, after_inject=None,
-                 before_clear=None):
+    def __init__(
+            self, template_spec, parent_spec=None,
+            after_inject=None, before_clear=None):
         """
-        :arg str template_id: context-unique identifier for this\
-                              template
-        :keyword str parent_id: specifies the ID of a template or\
-                                component that describes the default\
-                                dependencies and/or lifecyle methods\
-                                for this template
-        :keyword str after_inject: specifies the name of the method\
-                                   that will be called on objects of\
-                                   components that reference this\
-                                   template after all component\
-                                   dependencies have been injected
-        :keyword str before_clear: specifies the name of the method\
-                                   that will be called on objects of\
-                                   components that reference this\
-                                   template immediately before they are\
-                                   cleared from cache
+        :arg str template_spec:
+           context-unique identifier for this template, or the object
+           whose dotted name will serve as the unique ID
+        :keyword str parent_spec:
+           specifies the ID of a template or component that describes
+           the default dependencies and/or lifecyle methods for this
+           template (or an object whose dotted name serves the same
+           purpose)
+        :keyword str after_inject:
+           specifies the name of the method that will be called on
+           objects of components that reference this template after all
+           component dependencies have been injected
+        :keyword str before_clear:
+           specifies the name of the method that will be called on
+           objects of components that reference this template
+           immediately before they are cleared from cache
+        :raise AglyphError:
+           if *template_id* is ``None`` or empty
 
         .. note::
            A ``Template`` cannot be assembled (it is equivalent to an
@@ -446,9 +531,9 @@ class Template(_DependencySupport):
         keyword). Exceptions raised by this method are not caught.
 
         .. note::
-           ``Template.after_inject``, if specified, **replaces**
-           :attr:`aglyph.context.Context.after_inject` for any component
-           that uses the template.
+           ``Template.after_inject`` takes precedence over any
+           *after_inject* method name specified for the template's
+           parent or context.
 
         *before_clear* is the name of a method *of objects of this
         component* that will be called immediately before the object is
@@ -458,9 +543,9 @@ class Template(_DependencySupport):
         :meth:`aglyph.assembler.Assembler.clear_weakrefs()`.
 
         .. note::
-           ``Template.before_clear``, if specified, **replaces**
-           :attr:`aglyph.context.Context.before_clear` for any component
-           that uses the template.
+           ``Template.before_clear`` takes precedence over any
+           *before_clear* method name specified for the template's
+           parent or context.
 
         .. warning::
            The *before_clear* keyword argument has no meaning for and is
@@ -475,20 +560,22 @@ class Template(_DependencySupport):
            :attr:`logging.WARNING` message is emitted.
 
         """
-        self.__logger.debug(
-            "TRACE %r, parent_id=%r, after_inject=%r, before_clear=%r",
-            template_id, parent_id, after_inject, before_clear)
+        #PYVER: arguments to super() are implicit under Python 3
         super(Template, self).__init__()
-        self._unique_id = template_id
-        self._parent_id = parent_id
+
+        if not template_spec:
+            raise AglyphError(
+                "%s unique ID must not be None or empty" %
+                    name_of(self.__class__))
+
+        self._unique_id = _identify(template_spec)
+        self._parent_id = _identify(parent_spec) if parent_spec else None
         self._after_inject = after_inject
         self._before_clear = before_clear
 
     @property
     def unique_id(self):
-        """Uniquely identifies this template in a context *(read-only)*.
-
-        """
+        """Uniquely identifies this template in a context *(read-only)*."""
         return self._unique_id
 
     @property
@@ -502,7 +589,7 @@ class Template(_DependencySupport):
     @property
     def after_inject(self):
         """The name of the component object method that will be called
-        after **all** dependencies have been injected.
+        after **all** dependencies have been injected *(read-only)*.
 
         """
         return self._after_inject
@@ -510,11 +597,12 @@ class Template(_DependencySupport):
     @property
     def before_clear(self):
         """The name of the component object method that will be called
-        immediately before the object is cleared from cache.
+        immediately before the object is cleared from cache
+        *(read-only)*.
 
         .. warning::
            This property is not applicable to "prototype" component
-           objects, and is **not** guaranteed to be called for "weakref"
+           objects, and is **not guaranteed** to be called for "weakref"
            component objects.
 
         """
@@ -522,11 +610,13 @@ class Template(_DependencySupport):
 
     def __repr__(self):
         return "%s.%s(%r, parent_id=%r, after_inject=%r, before_clear=%r)" % (
-            self.__class__.__module__, self.__class__.__name__,
+            self.__class__.__module__, name_of(self.__class__),
             self._unique_id, self._parent_id, self._after_inject,
             self._before_clear)
 
 
+@traced
+@logged
 class Component(Template):
     """Define a component and the dependencies needed to create a new
     object of that component at runtime.
@@ -540,38 +630,39 @@ class Component(Template):
         "_strategy",
     ]
 
-    __logger = logging.getLogger("%s.Component" % __name__)
-
-    def __init__(self, component_id, dotted_name=None, factory_name=None,
-                 member_name=None, strategy=Strategy.PROTOTYPE,
-                 parent_id=None, after_inject=None, before_clear=None):
+    def __init__(
+            self, component_spec, dotted_name=None, factory_name=None,
+            member_name=None, strategy=Strategy.PROTOTYPE, parent_spec=None,
+            after_inject=None, before_clear=None):
         """
-        :arg str component_id: context-unique identifier for this\
-                               component
-        :keyword str dotted_name: an **importable** dotted name
-        :keyword str factory_name: names a :obj:`callable` member of\
-                                   the object identified by\
-                                   *component_id* or *dotted_name*
-        :keyword str member_name: names **any** member of the object\
-                                  identified by *component_id* or\
-                                  *dotted_name*
-        :keyword str strategy: specifies the component assembly strategy
-        :keyword str parent_id: specifies the ID of a template or\
-                                component that describes the default\
-                                dependencies and/or lifecyle methods\
-                                for this component
-        :keyword str after_inject: specifies the name of the method\
-                                   that will be called on objects of\
-                                   this component after all of its\
-                                   dependencies have been injected
-        :keyword str before_clear: specifies the name of the method\
-                                   that will be called on objects of\
-                                   this component immediately before\
-                                   they are cleared from cache
-        :raise aglyph.AglyphError: if both *factory_name* and\
-                                   *member_name* are specified
-        :raise ValueError: if *strategy* is not a recognized assembly\
-                           strategy
+        :arg str component_spec:
+           the context-unique identifier for this component, or the
+           object whose dotted name will serve as the unique ID
+        :keyword str dotted_name:
+           an **importable** dotted name
+        :keyword str factory_name:
+           names a :obj:`callable` member of objects of this component
+        :keyword str member_name:
+           names **any** member of objects of this component
+        :keyword str strategy:
+           specifies the component assembly strategy
+        :keyword str parent_spec:
+           specifies the ID of a template or component that describes
+           the default dependencies and/or lifecyle methods for this
+           component (or an object whose dotted name serves the same
+           purpose)
+        :keyword str after_inject:
+           specifies the name of the method that will be called on
+           objects of this component after all of its dependencies have
+           been injected
+        :keyword str before_clear:
+           specifies the name of the method that will be called on
+           objects of this component immediately before they are cleared
+           from cache
+        :raise aglyph.AglyphError:
+           if both *factory_name* and *member_name* are specified
+        :raise ValueError:
+           if *strategy* is not a recognized assembly strategy
 
         *component_id* must be a user-provided identifier that is unique
         within the context to which this component is added. An
@@ -582,12 +673,9 @@ class Component(Template):
         name (see :func:`aglyph.resolve_dotted_name`).
 
         .. note::
-           If *dotted_name* is not specified, then *component_id*
+           If *dotted_name* is not specified, then :attr:`unique_id`
            will be used as the component's dotted name. In this case,
-           *component_id* **must** be an importable dotted name.
-
-        .. versionadded:: 2.0.0
-           the *factory_name* keyword argument
+           ``unique_id`` **must** be an importable dotted name.
 
         *factory_name* is the name of a :obj:`callable` member of
         *dotted-name* (i.e. a function, class, staticmethod, or
@@ -599,16 +687,13 @@ class Component(Template):
         :obj:`staticmethod`, or :obj:`classmethod`. See
         :attr:`factory_name` for details.
 
-        .. versionadded:: 2.0.0
-           the *member_name* keyword argument
-
         *member_name* is the name of a member of *dotted-name*, which
         **may or may not** be callable.
 
         *member_name* differs from *factory_name* in two ways:
 
         1. *member_name* is not restricted to callable members; it may
-           identify attributes and/or properties as well.
+           identify **any** member (attribute, property, nested class).
         2. When an assembler assembles a component with a
            *member_name*, initialization of the object is *bypassed*
            (i.e. the assembler will not call the member, and any
@@ -641,15 +726,9 @@ class Component(Template):
            is only supported for classes that **do not** define or
            inherit ``__slots__``!
 
-        .. versionadded:: 2.1.0
-           the *parent_id* keyword argument
-
         *parent_id* is the context-unique ID of a :class:`Template` (or
         another ``Component``) that defines default dependencies and/or
         lifecycle methods for this component.
-
-        .. versionadded:: 2.1.0
-           the *after_inject* keyword argument
 
         *after_inject* is the name of a method *of objects of this
         component* that will be called after **all** dependencies have
@@ -658,13 +737,9 @@ class Component(Template):
         keyword). Exceptions raised by this method are not caught.
 
         .. note::
-           ``Component.after_inject``, if specified, **replaces** either
-           :attr:`Template.after_inject` (if this component also
-           specifies :attr:`parent_id`) or
-           :attr:`aglyph.context.Context.after_inject`.
-
-        .. versionadded:: 2.1.0
-           the *before_clear* keyword argument
+           ``Component.after_inject`` takes precedence over any
+           *after_inject* method names specified for the component's
+           parent or context.
 
         *before_clear* is the name of a method *of objects of this
         component* that will be called immediately before the object is
@@ -674,22 +749,25 @@ class Component(Template):
         :meth:`aglyph.assembler.Assembler.clear_weakrefs()`.
 
         .. note::
-           ``Component.before_clear``, if specified, **replaces** either
-           :attr:`Template.before_clear` (if this component also
-           specifies :attr:`parent_id`) or
-           :attr:`aglyph.context.Context.before_clear`.
+           ``Component.before_clear`` takes precedence over any
+           *before_clear* method names specified for the component's
+           parent or context.
 
         .. warning::
-           The *before_clear* keyword argument has no meaning for and is
-           ignored by "prototype" components. If *before_clear* is
-           specified for a prototype, a :class:`RuntimeWarning` will be
-           issued.
+           The *before_clear* keyword argument has no meaning for, and
+           is ignored by, "prototype" components. If *before_clear* is
+           specified for a prototype component, a :class:`UserWarning`
+           is issued **when the component is defined**, and the
+           component's :attr:`before_clear` attribute is set to
+           ``None``.
 
+        .. warning::
            For "weakref" components, there is a possibility that the
            object no longer exists at the moment when the *before_clear*
-           method would be called. In such cases, the *before_clear*
-           method is **not** called. No warning is issued, but a
-           :attr:`logging.WARNING` message is emitted.
+           method would be called. In such cases, the
+           :meth:`aglyph.assembler.clear_weakrefs` method will issue a
+           :class:`RuntimeWarning` (see that method's documentation for
+           more details).
 
         Once a ``Component`` instance is initialized, the ``args``
         (:obj:`list`), ``keywords`` (:obj:`dict`), and ``attributes``
@@ -703,11 +781,18 @@ class Component(Template):
            component.keywords["strict"] = True
            component.attributes["set_debuglevel"] = 1
 
+        The :meth:`init` and :meth:`set` methods offer a more compact
+        alternative that supports chained calls::
+
+           component = Component("http.client.HTTPConnection")
+           (component.
+               init("ninthtest.net", 80, strict=True).
+               set(set_debuglevel=1))
+
         In Aglyph, a component may:
 
         * be assembled directly by an
-          :class:`aglyph.assembler.Assembler` or
-          :class:`aglyph.binder.Binder`
+          :class:`aglyph.assembler.Assembler`
         * identify other components as dependencies (using a
           :class:`Reference`)
         * be used by other components as a dependency
@@ -717,47 +802,31 @@ class Component(Template):
         * use any combination of the above behaviors
 
         """
-        self.__logger.debug(
-            "TRACE %r, dotted_name=%r, factory_name=%r, member_name=%r, "
-            "strategy=%r, parent_id=%r, after_inject=%r, before_clear=%r",
-            component_id, dotted_name, factory_name, member_name, strategy,
-            parent_id, after_inject, before_clear)
-        if ((factory_name is not None) and (member_name is not None)):
+        #PYVER: arguments to super() are implicit under Python 3
+        super(Component, self).__init__(
+            component_spec, parent_spec=parent_spec,
+            after_inject=after_inject, before_clear=before_clear)
+
+        # if a dotted name is not provided, the unique ID is assumed to be a
+        # dotted name
+        self._dotted_name = dotted_name if dotted_name else self._unique_id
+
+        if factory_name and member_name:
             raise AglyphError(
                 "only one of factory_name or member_name may be specified")
-        super(Component, self).__init__(component_id, parent_id=parent_id,
-                                        after_inject=after_inject,
-                                        before_clear=before_clear)
-        if (dotted_name is not None):
-            self._dotted_name = dotted_name
-        else:
-            self._dotted_name = component_id
         self._factory_name = factory_name
         self._member_name = member_name
-        if (strategy in Strategy):
-            self._strategy = strategy
-        else:
+
+        if strategy not in Strategy:
             raise ValueError("unrecognized assembly strategy %r" % strategy)
-        if ((strategy == Strategy.PROTOTYPE) and (before_clear is not None)):
+        self._strategy = strategy
+
+        if (strategy == Strategy.PROTOTYPE) and before_clear:
+            warnings.warn(
+                "ignoring before_clear=%r for prototype component with ID %r" %
+                    (before_clear, self._unique_id),
+                UserWarning)
             self._before_clear = None
-            warning_msg = (
-                "ignoring before_clear=%r for prototype component %r" %
-                (before_clear, component_id))
-            self.__logger.warning(warning_msg)
-            warnings.warn(RuntimeWarning(warning_msg))
-
-    @property
-    def component_id(self):
-        """The unique component identifier *(read-only)*.
-
-        .. deprecated:: 2.1.0
-           use :attr:`unique_id` instead.
-
-        """
-        warnings.warn(
-            AglyphDeprecationWarning("Component.component_id",
-                                     replacement="Component.unique_id"))
-        return self._unique_id
 
     @property
     def dotted_name(self):
@@ -785,47 +854,31 @@ class Component(Template):
                class Nested:
                    pass
 
-        The following examples show how to define a component that will
-        produce an *instance* of the ``module.Example.Nested`` class
-        when assembled.
+        The dotted name "module.Example.Nested" is not importable, and
+        so cannot be used as a component's ``unique_id`` or
+        ``dotted_name``. To assemble objects of this type, use
+        ``factory_name`` to identify the callable factory (the Nested
+        class, in this example) that is accessible through the
+        importable "module.Example"::
 
-        Programmatic configuration using :class:`Component`::
+           component = Component(
+               "nested-object", dotted_name="module.Example",
+               factory_name="Nested")
 
-           component = Component("nested-object",
-                                 dotted_name="module.Example",
-                                 factory_name="Nested")
-
-        Programmatic configuration using :class:`aglyph.binder.Binder`::
-
-           from aglyph.binder import Binder
-           from module import Example
-
-           binder = Binder()
-           binder.bind("nested-object", to=Example, factory="Nested")
-
-        Declarative XML configuration::
+        Or using XML configuration::
 
            <component id="nested-object" dotted-name="module.Example"
                factory-name="Nested" />
 
         ``factory_name`` may also be a dot-separated name to specify an
-        arbitrarily-nested callable:
+        arbitrarily-nested callable. The following example is equivalent
+        to the above::
 
-        Programmatic configuration using :class:`Component`::
+           component = Component(
+               "nested-object", dotted_name="module",
+               factory_name="Example.Nested")
 
-           component = Component("nested-object", dotted_name="module",
-                                 factory_name="Example.Nested")
-
-        Programmatic configuration using :class:`aglyph.binder.Binder`::
-
-           from aglyph.binder import Binder
-           import module
-
-           binder = Binder()
-           binder.bind("nested-object", to=module,
-                       factory="Example.Nested")
-
-        Declarative XML configuration::
+        Or again using XML configuration::
 
            <component id="nested-object" dotted-name="module"
                factory-name="Example.Nested" />
@@ -855,47 +908,28 @@ class Component(Template):
                class Nested:
                    pass
 
-        The following examples show how to define a component that will
+        The following example shows how to define a component that will
         produce the ``module.Example.Nested`` class *itself* when
-        assembled.
+        assembled::
 
-        Programmatic configuration using :class:`Component`::
+           component = Component(
+               "nested-class", dotted_name="module.Example",
+               member_name="Nested")
 
-           component = Component("nested-class",
-                                 dotted_name="module.Example",
-                                 member_name="Nested")
-
-        Programmatic configuration using :class:`aglyph.binder.Binder`::
-
-           from aglyph.binder import Binder
-           from module import Example
-
-           binder = Binder()
-           binder.bind("nested-class", to=Example, member="Nested")
-
-        Declarative XML configuration::
+        Or using XML configuration::
 
            <component id="nested-class" dotted-name="module.Example"
                member-name="Nested" />
 
         ``member_name`` may also be a dot-separated name to specify an
-        arbitrarily-nested member:
+        arbitrarily-nested member. The following example is equivalent
+        to the above::
 
-        Programmatic configuration using :class:`Component`::
+           component = Component(
+               "nested-class", dotted_name="module",
+               member_name="Example.Nested")
 
-           component = Component("nested-class", dotted_name="module",
-                                 member_name="Example.Nested")
-
-        Programmatic configuration using :class:`aglyph.binder.Binder`::
-
-           from aglyph.binder import Binder
-           import module
-
-           binder = Binder()
-           binder.bind("nested-class", to=module,
-                       member="Example.Nested")
-
-        Declarative XML configuration::
+        Or again using XML configuration::
 
            <component id="nested-class" dotted-name="module"
                member-name="Example.Nested" />
@@ -909,17 +943,17 @@ class Component(Template):
         .. warning::
            When a component specifies ``member_name``, initialization is
            assumed. In other words, Aglyph **will not** attempt to
-           initialize the member, and will **ignore** any
-           :attr:`init_args` or :attr:`init_keywords`.
+           initialize the member, and will **ignore** any :attr:`args`
+           and :attr:`keywords`.
 
            On assembly, if any initialization arguments and/or keyword
            arguments have been defined for such a component, they are
-           discarded and a WARN-level log record is emitted to the
+           discarded and a WARNING-level log record is emitted to the
            "aglyph.assembler.Assembler" channel.
 
-           Any :attr:`attributes` that have been specified for the
+           (Any :attr:`attributes` that have been specified for the
            component will still be processed as setter injection
-           dependencies, however.
+           dependencies, however.)
 
         """
         return self._member_name
@@ -929,47 +963,12 @@ class Component(Template):
         """The component assembly strategy *(read-only)*."""
         return self._strategy
 
-    @property
-    def init_args(self):
-        """The positional arguments for constructor injection of
-        component object dependencies.
-
-        .. deprecated:: 2.1.0
-           use :attr:`args` instead.
-
-        .. note::
-           This property may not be set; it must be modified by
-           reference.
-
-        """
-        warnings.warn(AglyphDeprecationWarning("Component.init_args",
-                                               replacement="Component.args"))
-        return self.args
-
-    @property
-    def init_keywords(self):
-        """The keyword arguments for constructor injection of component
-        object dependencies.
-
-        .. deprecated:: 2.1.0
-           use :attr:`keywords` instead.
-
-        .. note::
-           This property may not be set; it must be modified by
-           reference.
-
-        """
-        warnings.warn(
-            AglyphDeprecationWarning("Component.init_keywords",
-                                     replacement="Component.keywords"))
-        return self.keywords
-
     def __repr__(self):
-        return ("%s.%s(%r, dotted_name=%r, factory_name=%r, member_name=%r, "
-                "strategy=%r, parent_id=%r, after_inject=%r, "
-                "before_clear=%r)") % (
-                    self.__class__.__module__, self.__class__.__name__,
-                    self._unique_id, self._dotted_name, self._factory_name,
-                    self._member_name, self._strategy, self._parent_id,
-                    self._after_inject, self._before_clear)
+        return (
+            "%s.%s(%r, dotted_name=%r, factory_name=%r, member_name=%r, "
+            "strategy=%r, parent_id=%r, after_inject=%r, before_clear=%r)") % (
+                self.__class__.__module__, name_of(self.__class__),
+                self._unique_id, self._dotted_name, self._factory_name,
+                self._member_name, self._strategy, self._parent_id,
+                self._after_inject, self._before_clear)
 

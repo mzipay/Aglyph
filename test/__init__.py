@@ -119,8 +119,8 @@ def suite():
         test_Context,
         test_XMLContext,
         # aglyph.assembler
-        #test_ReentrantMutexCache,
-        #test_Assembler,
+        test_ReentrantMutexCache,
+        test_Assembler,
     )
 
     suite = unittest.TestSuite()
@@ -149,8 +149,8 @@ def suite():
     suite.addTest(test_Context.suite())
     suite.addTest(test_XMLContext.suite())
     # aglyph.assembler
-    #suite.addTest(test_ReentrantMutexCache.suite())
-    #suite.addTest(test_Assembler.suite())
+    suite.addTest(test_ReentrantMutexCache.suite())
+    suite.addTest(test_Assembler.suite())
 
     return suite
 

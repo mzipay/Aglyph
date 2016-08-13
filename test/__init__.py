@@ -96,10 +96,10 @@ def find_basename(basename):
 def suite():
     from test import (
         # aglyph
-        #test_format_dotted_name,
-        #test_identify,
-        #test_importable,
-        #test_resolve_dotted_name,
+        test_format_dotted_name,
+        test_identify,
+        test_importable,
+        test_resolve_dotted_name,
         # aglyph._compat
         test_compat,
         test_is_string,
@@ -126,10 +126,10 @@ def suite():
     suite = unittest.TestSuite()
 
     # aglyph
-    #suite.addTest(test_importable.suite())
-    #suite.addTest(test_format_dotted_name.suite())
-    #suite.addTest(test_resolve_dotted_name.suite())
-    #suite.addTest(test_identify.suite())
+    suite.addTest(test_importable.suite())
+    suite.addTest(test_format_dotted_name.suite())
+    suite.addTest(test_resolve_dotted_name.suite())
+    suite.addTest(test_identify.suite())
     # aglyph._compat
     suite.addTest(test_compat.suite())
     suite.addTest(test_is_string.suite())

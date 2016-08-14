@@ -328,6 +328,10 @@ class AglyphDIPlugin(SimplePlugin):
             self.bus.log("cleared weakrefs %s" % repr(weakref_ids))
         return weakref_ids
 
+    def __str__(self):
+        return "<%s @%08x %s>" % (
+            name_of(self.__class__), id(self), self._assembler)
+
     def __repr__(self):
         return "%s.%s(%r, %r, eager_init=%r)" % (
             self.__class__.__module__, name_of(self.__class__),

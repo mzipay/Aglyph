@@ -413,6 +413,10 @@ class Context(dict, _ContextBuilder):
                     (strategy in [None, obj.strategy])):
                 yield obj
 
+    def __str__(self):
+        return "<%s %r @%08x>" % (
+            name_of(self.__class__), self._context_id, id(self))
+
     def __repr__(self):
         return "%s.%s(%r, after_inject=%r, before_clear=%r)" % (
             self.__class__.__module__, name_of(self.__class__),

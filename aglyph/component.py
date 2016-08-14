@@ -439,6 +439,10 @@ class Evaluator(_InitializationSupport):
         else:
             return arg
 
+    def __str__(self):
+        return "<%s %s @%08x>" % (
+            name_of(self.__class__), self._factory.__name__, id(self))
+
     def __repr__(self):
         return "%s.%s(%r, *%r **%r)" % (
             self.__class__.__module__, name_of(self.__class__),
@@ -607,6 +611,10 @@ class Template(_DependencySupport):
 
         """
         return self._before_clear
+
+    def __str__(self):
+        return "<%s %r @%08x>" % (
+            name_of(self.__class__), self._unique_id, id(self))
 
     def __repr__(self):
         return "%s.%s(%r, parent_id=%r, after_inject=%r, before_clear=%r)" % (

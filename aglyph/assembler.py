@@ -218,7 +218,7 @@ class Assembler(object):
             raise KeyError(
                 "component %r is not defined in %s" %
                     (component_id, self._context))
-        # check for circular dependency
+        # issues/3: check for circular dependency
         if not hasattr(_assembly, "component_stack"):
             _assembly.component_stack = []
         if (component_id in _assembly.component_stack):
@@ -242,12 +242,16 @@ class Assembler(object):
            a component definition
         :return:
            an initialized object
+        :raise AglyphError:
+           if *component* uses an unrecognized assembly strategy
 
         This method delegates to the appropriate
         ``_create_\<strategy\>`` method for *component*.
 
         """
-        # allow AttributeError - change this to AglyphError in 3.0.0
+        # allow AttributeError; there is sufficient checking in Component for
+        # unrecognized strategy, and getting here with one takes quite a bit of
+        # effort (see test_Assembler.test_cant_create_unrecognized_strategy)
         create = getattr(self, "_create_%s" % component.strategy)
         return create(component)
 
@@ -492,10 +496,9 @@ class Assembler(object):
         """
         initializer = resolve_dotted_name(component.dotted_name)
         access_name = component.factory_name or component.member_name
-        if access_name is not None:
+        if access_name:
             for name in access_name.split('.'):
-                # allow AttributeError
-                initializer = getattr(initializer, name)
+                initializer = getattr(initializer, name) # allow AttributeError
         return initializer
 
     def _resolve_args_and_keywords(self, component):

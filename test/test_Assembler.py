@@ -27,6 +27,7 @@
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
 
+import functools
 import logging
 import unittest
 
@@ -40,8 +41,9 @@ except:
     _has_threading = False
 
 from aglyph import __version__, AglyphError
-from aglyph.assembler import Assembler
 from aglyph._compat import is_python_2
+from aglyph.assembler import Assembler
+from aglyph.component import Evaluator
 from aglyph.context import Context, XMLContext
 
 from test import assertRaisesWithMessage, dummy, find_basename
@@ -61,6 +63,9 @@ class AssemblerTest(unittest.TestCase):
     def setUp(self):
         self._assembler = Assembler(
             XMLContext(find_basename("test_Assembler-context.xml")))
+
+    def test_assemble_unknown_component_spec_fails(self):
+        self.assertRaises(KeyError, self._assembler.assemble, "not.in.context")
 
     def test_detects_circular_dependency(self):
         e = AglyphError(
@@ -88,6 +93,80 @@ class AssemblerTest(unittest.TestCase):
         for t in threads:
             t.join()
         self.assertEqual(0, len([t for t in threads if t.e is not None]))
+
+    def test_cant_create_unrecognized_strategy(self):
+        context = Context(self.id())
+        (context.prototype("unrecognized-strategy").
+            create("test.dummy.ModuleClass").init(None))
+        context["unrecognized-strategy"]._strategy = "unrecognized"
+        assembler = Assembler(context)
+        self.assertRaises(
+            AttributeError, assembler.assemble, "unrecognized-strategy")
+
+    def test_factory_name_initializer(self):
+        obj = self._assembler.assemble("factory-init")
+        self.assertEqual(dummy.DEFAULT, obj()) # obj is nested_function
+
+    def test_component_args_extend_parent_args(self):
+        obj = self._assembler.assemble("component-args")
+        self.assertEqual(1, obj.arg)
+        self.assertEqual(2, obj.keyword)
+
+    def test_component_keywords_extend_parent_keywords(self):
+        obj = self._assembler.assemble("component-keywords")
+        self.assertEqual(2, obj.keyword)
+
+    def test_reference_arg_is_resolved(self):
+        obj = self._assembler.assemble("ref-arg")
+        self.assertEqual(7, obj.arg)
+
+    def test_reference_keyword_is_resolved(self):
+        obj = self._assembler.assemble("ref-kw")
+        self.assertEqual(7, obj.keyword)
+
+    def test_evaluator_arg_is_resolved(self):
+        assert isinstance(
+            self._assembler._context["eval-arg"].args[0], Evaluator)
+        obj = self._assembler.assemble("eval-arg")
+        self.assertEqual(["test"], obj.arg)
+
+    def test_evaluator_keyword_is_resolved(self):
+        assert isinstance(
+            self._assembler._context["eval-kw"].keywords["keyword"], Evaluator)
+        obj = self._assembler.assemble("eval-kw")
+        self.assertEqual(["test"], obj.keyword)
+
+    def test_partial_arg_is_resolved(self):
+        context = Context(self.id())
+        p = functools.partial(int, "0b1001111", base=2)
+        (context.prototype("partial-arg").
+            create("test.dummy.ModuleClass").init(p))
+        assembler = Assembler(context)
+        obj = assembler.assemble("partial-arg")
+        self.assertEqual(79, obj.arg)
+
+    def test_partial_keyword_is_resolved(self):
+        context = Context(self.id())
+        p = functools.partial(int, "0b1001111", base=2)
+        (context.prototype("partial-arg").
+            create("test.dummy.ModuleClass").init(None, keyword=p))
+        assembler = Assembler(context)
+        obj = assembler.assemble("partial-arg")
+        self.assertEqual(79, obj.keyword)
+
+    def test_value_arg_is_resolved(self):
+        obj = self._assembler.assemble("value-arg-kw")
+        self.assertEqual(79, obj.arg)
+
+    def test_value_keyword_is_resolved(self):
+        obj = self._assembler.assemble("value-arg-kw")
+        self.assertEqual(97, obj.keyword)
+
+    # https://github.com/mzipay/Aglyph/issues/2
+    def test_builtin_immutable_initialized(self):
+        s = self._assembler.assemble(
+            ("__builtin__" if is_python_2 else "builtins") + ".str")
+        self.assertEqual("test", s)
 
 
 def suite():

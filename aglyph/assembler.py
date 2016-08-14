@@ -75,6 +75,9 @@ __all__ = ["Assembler"]
 _log = logging.getLogger(__name__)
 _log.debug("using %r", threading_)
 
+# thread-local storage for assembly
+_assembly = threading_.local()
+
 
 @traced
 @logged
@@ -99,7 +102,6 @@ class Assembler(object):
             "borg": _ReentrantMutexCache(),
             "weakref": _ReentrantMutexCache(),
         }
-        self._assembly_stack = []
         self.__log.info("initialized %s", self)
 
     def assemble(self, component_spec):
@@ -213,23 +215,25 @@ class Assembler(object):
         component_id = _identify(component_spec)
         component = self._context.get_component(component_id)
         if component is None:
-            # change this to AglyphError in 3.0.0
             raise KeyError(
-                "component %r is not defined in context %r" %
-                    (component_id, self._context.context_id))
+                "component %r is not defined in %s" %
+                    (component_id, self._context))
         # check for circular dependency
-        if (component_id in self._assembly_stack):
+        if not hasattr(_assembly, "component_stack"):
+            _assembly.component_stack = []
+        if (component_id in _assembly.component_stack):
             raise AglyphError(
                 "circular dependency detected: %s" %
-                    " => ".join(self._assembly_stack + [component_id]))
-        self._assembly_stack.append(component_id)
-        self.__logger.debug("current assembly stack: %r", self._assembly_stack)
+                    " > ".join(_assembly.component_stack + [component_id]))
+        _assembly.component_stack.append(component_id)
+        self.__log.debug(
+            "current assembly stack: %r", _assembly.component_stack)
         try:
             obj = self._create(component)
-            self.__logger.info("assembled %r", component_id)
+            self.__log.info("assembled %r", component_id)
             return obj
         finally:
-            self._assembly_stack.pop()
+            _assembly.component_stack.pop()
 
     def _create(self, component):
         """Create an object of *component*.
@@ -1001,7 +1005,7 @@ class Assembler(object):
             return self._context.get_component(component_id) is not None
 
     def __str__(self):
-        return "%s @%08x using %s" % (
+        return "<%s @%08x %s>" % (
             name_of(self.__class__), id(self), self._context)
 
     def __repr__(self):
@@ -1070,7 +1074,7 @@ class _ReentrantMutexCache(dict):
                 "exception occurred while cache lock was held: %s", e_obj)
 
     def __str__(self):
-        return "%s @%08x using %s" % (name_of(self.__class__), self.__lock)
+        return "<%s @%08x>" % (name_of(self.__class__), id(self))
 
     def __repr__(self):
         return "%s.%s()" % (

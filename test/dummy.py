@@ -47,6 +47,9 @@ __all__ = [
 #: used as a default value (instead of ``None``; makes tests more explicit)
 DEFAULT = object()
 
+#: A sentinel value to force exceptions to be raised.
+RAISE = object()
+
 
 #PYVER: extending object is implicit in Python >= 3.0
 class _LifecycleMethodsMixin(object):
@@ -153,6 +156,8 @@ class ModuleClass(_LifecycleMethodsMixin):
         return cls(arg, keyword=keyword)
 
     def __init__(self, arg, keyword=DEFAULT):
+        if arg is RAISE:
+            raise RuntimeError("__init__ RAISE")
         self.arg = arg
         self.keyword = keyword
         self.attr = DEFAULT
@@ -166,12 +171,16 @@ class ModuleClass(_LifecycleMethodsMixin):
 
     @prop.setter
     def prop(self, value):
+        if value is RAISE:
+            raise RuntimeError("@prop.setter RAISE")
         self._prop = value
 
     def get_value(self):
         return self.__value
 
     def set_value(self, value):
+        if value is RAISE:
+            raise RuntimeError("set_value RAISE")
         self.__value = value
 
     def method(self):
@@ -182,6 +191,8 @@ MODULE_MEMBER = ModuleClass("dummy module member")
 
 
 def factory_function(arg, keyword=DEFAULT):
+    if arg is RAISE:
+        raise RuntimeError("factory_function RAISE")
     return ModuleClass(arg, keyword=keyword)
 
 

@@ -6,6 +6,13 @@
 	before-clear="context_before_clear"
 >
 
+	<component
+		id="RAISE"
+		dotted-name="test.dummy"
+		member-name="RAISE"
+		strategy="singleton"
+	/>
+
 	<!-- test_detects_circular_dependency -->
 	<component id="circular-1" dotted-name="test.dummy.ModuleClass">
 		<init><arg reference="circular-2" /></init>
@@ -34,6 +41,13 @@
 		id="factory-init"
 		dotted-name="test.dummy"
 		factory-name="outer_function"
+	/>
+
+	<!-- test_member_name_initializer -->
+	<component
+		id="member-init"
+		dotted-name="test.dummy"
+		member-name="MODULE_MEMBER"
 	/>
 
 	<!-- test_component_args_extend_parent_args -->
@@ -109,6 +123,35 @@
    <component id="__builtin__.str"><!-- Python 2 -->
       <init><arg><str>test</str></arg></init>
    </component>
+
+	<!-- test_initialization_failure_raises_AglyphError -->
+	<component id="failing-class-init" dotted-name="test.dummy.ModuleClass">
+		<init>
+			<arg reference="RAISE" />
+		</init>
+	</component>
+
+	<!-- test_member_init_with_args_issues_warning -->
+	<component
+		id="member-init-with-args"
+		dotted-name="test.dummy"
+		member-name="ModuleClass.CLASS_MEMBER"
+	>
+		<init>
+			<arg><str>test</str></arg>
+		</init>
+	</component>
+
+	<!-- test_member_init_with_kwargs_issues_warning -->
+	<component
+		id="member-init-with-kwargs"
+		dotted-name="test"
+		member-name="dummy.MODULE_MEMBER"
+	>
+		<init>
+			<arg keyword="keyword"><str>test</str></arg>
+		</init>
+	</component>
 
 </context>
 

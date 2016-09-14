@@ -30,6 +30,7 @@ __author__ = "Matthew Zipay <mattz@ninthtest.net>"
 import functools
 import logging
 import unittest
+import warnings
 
 try:
     import threading
@@ -87,7 +88,7 @@ class AssemblerTest(unittest.TestCase):
                     self.e = e
                 else:
                     self.e = None
-        threads = [AssemblyThread() for i in range(100)]
+        threads = [AssemblyThread() for i in range(1000)]
         for t in threads:
             t.start()
         for t in threads:
@@ -106,6 +107,10 @@ class AssemblerTest(unittest.TestCase):
     def test_factory_name_initializer(self):
         obj = self._assembler.assemble("factory-init")
         self.assertEqual(dummy.DEFAULT, obj()) # obj is nested_function
+
+    def test_member_name_initializer(self):
+        obj = self._assembler.assemble("member-init")
+        self.assertTrue(obj is dummy.MODULE_MEMBER)
 
     def test_component_args_extend_parent_args(self):
         obj = self._assembler.assemble("component-args")
@@ -167,6 +172,42 @@ class AssemblerTest(unittest.TestCase):
         s = self._assembler.assemble(
             ("__builtin__" if is_python_2 else "builtins") + ".str")
         self.assertEqual("test", s)
+
+    def test_initialization_failure_raises_AglyphError(self):
+        try:
+            self._assembler.assemble("failing-class-init")
+        except AglyphError as e:
+            self.assertTrue(type(e.cause) is RuntimeError)
+            self.assertEqual("__init__ RAISE", str(e.cause))
+        else:
+            self.fail(
+                "assemble('failing-class-init') did not raise AglyphError")
+
+    def test_member_init_with_args_issues_warning(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            obj = self._assembler.assemble("member-init-with-args")
+
+            self.assertEqual(1, len(w))
+            self.assertEqual(
+                "ignoring args and keywords for component "
+                    "'member-init-with-args' (uses member_name assembly)",
+                str(w[0].message))
+
+        self.assertTrue(obj is dummy.ModuleClass.CLASS_MEMBER)
+
+    def test_member_init_with_kwargs_issues_warning(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            obj = self._assembler.assemble("member-init-with-kwargs")
+
+            self.assertEqual(1, len(w))
+            self.assertEqual(
+                "ignoring args and keywords for component "
+                    "'member-init-with-kwargs' (uses member_name assembly)",
+                str(w[0].message))
+
+        self.assertTrue(obj is dummy.MODULE_MEMBER)
 
 
 def suite():

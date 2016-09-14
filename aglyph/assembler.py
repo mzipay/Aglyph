@@ -471,7 +471,7 @@ class Assembler(object):
                 msg = (
                     "ignoring args and keywords for component %r "
                     "(uses member_name assembly)")
-                self.__log.warning(msg, component)
+                self.__log.warning(msg, component.unique_id)
                 warnings.warn(msg % component.unique_id, RuntimeWarning)
         return obj
 

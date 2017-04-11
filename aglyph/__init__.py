@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -55,7 +55,7 @@ version_info = namedtuple(
     "version_info", ["major", "minor", "patch", "pre_release", "metadata"])(
         3, 0, 0, "", "")
 
-__author__ = "Matthew Zipay <mattz@ninthtest.net>"
+__author__ = "Matthew Zipay <mattz@ninthtest.info>"
 __version__ = "%d.%d.%d%s%s" % version_info
 
 from inspect import ismodule

@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -76,7 +76,7 @@ initialization or disposal, for example.)
 
 """
 
-__author__ = "Matthew Zipay <mattz@ninthtest.net>"
+__author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
 from collections import namedtuple, OrderedDict
 from functools import partial
@@ -784,7 +784,7 @@ class Component(Template):
         objects of this component at assembly time. For example::
 
            component = Component("http.client.HTTPConnection")
-           component.args.append("ninthtest.net")
+           component.args.append("ninthtest.info")
            component.args.append(80)
            component.keywords["strict"] = True
            component.attributes["set_debuglevel"] = 1

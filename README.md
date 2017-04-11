@@ -1,6 +1,6 @@
 # Aglyph - Dependency Injection for Python
 
-http://ninthtest.net/aglyph-python-dependency-injection/
+http://ninthtest.info/aglyph-python-dependency-injection/
 
 [![PyPI version](https://img.shields.io/pypi/v/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph)
 ![Python version](https://img.shields.io/pypi/pyversions/Aglyph.svg)

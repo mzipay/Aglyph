@@ -18,4 +18,5 @@ build/
 dist/
 doc/build/
 test-versions-variants.*
+.eggs/
 

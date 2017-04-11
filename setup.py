@@ -21,7 +21,7 @@ setup(
   <https://github.com/mzipay/Aglyph/blob/master/resources/aglyph-context.dtd>`_)
 * is non-intrusive:
   * only one dependency (`Autologging
-    <http://ninthtest.net/python-autologging/>`_) beyond the Python standard
+    <http://ninthtest.info/python-autologging/>`_) beyond the Python standard
     library
   * does not require modification of existing source code (i.e. no
     decorators, specific naming conventions, or any other kind of
@@ -36,8 +36,8 @@ setup(
   disabled by default, and can be activated by setting an environment variable)
 """,
     author="Matthew Zipay",
-    author_email="mattz@ninthtest.net",
-    url="http://ninthtest.net/aglyph-python-dependency-injection/",
+    author_email="mattz@ninthtest.info",
+    url="http://ninthtest.info/aglyph-python-dependency-injection/",
     download_url="http://sourceforge.net/projects/aglyph/files/aglyph/",
     packages=[
         "aglyph",

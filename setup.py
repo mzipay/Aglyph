@@ -31,8 +31,8 @@ Aglyph can be configured using a declarative XML syntax, or
 programmatically in pure Python.
 """,
     author="Matthew Zipay",
-    author_email="mattz@ninthtest.net",
-    url="http://ninthtest.net/aglyph-python-dependency-injection/",
+    author_email="mattz@ninthtest.info",
+    url="http://ninthtest.info/aglyph-python-dependency-injection/",
     download_url="http://sourceforge.net/projects/aglyph/files/",
     packages=["aglyph", "aglyph.compat", "aglyph.integration"],
     test_suite="test",

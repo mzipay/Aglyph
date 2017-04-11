@@ -4,6 +4,7 @@
 *.log
 *.bak
 *.swp
+*.tmp
 __pycache__/
 MANIFEST
 Aglyph.egg-info/
@@ -16,4 +17,5 @@ build/
 dist/
 doc/build/
 test-versions-variants.*
+.eggs/
 

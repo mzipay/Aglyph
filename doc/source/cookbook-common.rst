@@ -41,7 +41,7 @@ In the XML context document *"cookbook-context.xml"*::
    <context id="cookbook-context">
        <component id="http.client.HTTPConnection">
            <init>
-               <arg><str>ninthtest.net</str></arg>
+               <arg><str>ninthtest.info</str></arg>
                <arg><int>80</int>
                <arg keyword="timeout"><int>5</int></arg>
            </init>
@@ -65,9 +65,9 @@ so that they are unique::
 
    <?xml version="1.0" encoding="UTF-8" ?>
    <context id="cookbook-context">
-       <component id="ninthtest-net-conx" dotted-name="http.client.HTTPConnection">
+       <component id="ninthtest-info-conx" dotted-name="http.client.HTTPConnection">
            <init>
-               <arg><str>ninthtest.net</str></arg>
+               <arg><str>ninthtest.info</str></arg>
                <arg><int>80</int>
                <arg keyword="timeout"><int>5</int></arg>
            </init>
@@ -86,7 +86,7 @@ Accordingly, we use the component IDs to assemble these components:
 >>> from aglyph.assembler import Assembler
 >>> from aglyph.context import XMLContext
 >>> assembler = Assembler(XMLContext("cookbook-context.xml"))
->>> ninthtest_net = assembler.assemble("ninthtest-net-conx")
+>>> ninthtest_info = assembler.assemble("ninthtest-info-conx")
 >>> python_org = assembler.assemble("python-org-conx")
 
 Using programmatic Binder configuration
@@ -99,7 +99,7 @@ Using :class:`aglyph.binder.Binder` to describe a simple component in a
    from aglyph.binder import Binder
 
    binder = Binder("cookbook-binder")
-   binder.bind(HTTPConnection).init("ninthtest.net", 80, timeout=5)
+   binder.bind(HTTPConnection).init("ninthtest.info", 80, timeout=5)
 
 To assemble and use the component:
 
@@ -117,15 +117,15 @@ dotted name, we must give them unique component IDs::
    from aglyph.binder import Binder
    
    binder = Binder("cookbook-binder")
-   (binder.bind("ninthtest-net-conx", to=HTTPConnection).
-       init("ninthtest.net", 80, timeout=5))
+   (binder.bind("ninthtest-info-conx", to=HTTPConnection).
+       init("ninthtest.info", 80, timeout=5))
    (binder.bind("python-org-conx", to=HTTPConnection).
        init("www.python.org", 80, timeout=5))
 
 Assembling these components now requires the custom component IDs:
 
 >>> from bindings import binder
->>> ninthtest_net = binder.lookup("ninthtest-net-conx")
+>>> ninthtest_info = binder.lookup("ninthtest-info-conx")
 >>> python_org = binder.lookup("python-org-conx")
 
 .. _builtin-components:
@@ -225,7 +225,7 @@ In the *"cookbook-context.xml"* document::
    <context id="cookbook-context">
        <component id="ninthtest-home-page" dotted-name="urllib.request.Request">
            <init>
-               <arg><str>http://ninthtest.net/</str></arg>
+               <arg><str>http://ninthtest.info/</str></arg>
            </init>
        </component>
        <component id="ninthtest-url" dotted-name="urllib.request.urlopen">
@@ -257,7 +257,7 @@ In a *bindings.py* module::
    
    binder = Binder("cookbook-binder")
    (binder.bind("ninthtest-home-page", to=Request).
-       init("http://ninthtest.net/"))
+       init("http://ninthtest.info/"))
    (binder.bind("ninthtest-url", to=urlopen).
        init(Reference("ninthtest-home-page"), timeout=5))
 

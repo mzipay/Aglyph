@@ -10,7 +10,6 @@
 		id="RAISE"
 		dotted-name="test.dummy"
 		member-name="RAISE"
-		strategy="singleton"
 	/>
 
 	<!-- test_detects_circular_dependency -->

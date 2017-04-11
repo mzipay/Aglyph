@@ -58,7 +58,7 @@ class TemplateTest(DependencySupportTest):
 
     def test_unique_id_cannot_be_None(self):
         # use __class__ so test is reusable for Template & Component
-        e_expected = AglyphError(
+        e_expected = ValueError(
             "%s unique ID must not be None or empty" %
                 name_of(self._support.__class__))
         assertRaisesWithMessage(
@@ -66,7 +66,7 @@ class TemplateTest(DependencySupportTest):
 
     def test_unique_id_cannot_be_empty(self):
         # use __class__ so test is reusable for Template & Component
-        e_expected = AglyphError(
+        e_expected = ValueError(
             "%s unique ID must not be None or empty" %
                 name_of(self._support.__class__))
         assertRaisesWithMessage(
@@ -77,33 +77,13 @@ class TemplateTest(DependencySupportTest):
         support = self._support.__class__("test")
         self.assertEqual("test", support.unique_id)
 
-    def test_unique_id_from_importable(self):
-        # use __class__ so test is reusable for Template & Component
-        support = self._support.__class__(dummy.ModuleClass)
-        self.assertEqual("test.dummy.ModuleClass", support.unique_id)
-
-    def test_unique_id_from_nonimportable_fails(self):
-        # use __class__ so test is reusable for Template & Component
-        e_expected = AglyphError(
-            "%s does not have an importable dotted name" %
-                dummy.ModuleClass.NestedClass)
-        assertRaisesWithMessage(
-            self, e_expected, self._support.__class__,
-            dummy.ModuleClass.NestedClass)
-
     def test_parent_id_is_none_by_default(self):
         self.assertIsNone(self._support.parent_id)
 
     def test_parent_id_from_string(self):
         # use __class__ so test is reusable for Template & Component
-        support = self._support.__class__("test", parent_spec="parent")
+        support = self._support.__class__("test", parent_id="parent")
         self.assertEqual("parent", support.parent_id)
-
-    def test_parent_id_from_importable(self):
-        # use __class__ so test is reusable for Template & Component
-        support = self._support.__class__(
-            "test", parent_spec=dummy.ModuleClass)
-        self.assertEqual("test.dummy.ModuleClass", support.parent_id)
 
     def test_after_inject_is_none_by_default(self):
         self.assertIsNone(self._support.after_inject)

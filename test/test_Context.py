@@ -66,39 +66,38 @@ class _BaseContextTest(unittest.TestCase):
         self.assertTrue(type(builder) is _ComponentBuilder)
 
     def test_component_registers_component(self):
-        self._context.component("test")
+        self._context.component("test").register()
         self.assertTrue(type(self._context["test"]) is Component)
 
     def test_component_registers_prototype_by_default(self):
-        self._context.component("test")
+        self._context.component("test").register()
         self.assertEqual("prototype", self._context["test"].strategy)
 
     def test_component_can_register_prototype(self):
-        self._context.component("test", strategy="prototype")
+        self._context.component("test").create(strategy="prototype").register()
         self.assertEqual("prototype", self._context["test"].strategy)
 
     def test_component_can_register_singleton(self):
-        self._context.component("test", strategy="singleton")
+        self._context.component("test").create(strategy="singleton").register()
         self.assertEqual("singleton", self._context["test"].strategy)
 
     def test_component_can_register_borg(self):
-        self._context.component("test", strategy="borg")
+        self._context.component("test").create(strategy="borg").register()
         self.assertEqual("borg", self._context["test"].strategy)
 
     def test_component_can_register_weakref(self):
-        self._context.component("test", strategy="weakref")
+        self._context.component("test").create(strategy="weakref").register()
         self.assertEqual("weakref", self._context["test"].strategy)
 
-    def test_component_fails_on_nonimportable_object(self):
+    def test_component_register_fails_on_nonimportable_object(self):
         e_expected = AglyphError(
             "%r does not have an importable dotted name" %
                 dummy.ModuleClass.NestedClass)
-        assertRaisesWithMessage(
-            self, e_expected, self._context.component,
-            dummy.ModuleClass.NestedClass)
+        builder = self._context.component(dummy.ModuleClass.NestedClass)
+        assertRaisesWithMessage(self, e_expected, builder.register)
 
-    def test_component_builds_dotted_name_from_object(self):
-        self._context.component(dummy.ModuleClass)
+    def test_component_register_identifies_dotted_name_from_object(self):
+        self._context.component(dummy.ModuleClass).register()
         self.assertTrue("test.dummy.ModuleClass" in self._context)
 
     def test_prototype_returns_component_builder(self):
@@ -106,11 +105,11 @@ class _BaseContextTest(unittest.TestCase):
         self.assertTrue(type(builder) is _ComponentBuilder)
 
     def test_prototype_registers_component(self):
-        self._context.prototype("test")
+        self._context.prototype("test").register()
         self.assertTrue(type(self._context["test"]) is Component)
 
-    def test_prototype_builds_dotted_name_from_object(self):
-        self._context.prototype(dummy.ModuleClass)
+    def test_prototype_register_identifies_dotted_name_from_object(self):
+        self._context.prototype(dummy.ModuleClass).register()
         self.assertTrue("test.dummy.ModuleClass" in self._context)
 
     def test_singleton_returns_component_builder(self):
@@ -118,11 +117,11 @@ class _BaseContextTest(unittest.TestCase):
         self.assertTrue(type(builder) is _ComponentBuilder)
 
     def test_singleton_registers_component(self):
-        self._context.singleton("test")
+        self._context.singleton("test").register()
         self.assertTrue(type(self._context["test"]) is Component)
 
-    def test_singleton_builds_dotted_name_from_object(self):
-        self._context.singleton(dummy.ModuleClass)
+    def test_singleton_register_identifies_dotted_name_from_object(self):
+        self._context.singleton(dummy.ModuleClass).register()
         self.assertTrue("test.dummy.ModuleClass" in self._context)
 
     def test_borg_returns_component_builder(self):
@@ -130,11 +129,11 @@ class _BaseContextTest(unittest.TestCase):
         self.assertTrue(type(builder) is _ComponentBuilder)
 
     def test_borg_registers_component(self):
-        self._context.borg("test")
+        self._context.borg("test").register()
         self.assertTrue(type(self._context["test"]) is Component)
 
-    def test_borg_builds_dotted_name_from_object(self):
-        component = self._context.borg(dummy.ModuleClass)
+    def test_borg_register_identifies_dotted_name_from_object(self):
+        component = self._context.borg(dummy.ModuleClass).register()
         self.assertTrue("test.dummy.ModuleClass" in self._context)
 
     def test_weakref_returns_component_builder(self):
@@ -142,11 +141,11 @@ class _BaseContextTest(unittest.TestCase):
         self.assertTrue(type(builder) is _ComponentBuilder)
 
     def test_weakref_registers_component(self):
-        self._context.weakref("test")
+        self._context.weakref("test").register()
         self.assertTrue(type(self._context["test"]) is Component)
 
     def test_weakref_builds_dotted_name_from_object(self):
-        component = self._context.weakref(dummy.ModuleClass)
+        self._context.weakref(dummy.ModuleClass).register()
         self.assertTrue("test.dummy.ModuleClass" in self._context)
 
     def test_template_returns_template_builder(self):
@@ -154,19 +153,18 @@ class _BaseContextTest(unittest.TestCase):
         self.assertTrue(type(builder) is _TemplateBuilder)
 
     def test_template_registers_template(self):
-        self._context.template("test")
+        self._context.template("test").register()
         self.assertTrue(type(self._context["test"]) is Template)
 
-    def test_template_fails_on_nonimportable_object(self):
+    def test_template_register_fails_on_nonimportable_object(self):
         e_expected = AglyphError(
             "%r does not have an importable dotted name" %
                 dummy.ModuleClass.NestedClass)
-        assertRaisesWithMessage(
-            self, e_expected, self._context.template,
-            dummy.ModuleClass.NestedClass)
+        builder = self._context.template(dummy.ModuleClass.NestedClass)
+        assertRaisesWithMessage(self, e_expected, builder.register)
 
-    def test_template_builds_dotted_name_from_object(self):
-        self._context.template(dummy.ModuleClass)
+    def test_template_register_identifies_dotted_name_from_object(self):
+        self._context.template(dummy.ModuleClass).register()
         self.assertTrue("test.dummy.ModuleClass" in self._context)
 
     def test_register_fails_if_id_already_registered(self):

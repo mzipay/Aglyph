@@ -101,8 +101,8 @@ __all__ = [
 _log = logging.getLogger(__name__)
 
 Strategy = namedtuple(
-    "Strategy", ["PROTOTYPE", "SINGLETON", "BORG", "WEAKREF"])(
-        "prototype", "singleton", "borg", "weakref")
+    "Strategy", ["PROTOTYPE", "SINGLETON", "BORG", "WEAKREF", "IMPORTED"])(
+        "prototype", "singleton", "borg", "weakref", "_imported")
 """Define the component assembly strategies implemented by Aglyph.
 
 .. rubric:: "prototype"
@@ -154,6 +154,26 @@ and returned.
 .. note::
    Please refer to the :mod:`weakref` module for a detailed explanation
    of weak reference behavior.
+
+.. rubric:: "_imported"
+
+.. versionadded:: 3.0.0
+
+This is a special-case assembly strategy that supports components which
+use *member_name* to **acquire** an already-created object from an
+imported module or class (as opposed to creating the object directly).
+Such components will always resolve (i.e. be assembled) to the same
+objects; but those objects should not be cached by Aglyph as they will
+exhibit "natural" singleton behavior so long as the containing module
+is referenced in :attr:`sys.modules`.
+
+The "_imported" strategy is only valid (and is the only allowed value)
+when *member_name* is specified for a component.
+
+It is not necessary to explicitly set the strategy to "_imported" when
+using *member_name*. Explicitly setting strategy="_imported" and **not**
+specifying *member_name* - or specifying *member_name* with any explicit
+strategy other than "_imported" - will raise :exc:`AglyphError`.
 
 """
 
@@ -485,17 +505,15 @@ class Template(_DependencySupport):
     ]
 
     def __init__(
-            self, template_spec, parent_spec=None,
+            self, unique_id, parent_id=None,
             after_inject=None, before_clear=None):
         """
-        :arg str template_spec:
-           context-unique identifier for this template, or the object
-           whose dotted name will serve as the unique ID
-        :keyword str parent_spec:
+        :arg str unique_id:
+           context-unique identifier for this template
+        :keyword str parent_id:
            specifies the ID of a template or component that describes
            the default dependencies and/or lifecyle methods for this
-           template (or an object whose dotted name serves the same
-           purpose)
+           template
         :keyword str after_inject:
            specifies the name of the method that will be called on
            objects of components that reference this template after all
@@ -504,8 +522,8 @@ class Template(_DependencySupport):
            specifies the name of the method that will be called on
            objects of components that reference this template
            immediately before they are cleared from cache
-        :raise AglyphError:
-           if *template_id* is ``None`` or empty
+        :raise ValueError:
+           if *unique_id* is ``None`` or empty
 
         .. note::
            A ``Template`` cannot be assembled (it is equivalent to an
@@ -567,13 +585,13 @@ class Template(_DependencySupport):
         #PYVER: arguments to super() are implicit under Python 3
         super(Template, self).__init__()
 
-        if not template_spec:
-            raise AglyphError(
+        if not unique_id:
+            raise ValueError(
                 "%s unique ID must not be None or empty" %
                     name_of(self.__class__))
 
-        self._unique_id = _identify(template_spec)
-        self._parent_id = _identify(parent_spec) if parent_spec else None
+        self._unique_id = unique_id
+        self._parent_id = parent_id
         self._after_inject = after_inject
         self._before_clear = before_clear
 
@@ -639,13 +657,13 @@ class Component(Template):
     ]
 
     def __init__(
-            self, component_spec, dotted_name=None, factory_name=None,
-            member_name=None, strategy=Strategy.PROTOTYPE, parent_spec=None,
+            self, component_id, dotted_name=None,
+            factory_name=None, member_name=None, strategy=None,
+            parent_id=None,
             after_inject=None, before_clear=None):
         """
-        :arg str component_spec:
-           the context-unique identifier for this component, or the
-           object whose dotted name will serve as the unique ID
+        :arg str component_id:
+           the context-unique identifier for this component
         :keyword str dotted_name:
            an **importable** dotted name
         :keyword str factory_name:
@@ -654,11 +672,10 @@ class Component(Template):
            names **any** member of objects of this component
         :keyword str strategy:
            specifies the component assembly strategy
-        :keyword str parent_spec:
+        :keyword str parent_id:
            specifies the ID of a template or component that describes
            the default dependencies and/or lifecyle methods for this
-           component (or an object whose dotted name serves the same
-           purpose)
+           component
         :keyword str after_inject:
            specifies the name of the method that will be called on
            objects of this component after all of its dependencies have
@@ -681,9 +698,9 @@ class Component(Template):
         name (see :func:`aglyph.resolve_dotted_name`).
 
         .. note::
-           If *dotted_name* is not specified, then :attr:`unique_id`
-           will be used as the component's dotted name. In this case,
-           ``unique_id`` **must** be an importable dotted name.
+           If *dotted_name* is not specified, then *component_id* is
+           used as the component's dotted name and **must** be an
+           importable dotted name.
 
         *factory_name* is the name of a :obj:`callable` member of
         *dotted-name* (i.e. a function, class, staticmethod, or
@@ -725,6 +742,14 @@ class Component(Template):
         *strategy* must be a recognized component assembly strategy, and
         defaults to ``Strategy.PROTOTYPE`` (*"prototype"*) if not
         specified.
+
+        .. versionadded:: 3.0.0
+           When :attr:`member_name` is specified, the strategy **must**
+           be ``Strategy.IMPORTED`` (*"_imported"*). Aglyph will use the
+           "_imported" strategy automatically for components that
+           specify *member_name*; setting strategy to anything other
+           than "_imported" when specifying *member_name* will raise
+           :exc:`AglyphError`.
 
         Please see :data:`Strategy` for a description of the component
         assembly strategies supported by Aglyph.
@@ -789,14 +814,6 @@ class Component(Template):
            component.keywords["strict"] = True
            component.attributes["set_debuglevel"] = 1
 
-        The :meth:`init` and :meth:`set` methods offer a more compact
-        alternative that supports chained calls::
-
-           component = Component("http.client.HTTPConnection")
-           (component.
-               init("ninthtest.info", 80, strict=True).
-               set(set_debuglevel=1))
-
         In Aglyph, a component may:
 
         * be assembled directly by an
@@ -812,12 +829,12 @@ class Component(Template):
         """
         #PYVER: arguments to super() are implicit under Python 3
         super(Component, self).__init__(
-            component_spec, parent_spec=parent_spec,
+            component_id, parent_id=parent_id,
             after_inject=after_inject, before_clear=before_clear)
 
         # if a dotted name is not provided, the unique ID is assumed to be a
         # dotted name
-        self._dotted_name = dotted_name if dotted_name else self._unique_id
+        self._dotted_name = dotted_name if dotted_name else component_id
 
         if factory_name and member_name:
             raise AglyphError(
@@ -825,14 +842,30 @@ class Component(Template):
         self._factory_name = factory_name
         self._member_name = member_name
 
+        # issues/5: default strategy is "_imported" when member_name is
+        # specified, otherwise "prototype"
+        if strategy is None:
+            strategy = Strategy.IMPORTED if member_name else Strategy.PROTOTYPE
+
+        # issues/5: member_name requires "_imported" strategy and vice-versa
+        if member_name and strategy != Strategy.IMPORTED:
+            raise AglyphError(
+                "strategy MUST be %r (implicit) if member_name is specified" %
+                Strategy.IMPORTED)
+        elif strategy == Strategy.IMPORTED and not member_name:
+            raise AglyphError(
+                "strategy %r is only valid if member_name is specified",
+                Strategy.IMPORTED)
+
         if strategy not in Strategy:
             raise ValueError("unrecognized assembly strategy %r" % strategy)
         self._strategy = strategy
 
-        if (strategy == Strategy.PROTOTYPE) and before_clear:
+        if (strategy in [Strategy.PROTOTYPE, Strategy.IMPORTED]
+                and before_clear):
             warnings.warn(
-                "ignoring before_clear=%r for prototype component with ID %r" %
-                    (before_clear, self._unique_id),
+                "ignoring before_clear=%r for %s component with ID %r" %
+                    (before_clear, strategy, self._unique_id),
                 UserWarning)
             self._before_clear = None
 

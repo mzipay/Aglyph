@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -25,7 +25,7 @@
 
 """Test case and runner for :func:`aglyph._identify`."""
 
-__author__ = "Matthew Zipay <mattz@ninthtest.net>"
+__author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
 import logging
 import unittest

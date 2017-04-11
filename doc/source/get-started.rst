@@ -89,12 +89,12 @@ Regardless of installation method, verify that the installation was successful
 by importing the :mod:`aglyph` module from a Python interpreter. For example::
 
    $ python
-   Python 3.5.2 (default, Jun 27 2016, 16:22:09)
+   Python 3.5.3 (default, Feb  2 2017, 09:17:41)
    [GCC 4.2.1 Compatible Apple LLVM 7.0.2 (clang-700.1.81)] on darwin
    Type "help", "copyright", "credits" or "license" for more information.
    >>> import aglyph
    >>> aglyph.__version__
-   '2.1.1'
+   '3.0.0'
 
 2. Download, extract, and run the *movielisterapp* application
 ==============================================================

@@ -24,7 +24,7 @@ Aglyph is a Dependency Injection framework for Python that...
   https://github.com/mzipay/Aglyph/blob/master/resources/aglyph-context.dtd))
 * is non-intrusive:
   * only one dependency ([Autologging](
-    http://ninthtest.net/python-autologging/)) beyond the Python standard
+    http://ninthtest.info/python-autologging/)) beyond the Python standard
     library
   * does not require modification of existing source code (i.e. no
     decorators, specific naming conventions, or any other kind of

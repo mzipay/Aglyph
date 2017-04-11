@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2016 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -25,7 +25,7 @@
 
 """Test case and runner for :class:`aglyph._compat.DoctypeTreeBuilder`."""
 
-__author__ = "Matthew Zipay <mattz@ninthtest.net>"
+__author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
 import logging
 import unittest
@@ -50,8 +50,8 @@ _no_doctype_document = (
 _public_doctype_document = (
     '<?xml version="1.0" encoding="UTF-8" ?>\n'
     '<!DOCTYPE context PUBLIC \n'
-        '"-//NinthTest.net//Aglyph context DTD//EN" \n'
-        '"http://ninthtest.net/aglyph-python-dependency-injection/_downloads/aglyph-context.dtd">\n'
+        '"-//NinthTest.info//Aglyph context DTD//EN" \n'
+        '"http://ninthtest.info/aglyph-python-dependency-injection/_downloads/aglyph-context.dtd">\n'
     '<context id="test" />\n'
 )
 
@@ -93,10 +93,10 @@ class DoctypeTreeBuilderTest(unittest.TestCase):
         ET.XML(_public_doctype_document, parser=self._parser)
         self.assertEqual("context", self._tree_builder.doctype_name)
         self.assertEqual(
-            "-//NinthTest.net//Aglyph context DTD//EN",
+            "-//NinthTest.info//Aglyph context DTD//EN",
             self._tree_builder.doctype_pubid)
         self.assertEqual(
-            "http://ninthtest.net/aglyph-python-dependency-injection/_downloads/aglyph-context.dtd",
+            "http://ninthtest.info/aglyph-python-dependency-injection/_downloads/aglyph-context.dtd",
             self._tree_builder.doctype_system)
 
     def test_with_system_doctype(self):

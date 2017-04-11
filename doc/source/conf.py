@@ -51,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Aglyph'
-copyright = '2006, 2011, 2013-2016 Matthew Zipay'
+copyright = '2006, 2011, 2013-2017 Matthew Zipay'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

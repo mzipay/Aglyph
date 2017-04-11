@@ -794,7 +794,7 @@ class Component(Template):
 
            component = Component("http.client.HTTPConnection")
            (component.
-               init("ninthtest.net", 80, strict=True).
+               init("ninthtest.info", 80, strict=True).
                set(set_debuglevel=1))
 
         In Aglyph, a component may:

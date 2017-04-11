@@ -37,7 +37,7 @@ used by Aglyph.
    .. versionadded:: 3.0.0
 
    Aglyph framework functions and methods are fully traced using
-   `Autologging <http://ninthtest.net/python-autologging/>`_. However,
+   `Autologging <http://ninthtest.info/python-autologging/>`_. However,
    all tracing is **deactivated** by default.
 
    To activate tracing:

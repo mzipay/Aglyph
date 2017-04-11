@@ -98,7 +98,7 @@ class AssemblerTest(unittest.TestCase):
     def test_cant_create_unrecognized_strategy(self):
         context = Context(self.id())
         (context.prototype("unrecognized-strategy").
-            create("test.dummy.ModuleClass").init(None))
+            create("test.dummy.ModuleClass").init(None).register())
         context["unrecognized-strategy"]._strategy = "unrecognized"
         assembler = Assembler(context)
         self.assertRaises(
@@ -109,7 +109,10 @@ class AssemblerTest(unittest.TestCase):
         self.assertEqual(dummy.DEFAULT, obj()) # obj is nested_function
 
     def test_member_name_initializer(self):
-        obj = self._assembler.assemble("member-init")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            obj = self._assembler.assemble("member-init")
+
         self.assertTrue(obj is dummy.MODULE_MEMBER)
 
     def test_component_args_extend_parent_args(self):
@@ -145,7 +148,7 @@ class AssemblerTest(unittest.TestCase):
         context = Context(self.id())
         p = functools.partial(int, "0b1001111", base=2)
         (context.prototype("partial-arg").
-            create("test.dummy.ModuleClass").init(p))
+            create("test.dummy.ModuleClass").init(p).register())
         assembler = Assembler(context)
         obj = assembler.assemble("partial-arg")
         self.assertEqual(79, obj.arg)
@@ -153,10 +156,10 @@ class AssemblerTest(unittest.TestCase):
     def test_partial_keyword_is_resolved(self):
         context = Context(self.id())
         p = functools.partial(int, "0b1001111", base=2)
-        (context.prototype("partial-arg").
-            create("test.dummy.ModuleClass").init(None, keyword=p))
+        (context.prototype("partial-kw").
+            create(dummy.ModuleClass).init(None, keyword=p).register())
         assembler = Assembler(context)
-        obj = assembler.assemble("partial-arg")
+        obj = assembler.assemble("partial-kw")
         self.assertEqual(79, obj.keyword)
 
     def test_value_arg_is_resolved(self):
@@ -188,7 +191,6 @@ class AssemblerTest(unittest.TestCase):
             warnings.simplefilter("always")
             obj = self._assembler.assemble("member-init-with-args")
 
-            self.assertEqual(1, len(w))
             self.assertEqual(
                 "ignoring args and keywords for component "
                     "'member-init-with-args' (uses member_name assembly)",
@@ -201,12 +203,24 @@ class AssemblerTest(unittest.TestCase):
             warnings.simplefilter("always")
             obj = self._assembler.assemble("member-init-with-kwargs")
 
-            self.assertEqual(1, len(w))
             self.assertEqual(
                 "ignoring args and keywords for component "
                     "'member-init-with-kwargs' (uses member_name assembly)",
                 str(w[0].message))
 
+        self.assertTrue(obj is dummy.MODULE_MEMBER)
+
+    def test_member_call_lifecycle_method_issues_warning(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            obj = self._assembler.assemble("member-init")
+
+            self.assertEqual(
+                "component 'member-init' specifies member_name; it is "
+                    "possible that the after_inject "
+                    "MODULE_MEMBER.context_after_inject() method may be "
+                    "called MULTIPLE times on %r" % obj,
+                str(w[0].message))
         self.assertTrue(obj is dummy.MODULE_MEMBER)
 
 

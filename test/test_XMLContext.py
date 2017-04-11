@@ -109,7 +109,7 @@ class XMLContextTest(_BaseContextTest):
                 '<template />'
             '</context>'
         )
-        e_expected = AglyphError(
+        e_expected = ValueError(
             "Template unique ID must not be None or empty")
         assertRaisesWithMessage(self, e_expected, XMLContext, stream)
 

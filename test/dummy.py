@@ -54,61 +54,31 @@ RAISE = object()
 #PYVER: extending object is implicit in Python >= 3.0
 class _LifecycleMethodsMixin(object):
 
-    def reset_lifecycle_flags(self):
-        self.called_context_after_inject = False
-        self.called_template_after_inject = False
-        self.called_component_after_inject = False
-        self.called_component_before_clear = False
-        self.called_template_before_clear = False
-        self.called_context_before_clear = False
+    def reset_lifecycle_counts(self):
+        self.called_context_after_inject = 0
+        self.called_template_after_inject = 0
+        self.called_component_after_inject = 0
+        self.called_component_before_clear = 0
+        self.called_template_before_clear = 0
+        self.called_context_before_clear = 0
 
     def context_after_inject(self):
-        if not self.called_context_after_inject:
-            self.called_context_after_inject = True
-        else:
-            raise Exception(
-                "already called %s.context_after_inject()" %
-                    self.__class__.__name__)
+        self.called_context_after_inject += 1
 
     def template_after_inject(self):
-        if not self.called_template_after_inject:
-            self.called_template_after_inject = True
-        else:
-            raise Exception(
-                "already called %s.template_after_inject()" %
-                    self.__class__.__name__)
+        self.called_template_after_inject += 1
 
     def component_after_inject(self):
-        if not self.called_component_after_inject:
-            self.called_component_after_inject = True
-        else:
-            raise Exception(
-                "already called %s.component_after_inject()" %
-                    self.__class__.__name__)
+        self.called_component_after_inject += 1
 
     def component_before_clear(self):
-        if not self.called_component_before_clear:
-            self.called_component_before_clear = True
-        else:
-            raise Exception(
-                "already called %s.component_before_clear()" %
-                    self.__class__.__name__)
+        self.called_component_before_clear += 1
 
     def template_before_clear(self):
-        if not self.called_template_before_clear:
-            self.called_template_before_clear = True
-        else:
-            raise Exception(
-                "already called %s.template_before_clear()" %
-                    self.__class__.__name__)
+        self.called_template_before_clear += 1
 
     def context_before_clear(self):
-        if not self.called_context_before_clear:
-            self.called_context_before_clear = True
-        else:
-            raise Exception(
-                "already called %s.context_before_clear()" %
-                    self.__class__.__name__)
+        self.called_context_before_clear += 1
 
 
 class ModuleClass(_LifecycleMethodsMixin):
@@ -129,7 +99,7 @@ class ModuleClass(_LifecycleMethodsMixin):
             self.attr = DEFAULT
             self._prop = DEFAULT
             self.__value = DEFAULT
-            self.reset_lifecycle_flags()
+            self.reset_lifecycle_counts()
 
         @property
         def prop(self):
@@ -163,7 +133,7 @@ class ModuleClass(_LifecycleMethodsMixin):
         self.attr = DEFAULT
         self._prop = DEFAULT
         self.__value = DEFAULT
-        self.reset_lifecycle_flags()
+        self.reset_lifecycle_counts()
 
     @property
     def prop(self):

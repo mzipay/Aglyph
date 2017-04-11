@@ -275,6 +275,12 @@ class Assembler(object):
         self.__log.info("created %r", component)
         return obj
 
+    # issues/5: support "_imported" strategy when using member_name
+    # (objects of these components are created like prototypes though they
+    # exhibit singleton behavior as long as the containing module is
+    # referenced in sys.modules)
+    _create__imported = _create_prototype
+
     def _create_singleton(self, component):
         """Return the singleton object for *component*.
 
@@ -684,20 +690,41 @@ class Assembler(object):
            the component unique ID for *obj*
 
         """
+        component = self._context[component_id]
+
         lifecycle_method_names = self._get_lifecycle_method_names(
-            lifecycle_state, component_id)
+            lifecycle_state, component)
+
         if lifecycle_method_names:
             self.__log.debug(
                 "considering %s method names %r for %r %s",
                 lifecycle_state, lifecycle_method_names, component_id, obj)
+
             # now call the first lifecycle method that is defined for obj
             for method_name in lifecycle_method_names:
                 obj_lifecycle_method = getattr(obj, method_name, None)
                 if obj_lifecycle_method is not None:
+                    # issues/5: if the component specifies member_name, it is
+                    # possible that an after_inject method could be called
+                    # multiple times on the same object
+                    if component.member_name:
+                        msg = (
+                            "component %r specifies member_name; it is "
+                                "possible that the %s %s.%s() method may be "
+                                "called MULTIPLE times on %r")
+                        self.__log.warning(
+                            msg, component_id, lifecycle_state,
+                            component.member_name, method_name, obj)
+                        warnings.warn(
+                            msg % (
+                                component_id, lifecycle_state,
+                                component.member_name, method_name, obj),
+                            RuntimeWarning)
+
                     try:
                         obj_lifecycle_method()
                     except Exception as e:
-                        msg = "ignoring %s raise from %r"
+                        msg = "ignoring %s raised from %r"
                         self.__log.exception(
                             msg, e.__class__.__name__, obj_lifecycle_method)
                         warnings.warn(
@@ -726,20 +753,19 @@ class Assembler(object):
                 "no %s lifecycle methods specified for %s %r",
                 lifecycle_state, obj, component_id)
 
-    def _get_lifecycle_method_names(self, lifecycle_state, component_id):
+    def _get_lifecycle_method_names(self, lifecycle_state, component):
         """Determine the preferred-order list of all lifecycle method
-        names that may be applicable for an object of *component_id*.
+        names that may be applicable for an object of *component*.
 
         :arg str lifecycle_state:
            a lifecycle state identifier recognized by Aglyph
-        :arg str component_id:
-           the component unique ID
+        :arg aglyph.component.Component component:
+           the component
 
         """
         lifecycle_method_names = []
 
         # 1. Component.<lifecycle_state>
-        component = self._context[component_id]
         method_name = getattr(component, lifecycle_state)
         if method_name is not None:
             lifecycle_method_names.append(method_name)

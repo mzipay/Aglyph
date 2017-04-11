@@ -47,6 +47,7 @@ and then uses the API classes mentioned above to populate the context.
 
 __author__ = "Matthew Zipay <mattz@ninthtest.net>"
 
+from collections import OrderedDict
 import logging
 import sys
 import xml.etree.ElementTree as ET
@@ -79,158 +80,155 @@ _log = logging.getLogger(__name__)
 @logged
 class _ContextBuilder(object):
 
-    def component(self,
-            component_spec, parent_spec=None, strategy="prototype"):
-        """Create, :meth:`register`, and return a :class:`Component`
-        builder for *component_spec*.
+    def component(self, component_id_spec, parent_id_spec=None):
+        """Return a fluent :class:`Component` builder for
+        *component_spec*.
 
-        :arg component_spec:
+        :arg component_id_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_spec:
+        :keyword parent_id_spec:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
-        :keyword str strategy:
-           specifies the component assembly strategy
 
-        .. note::
-           This method is part of the Aglyph "fluent configuration" API.
-           Callers should prefer calling one of the :meth:`prototype`,
-           :meth:`singleton`, :meth:`borg`, or :meth:`weakref` methods
-           directly; this method is exposed primarily as a convenience
-           for scripted configuration.
+        .. versionadded:: 3.0.0
+           This method is part of the Aglyph "fluent context" API.
 
         """
-        component = Component(
-            component_spec, parent_spec=parent_spec, strategy=strategy)
-        self.register(component)
-        return _ComponentBuilder(component)
+        return _ComponentBuilder(
+            self, component_id_spec, parent_id_spec=parent_id_spec)
 
-    def prototype(self, component_spec, parent_spec=None):
-        """Create, :meth:`register`, and return a
-        :data:`prototype <aglyph.component.Strategy>` :class:`Component`
-        builder for *component_spec*.
+    def prototype(self, component_spec, parent_id_spec=None):
+        """Return a :data:`prototype <aglyph.component.Strategy>`
+        :class:`Component` builder for a component identified by
+        *component_spec*.
 
         :arg component_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_spec:
+        :keyword parent_id_spec:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
 
-        .. note::
-           This method is part of the Aglyph "fluent configuration" API.
+        .. versionadded:: 3.0.0
+           This method is part of the Aglyph "fluent context" API.
 
         """
         return self.component(
-            component_spec, parent_spec=parent_spec, strategy="prototype")
+            component_spec, parent_id_spec=parent_id_spec).create(
+                strategy="prototype")
 
-    def singleton(self, component_spec, parent_spec=None):
-        """Create, :meth:`register`, and return a
-        :data:`singleton <aglyph.component.Strategy>` :class:`Component`
-        builder for *component_spec*.
-
-        :arg component_spec:
-           a context-unique identifier for this component; or the object
-           whose dotted name will identify this component
-        :keyword parent_spec:
-           the context-unique identifier for this component's parent
-           template or component definition; or the object whose dotted
-           name identifies this component's parent definition
-
-        .. note::
-           This method is part of the Aglyph "fluent configuration" API.
-
-        """
-        return self.component(
-            component_spec, parent_spec=parent_spec, strategy="singleton")
-
-    def borg(self, component_spec, parent_spec=None):
-        """Create, :meth:`register`, and return a
-        :data:`borg <aglyph.component.Strategy>` :class:`Component`
-        builder for *component_spec*.
+    def singleton(self, component_spec, parent_id_spec=None):
+        """Return a :data:`singleton <aglyph.component.Strategy>`
+        :class:`Component` builder for a component identified by
+        *component_spec*.
 
         :arg component_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_spec:
+        :keyword parent_id_spec:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
 
-        .. note::
-           This method is part of the Aglyph "fluent configuration" API.
+        .. versionadded:: 3.0.0
+           This method is part of the Aglyph "fluent context" API.
 
         """
         return self.component(
-            component_spec, parent_spec=parent_spec, strategy="borg")
+            component_spec, parent_id_spec=parent_id_spec).create(
+                strategy="singleton")
 
-    def weakref(self, component_spec, parent_spec=None):
-        """Create, :meth:`register`, and return a
-        :data:`weakref <aglyph.component.Strategy>` :class:`Component`
-        builder for *component_spec*.
+    def borg(self, component_spec, parent_id_spec=None):
+        """Return a :data:`borg <aglyph.component.Strategy>`
+        :class:`Component` builder for a component identified by
+        *component_spec*.
 
         :arg component_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_spec:
+        :keyword parent_id_spec:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
 
-        .. note::
-           This method is part of the Aglyph "fluent configuration" API.
+        .. versionadded:: 3.0.0
+           This method is part of the Aglyph "fluent context" API.
 
         """
         return self.component(
-            component_spec, parent_spec=parent_spec, strategy="weakref")
+            component_spec, parent_id_spec=parent_id_spec).create(
+                strategy="borg")
 
-    def template(self, template_spec, parent_spec=None):
-        """Create, :meth:`register`, and return a :class:`Template`
-        builder for a template identified by *template_spec*.
+    def weakref(self, component_spec, parent_id_spec=None):
+        """Return a :data:`weakref <aglyph.component.Strategy>`
+        :class:`Component` builder for a component identified by
+        *component_spec*.
 
-        :arg template_spec:
+        :arg component_spec:
+           a context-unique identifier for this component; or the object
+           whose dotted name will identify this component
+        :keyword parent_id_spec:
+           the context-unique identifier for this component's parent
+           template or component definition; or the object whose dotted
+           name identifies this component's parent definition
+
+        .. versionadded:: 3.0.0
+           This method is part of the Aglyph "fluent context" API.
+
+        """
+        return self.component(
+            component_spec, parent_id_spec=parent_id_spec).create(
+                strategy="weakref")
+
+    def template(self, template_id_spec, parent_id_spec=None):
+        """Return a :class:`Template` builder for a template identified
+        by *template_spec*.
+
+        :arg template_id_spec:
            a context-unique identifier for this template; or the object
            whose dotted name will identify this template
-        :keyword parent_spec:
+        :keyword parent_id_spec:
            the context-unique identifier for this template's parent
            template or component definition; or the object whose dotted
            name identifies this template's parent definition
 
-        .. note::
-           This method is part of the Aglyph "fluent configuration" API.
+        .. versionadded:: 3.0.0
+           This method is part of the Aglyph "fluent context" API.
 
         """
-        template = Template(template_spec, parent_spec=parent_spec)
-        self.register(template)
-        return _TemplateBuilder(template)
+        return _TemplateBuilder(
+            self, template_id_spec, parent_id_spec=parent_id_spec)
 
 
 @traced
 @logged
-class _CreationBuilder(object):
+class _CreationBuilderMixin(object):
+
+    __slots__ = []
 
     def create(
-            self, dotted_name_spec=None, factory_name=None, member_name=None):
-        # do not overwrite the dotted_name if one was not specified explicitly
+            self, dotted_name_spec=None, factory_name=None, member_name=None,
+            strategy=None):
+        # do not explicitly assign None values
         if dotted_name_spec is not None:
-            self._depsupport._dotted_name = _identify(dotted_name_spec)
-
-        # factory_name and member_name are mutually exclusive
-        if factory_name is not None and member_name is not None:
-            raise AglyphError(
-                "only one of factory_name or member_name may be specified")
-        self._depsupport._factory_name = factory_name
-        self._depsupport._member_name = member_name
-
+            self._dotted_name_spec = dotted_name_spec
+        if factory_name is not None:
+            self._factory_name = factory_name
+        if member_name is not None:
+            self._member_name = member_name
+        if strategy is not None:
+            self._strategy = strategy
         return self
 
 
 @traced
 @logged
-class _InjectionBuilder(object):
+class _InjectionBuilderMixin(object):
+
+    __slots__ = []
 
     def init(self, *args, **keywords):
         """Configure the base initialization arguments (positional and
@@ -248,56 +246,124 @@ class _InjectionBuilder(object):
            extended, and the dictionary of keyword arguments is updated.
 
         """
-        self._depsupport.args.extend(args)
-        self._depsupport.keywords.update(keywords)
+        self._args.extend(args)
+        self._keywords.update(keywords)
         return self
 
-    def set(self, **attributes):
-        self._depsupport.attributes.update(attributes)
+    def set(self, *pairs, **attributes):
+        self._attributes.update(*pairs, **attributes)
         return self
 
 
 @traced
 @logged
-class _LifecycleBuilder(object):
+class _LifecycleBuilderMixin(object):
+
+    __slots__ = []
 
     def call(self, after_inject=None, before_clear=None):
-        self._depsupport._after_inject = after_inject
-        self._depsupport._before_clear = before_clear
-        # terminator
+        # do not explicitly assign None values
+        if after_inject is not None:
+            self._after_inject = after_inject
+        if before_clear is not None:
+            self._before_clear = before_clear
+        return self
 
 
 @traced
 @logged
-class _TemplateBuilder(_InjectionBuilder, _LifecycleBuilder):
+class _RegistrationMixin(object):
 
-    def __init__(self, template):
-        """
-        :arg aglyph.component.Template template:
-           the template being defined
+    __slots__ = []
 
-        Instances of ``_TemplateBuilder`` are returned by
-        :meth:`Context.template`.
+    def register(self):
+        definition = self._init_definition()
 
-        """
-        self._depsupport = template
+        definition._args = self._args
+        definition._keywords = self._keywords
+        definition._attributes = self._attributes
+
+        self._context.register(definition)
+        # implicit return None terminates this fluent call sequence
+
+    def _init_definition(self):
+        raise NotImplementedError()
 
 
 @traced
 @logged
-class _ComponentBuilder(
-        _CreationBuilder, _InjectionBuilder, _LifecycleBuilder):
+class _TemplateBuilder(
+        _InjectionBuilderMixin, _LifecycleBuilderMixin, _RegistrationMixin):
+    """Fluent context builder for :class:`Template` definitions."""
 
-    def __init__(self, component):
-        """
-        :arg aglyph.component.Component component:
-           the component being defined
+    __slots__ = [
+        "_context",
+        "_unique_id_spec",
+        "_parent_id_spec",
+        "_args",
+        "_keywords",
+        "_attributes",
+        "_after_inject",
+        "_before_clear",
+    ]
 
-        Instances of ``_ComponentBuilder`` are returned by
-        :meth:`Context.component`.
+    def __init__(self, context, unique_id_spec, parent_id_spec=None):
+        self._context = context
+        self._unique_id_spec = unique_id_spec
+        self._parent_id_spec = parent_id_spec
+        self._args = []
+        self._keywords = {}
+        self._attributes = OrderedDict()
+        self._after_inject = None
+        self._before_clear = None
 
-        """
-        self._depsupport = component
+    def _init_definition(self):
+        return Template(
+            _identify(self._unique_id_spec),
+            parent_id=
+                _identify(self._parent_id_spec)
+                if self._parent_id_spec is not None
+                else None,
+            after_inject=self._after_inject,
+            before_clear=self._before_clear)
+
+
+@traced
+@logged
+class _ComponentBuilder(_CreationBuilderMixin, _TemplateBuilder):
+    """Fluent context builder for :class:`Component` definitions."""
+
+    __slots__ = [
+        "_dotted_name_spec",
+        "_factory_name",
+        "_member_name",
+        "_strategy",
+    ]
+
+    def __init__(self, context, unique_id_spec, parent_id_spec=None):
+        _TemplateBuilder.__init__(
+            self, context, unique_id_spec, parent_id_spec=parent_id_spec)
+        self._dotted_name_spec = None
+        self._factory_name = None
+        self._member_name = None
+        self._strategy = None
+
+    def _init_definition(self):
+        return Component(
+            _identify(self._unique_id_spec),
+            dotted_name=
+                _identify(self._dotted_name_spec)
+                if self._dotted_name_spec is not None
+                else None,
+            factory_name=self._factory_name,
+            member_name=self._member_name,
+            strategy=self._strategy,
+            parent_id=
+                _identify(self._parent_id_spec)
+                if self._parent_id_spec is not None
+                else None,
+            after_inject=self._after_inject,
+            before_clear=self._before_clear)
 
 
 @traced
@@ -355,8 +421,10 @@ class Context(dict, _ContextBuilder):
 
         .. warning::
            This property is not applicable to "prototype" component
-           objects, and is **not guaranteed** to be called for "weakref"
-           component objects.
+           objects, or to component objects acquired via
+           :attr:`Component.member_name`.
+           The named method is **not guaranteed** to be called for
+           "weakref" component objects.
 
         """
         return self._before_clear
@@ -552,7 +620,7 @@ class XMLContext(Context):
         """
         return Template(
             template_element.get("id"),
-            parent_spec=template_element.get("parent-id"),
+            parent_id=template_element.get("parent-id"),
             after_inject=template_element.get("after-inject"),
             before_clear=template_element.get("before-clear")
         )
@@ -573,8 +641,8 @@ class XMLContext(Context):
             dotted_name=component_element.get("dotted-name"),
             factory_name=component_element.get("factory-name"),
             member_name=component_element.get("member-name"),
-            strategy=component_element.get("strategy", "prototype"),
-            parent_spec=component_element.get("parent-id"),
+            strategy=component_element.get("strategy"),
+            parent_id=component_element.get("parent-id"),
             after_inject=component_element.get("after-inject"),
             before_clear=component_element.get("before-clear")
         )

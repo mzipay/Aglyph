@@ -31,11 +31,11 @@ module.
 from __future__ import absolute_import
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
-__version__ = "2.1.0"
 
 import logging
 import unittest
 
+from aglyph import __version__
 from aglyph.assembler import Assembler
 from aglyph.binder import Binder
 from aglyph.context import XMLContext, Reference as ref

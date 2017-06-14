@@ -26,11 +26,11 @@
 """Master test case and runner for Aglyph integrations."""
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
-__version__ = "2.1.0"
 
 import logging
 import unittest
 
+from aglyph import __version__
 from test import enable_debug_logging
 
 # don't use __name__ here; can be run as "__main__"

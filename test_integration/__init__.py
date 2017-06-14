@@ -28,11 +28,12 @@
 """
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
-__version__ = "2.1.0"
 
 import inspect
 import logging
 import os
+
+from aglyph import __version__
 
 __all__ = [
     "find_basename",

@@ -212,7 +212,7 @@ class _CreationBuilderMixin(object):
     def create(
             self, dotted_name_spec=None, factory_name=None, member_name=None,
             strategy=None):
-        # do not explicitly assign None values
+        # do not explicitly assign None values; calls can be chained
         if dotted_name_spec is not None:
             self._dotted_name_spec = dotted_name_spec
         if factory_name is not None:
@@ -251,7 +251,7 @@ class _InjectionBuilderMixin(object):
         return self
 
     def set(self, *pairs, **attributes):
-        self._attributes.update(*pairs, **attributes)
+        self._attributes.update(pairs, **attributes)
         return self
 
 
@@ -262,7 +262,7 @@ class _LifecycleBuilderMixin(object):
     __slots__ = []
 
     def call(self, after_inject=None, before_clear=None):
-        # do not explicitly assign None values
+        # do not explicitly assign None values; calls can be chained
         if after_inject is not None:
             self._after_inject = after_inject
         if before_clear is not None:

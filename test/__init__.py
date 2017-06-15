@@ -116,6 +116,10 @@ def suite():
         test_Template,
         test_Component,
         # aglyph.context
+        test_CreationBuilderMixin,
+        test_InjectionBuilderMixin,
+        test_LifecycleBuilderMixin,
+        test_RegistrationMixin,
         test_Context,
         test_XMLContext,
         # aglyph.assembler
@@ -146,6 +150,10 @@ def suite():
     suite.addTest(test_Template.suite())
     suite.addTest(test_Component.suite())
     # aglyph.context
+    suite.addTest(test_CreationBuilderMixin.suite())
+    suite.addTest(test_InjectionBuilderMixin.suite())
+    suite.addTest(test_LifecycleBuilderMixin.suite())
+    suite.addTest(test_RegistrationMixin.suite())
     suite.addTest(test_Context.suite())
     suite.addTest(test_XMLContext.suite())
     # aglyph.assembler

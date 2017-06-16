@@ -36,6 +36,7 @@ from aglyph.component import Component, Template
 from aglyph.context import _ComponentBuilder, _TemplateBuilder, Context
 
 from test import assertRaisesWithMessage, dummy
+from test.test_ContextBuilder import ContextBuilderTest
 
 __all__ = [
     "ContextTest",
@@ -46,7 +47,7 @@ __all__ = [
 _log = logging.getLogger("test.test_Context")
 
 
-class _BaseContextTest(unittest.TestCase):
+class _BaseContextTest(ContextBuilderTest):
 
     def test_context_id_cannot_be_none(self):
         e_expected = AglyphError(
@@ -61,120 +62,10 @@ class _BaseContextTest(unittest.TestCase):
                 name_of(self._context.__class__))
         assertRaisesWithMessage(self, e_expected, self._context.__class__, "")
 
-    def test_component_returns_component_builder(self):
-        builder = self._context.component("test")
-        self.assertTrue(type(builder) is _ComponentBuilder)
-
-    def test_component_registers_component(self):
-        self._context.component("test").register()
-        self.assertTrue(type(self._context["test"]) is Component)
-
-    def test_component_registers_prototype_by_default(self):
-        self._context.component("test").register()
-        self.assertEqual("prototype", self._context["test"].strategy)
-
-    def test_component_can_register_prototype(self):
-        self._context.component("test").create(strategy="prototype").register()
-        self.assertEqual("prototype", self._context["test"].strategy)
-
-    def test_component_can_register_singleton(self):
-        self._context.component("test").create(strategy="singleton").register()
-        self.assertEqual("singleton", self._context["test"].strategy)
-
-    def test_component_can_register_borg(self):
-        self._context.component("test").create(strategy="borg").register()
-        self.assertEqual("borg", self._context["test"].strategy)
-
-    def test_component_can_register_weakref(self):
-        self._context.component("test").create(strategy="weakref").register()
-        self.assertEqual("weakref", self._context["test"].strategy)
-
-    def test_component_register_fails_on_nonimportable_object(self):
-        e_expected = AglyphError(
-            "%r does not have an importable dotted name" %
-                dummy.ModuleClass.NestedClass)
-        builder = self._context.component(dummy.ModuleClass.NestedClass)
-        assertRaisesWithMessage(self, e_expected, builder.register)
-
-    def test_component_register_identifies_dotted_name_from_object(self):
-        self._context.component(dummy.ModuleClass).register()
-        self.assertTrue("test.dummy.ModuleClass" in self._context)
-
-    def test_prototype_returns_component_builder(self):
-        builder = self._context.prototype("test")
-        self.assertTrue(type(builder) is _ComponentBuilder)
-
-    def test_prototype_registers_component(self):
-        self._context.prototype("test").register()
-        self.assertTrue(type(self._context["test"]) is Component)
-
-    def test_prototype_register_identifies_dotted_name_from_object(self):
-        self._context.prototype(dummy.ModuleClass).register()
-        self.assertTrue("test.dummy.ModuleClass" in self._context)
-
-    def test_singleton_returns_component_builder(self):
-        builder = self._context.singleton("test")
-        self.assertTrue(type(builder) is _ComponentBuilder)
-
-    def test_singleton_registers_component(self):
-        self._context.singleton("test").register()
-        self.assertTrue(type(self._context["test"]) is Component)
-
-    def test_singleton_register_identifies_dotted_name_from_object(self):
-        self._context.singleton(dummy.ModuleClass).register()
-        self.assertTrue("test.dummy.ModuleClass" in self._context)
-
-    def test_borg_returns_component_builder(self):
-        builder = self._context.borg("test")
-        self.assertTrue(type(builder) is _ComponentBuilder)
-
-    def test_borg_registers_component(self):
-        self._context.borg("test").register()
-        self.assertTrue(type(self._context["test"]) is Component)
-
-    def test_borg_register_identifies_dotted_name_from_object(self):
-        component = self._context.borg(dummy.ModuleClass).register()
-        self.assertTrue("test.dummy.ModuleClass" in self._context)
-
-    def test_weakref_returns_component_builder(self):
-        builder = self._context.weakref("test")
-        self.assertTrue(type(builder) is _ComponentBuilder)
-
-    def test_weakref_registers_component(self):
-        self._context.weakref("test").register()
-        self.assertTrue(type(self._context["test"]) is Component)
-
-    def test_weakref_builds_dotted_name_from_object(self):
-        self._context.weakref(dummy.ModuleClass).register()
-        self.assertTrue("test.dummy.ModuleClass" in self._context)
-
-    def test_template_returns_template_builder(self):
-        builder = self._context.template("test")
-        self.assertTrue(type(builder) is _TemplateBuilder)
-
-    def test_template_registers_template(self):
-        self._context.template("test").register()
-        self.assertTrue(type(self._context["test"]) is Template)
-
-    def test_template_register_fails_on_nonimportable_object(self):
-        e_expected = AglyphError(
-            "%r does not have an importable dotted name" %
-                dummy.ModuleClass.NestedClass)
-        builder = self._context.template(dummy.ModuleClass.NestedClass)
-        assertRaisesWithMessage(self, e_expected, builder.register)
-
-    def test_template_register_identifies_dotted_name_from_object(self):
-        self._context.template(dummy.ModuleClass).register()
-        self.assertTrue("test.dummy.ModuleClass" in self._context)
-
-    def test_register_fails_if_id_already_registered(self):
-        test_component = Component("test")
-        self._context.register(test_component)
-        e_expected = AglyphError(
-            "Component with ID %r already mapped in %s" %
-                ("test", self._context))
-        assertRaisesWithMessage(
-            self, e_expected, self._context.register, test_component)
+    def test_register_rejects_duplicate_id(self):
+        self._context["test"] = Component("test")
+        self.assertRaises(
+            AglyphError, self._context.register, Component("test"))
 
     def test_get_component_returns_component(self):
         test_component = Component("test")

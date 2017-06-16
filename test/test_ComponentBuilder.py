@@ -57,10 +57,40 @@ class ComponentBuilderTest(TemplateBuilderTest):
         cls._definition_type = Component
 
     def test_register_dotted_name_from_object(self):
-        context = _MockContext()
-        (self._builder_type(context, "test").
-            create(dummy.ModuleClass).register())
-        self.assertEqual("test.dummy.ModuleClass", context["test"].dotted_name)
+        self._builder.create(
+            dotted_name_spec=dummy.factory_function).register()
+        self.assertEqual(
+            "test.dummy.factory_function",
+            self._builder._context["test.dummy.ModuleClass"].dotted_name)
+
+    def test_register_prototype_by_default(self):
+        self._builder.register()
+        self.assertEqual(
+            "prototype",
+            self._builder._context["test.dummy.ModuleClass"].strategy)
+
+    def test_register_prototype_explicit(self):
+        self._builder.create(strategy="prototype").register()
+        self.assertEqual(
+            "prototype",
+            self._builder._context["test.dummy.ModuleClass"].strategy)
+
+    def test_register_singleton(self):
+        self._builder.create(strategy="singleton").register()
+        self.assertEqual(
+            "singleton",
+            self._builder._context["test.dummy.ModuleClass"].strategy)
+
+    def test_register_borg(self):
+        self._builder.create(strategy="borg").register()
+        self.assertEqual(
+            "borg", self._builder._context["test.dummy.ModuleClass"].strategy)
+
+    def test_register_weakref(self):
+        self._builder.create(strategy="weakref").register()
+        self.assertEqual(
+            "weakref",
+            self._builder._context["test.dummy.ModuleClass"].strategy)
 
 
 def suite():

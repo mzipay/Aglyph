@@ -64,28 +64,31 @@ class _MockContext(dict):
 class _MockRegistrationMixin(_RegistrationMixin):
 
     __slots__ = [
-        "definition_id",
         "_context",
+        "_unique_id_spec",
         "_args",
         "_keywords",
         "_attributes",
     ]
 
     def __init__(self, context):
-        self.definition_id = None
         self._context = context
+        self._unique_id_spec = None
         self._args = []
         self._keywords = {}
         self._attributes = OrderedDict()
 
     def _init_definition(self):
-         return _MockComponent(self.definition_id)
+         return _MockComponent(self._unique_id_spec)
 
 
-class _BaseRegistrationMixinTest(unittest.TestCase):
+class RegistrationMixinTest(unittest.TestCase):
+
+    def setUp(self):
+        self._builder = _MockRegistrationMixin(_MockContext())
 
     def test_definition_is_registered_in_context(self):
-        self._builder.definition_id = "test"
+        self._builder._unique_id_spec = "test"
         self._builder._args.append("test")
         self._builder._keywords["keyword"] = "test"
         self._builder._attributes["prop"] = "test"
@@ -99,12 +102,6 @@ class _BaseRegistrationMixinTest(unittest.TestCase):
 
     def test_register_terminates_fluent_call_sequence(self):
         self.assertIsNone(self._builder.register())
-
-
-class RegistrationMixinTest(_BaseRegistrationMixinTest):
-
-    def setUp(self):
-        self._builder = _MockRegistrationMixin(_MockContext())
 
 
 def suite():

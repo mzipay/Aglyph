@@ -23,8 +23,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-"""Test case and runner for
-:class:`aglyph.context._LifecycleBuilderMixin`.
+"""Test case and runner for :class:`aglyph.context._ComponentBuilder`.
 
 """
 
@@ -34,53 +33,38 @@ import logging
 import unittest
 
 from aglyph import __version__
-from aglyph.context import _LifecycleBuilderMixin
+from aglyph.component import Component
+from aglyph.context import _ComponentBuilder
+
+from test import dummy
+from test.test_RegistrationMixin import _MockContext
+from test.test_TemplateBuilder import TemplateBuilderTest
 
 __all__ = [
-    "LifecycleBuilderMixinTest",
+    "ComponentBuilderTest",
     "suite"
 ]
 
 # don't use __name__ here; can be run as "__main__"
-_log = logging.getLogger("test.test_LifecycleBuilderMixin")
+_log = logging.getLogger("test.test_ComponentBuilder")
 
 
-# Need to define the slots in order to test
-class _MockLifecycleBuilderMixin(_LifecycleBuilderMixin):
+class ComponentBuilderTest(TemplateBuilderTest):
 
-    __slots__ = [
-        "_after_inject",
-        "_before_clear",
-    ]
+    @classmethod
+    def setUpClass(cls):
+        cls._builder_type = _ComponentBuilder
+        cls._definition_type = Component
 
-    def __init__(self):
-        self._after_inject = None
-        self._before_clear = None
-
-
-class LifecycleBuilderMixinTest(unittest.TestCase):
-
-    def setUp(self):
-        self._builder = _MockLifecycleBuilderMixin()
-
-    def test_can_set_attributes_with_one_call(self):
-        self._builder.call(
-            after_inject="after_inject", before_clear="before_clear")
-        self.assertEqual("after_inject", self._builder._after_inject)
-        self.assertEqual("before_clear", self._builder._before_clear)
-
-    def test_can_set_attributes_with_chained_calls(self):
-        # NOTE: this also indirectly asserts that None default values do not
-        # "overwrite" previously-specified, non-None values in chained calls
-        (self._builder.
-            call(after_inject="after_inject").
-            call(before_clear="before_clear"))
-        self.assertEqual("after_inject", self._builder._after_inject)
-        self.assertEqual("before_clear", self._builder._before_clear)
+    def test_register_dotted_name_from_object(self):
+        context = _MockContext()
+        (self._builder_type(context, "test").
+            create(dummy.ModuleClass).register())
+        self.assertEqual("test.dummy.ModuleClass", context["test"].dotted_name)
 
 
 def suite():
-    return unittest.makeSuite(LifecycleBuilderMixinTest)
+    return unittest.makeSuite(ComponentBuilderTest)
 
 
 if __name__ == "__main__":

@@ -61,7 +61,10 @@ class _MockInjectionBuilderMixin(_InjectionBuilderMixin):
         self._attributes = OrderedDict()
 
 
-class _BaseInjectionBuilderMixinTest(unittest.TestCase):
+class InjectionBuilderMixinTest(unittest.TestCase):
+
+    def setUp(self):
+        self._builder = _MockInjectionBuilderMixin()
 
     def test_can_set_init_attributes_with_one_call(self):
         self._builder.init("arg", keyword="keyword")
@@ -134,12 +137,6 @@ class _BaseInjectionBuilderMixinTest(unittest.TestCase):
         self.assertEqual({}, self._builder._keywords)
         self.assertEqual(
             {"prop": "value3", "attr": "value2"}, self._builder._attributes)
-
-
-class InjectionBuilderMixinTest(_BaseInjectionBuilderMixinTest):
-
-    def setUp(self):
-        self._builder = _MockInjectionBuilderMixin()
 
 
 def suite():

@@ -62,7 +62,10 @@ class _MockCreationBuilderMixin(_CreationBuilderMixin):
         self._strategy = None
 
 
-class _BaseCreationBuilderMixinTest(unittest.TestCase):
+class CreationBuilderMixinTest(unittest.TestCase):
+
+    def setUp(self):
+        self._builder = _MockCreationBuilderMixin()
 
     def test_can_set_attributes_in_one_call(self):
         self._builder.create(
@@ -108,12 +111,6 @@ class _BaseCreationBuilderMixinTest(unittest.TestCase):
         self.assertEqual("factory_function", self._builder._factory_name)
         self.assertIsNone(self._builder._member_name)
         self.assertEqual("prototype", self._builder._strategy)
-
-
-class CreationBuilderMixinTest(_BaseCreationBuilderMixinTest):
-
-    def setUp(self):
-        self._builder = _MockCreationBuilderMixin()
 
 
 def suite():

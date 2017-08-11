@@ -27,7 +27,9 @@
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
+from ast import literal_eval
 from collections import OrderedDict
+from functools import partial
 import logging
 import sys
 import unittest
@@ -281,6 +283,30 @@ class XMLContextTest(_BaseContextTest):
         self.assertEqual("ref3", template.keywords["kw1"])
         self.assertTrue(type(template.keywords["kw2"]) is Reference)
         self.assertEqual("ref4", template.keywords["kw2"])
+
+    def test_arg_eval(self):
+        stream = _context_as_stream((
+            '<context id="test">'
+                '<template id="%s">'
+                    '<init>'
+                        '<arg>'
+                            '<eval>{&quot;primes&quot;: [2, 3, 5, 7]}</eval>'
+                        '</arg>'
+                        '<arg keyword="kw">'
+                            '<eval>[None, True, False]</eval>'
+                        '</arg>'
+                    '</init>'
+                '</template>'
+            '</context>'
+        ) % self.id())
+        context = XMLContext(stream)
+        template = context[self.id()]
+        self.assertTrue(type(template.args[0]) is partial)
+        self.assertTrue(template.args[0].func is literal_eval)
+        self.assertEqual({"primes": [2, 3, 5, 7]}, template.args[0]())
+        self.assertTrue(type(template.keywords["kw"]) is partial)
+        self.assertTrue(template.keywords["kw"].func is literal_eval)
+        self.assertEqual([None, True, False], template.keywords["kw"]())
 
     def test_parse_False(self):
         stream = _context_as_stream((
@@ -554,6 +580,33 @@ class XMLContextTest(_BaseContextTest):
         # no Evaluator for empty tuples (they're immutable)
         self.assertEqual([tuple()], context[self.id()].args)
 
+    def test_parse_tuple_nested_eval(self):
+        stream = _context_as_stream((
+            '<context id="test">'
+                '<template id="%s">'
+                    '<init>'
+                        '<arg>'
+                            '<tuple>'
+                                '<eval>79</eval>'
+                                '<eval>True</eval>'
+                                '<eval>&quot;test&quot;</eval>'
+                            '</tuple>'
+                        '</arg>'
+                    '</init>'
+                '</template>'
+            '</context>'
+        ) % self.id())
+        context = XMLContext(stream)
+        evaluator = context[self.id()].args[0]
+        self.assertTrue(type(evaluator) is Evaluator)
+        self.assertTrue(evaluator.factory is tuple)
+        # the argument to the evaluator factory is itself a sequence (list)
+        self.assertEqual(1, len(evaluator.args))
+        for p in evaluator.args[0]:
+            self.assertTrue(type(p) is partial)
+            self.assertTrue(p.func is literal_eval)
+        self.assertEqual((79, True, "test"), evaluator(None))
+
     def test_parse_list(self):
         stream = _context_as_stream((
             '<context id="test">'
@@ -595,6 +648,33 @@ class XMLContextTest(_BaseContextTest):
         self.assertTrue(type(evaluator) is Evaluator)
         self.assertTrue(evaluator.factory is list)
         self.assertEqual([[]], evaluator.args)
+
+    def test_parse_list_nested_eval(self):
+        stream = _context_as_stream((
+            '<context id="test">'
+                '<template id="%s">'
+                    '<init>'
+                        '<arg>'
+                            '<list>'
+                                '<eval>79</eval>'
+                                '<eval>True</eval>'
+                                '<eval>&quot;test&quot;</eval>'
+                            '</list>'
+                        '</arg>'
+                    '</init>'
+                '</template>'
+            '</context>'
+        ) % self.id())
+        context = XMLContext(stream)
+        evaluator = context[self.id()].args[0]
+        self.assertTrue(type(evaluator) is Evaluator)
+        self.assertTrue(evaluator.factory is list)
+        # the argument to the evaluator factory is itself a sequence (list)
+        self.assertEqual(1, len(evaluator.args))
+        for p in evaluator.args[0]:
+            self.assertTrue(type(p) is partial)
+            self.assertTrue(p.func is literal_eval)
+        self.assertEqual([79, True, "test"], evaluator(None))
 
     def test_parse_dict(self):
         stream = _context_as_stream((
@@ -812,6 +892,41 @@ class XMLContextTest(_BaseContextTest):
             "found value/str, value/int")
         assertRaisesWithMessage(self, e_expected, XMLContext, stream)
 
+    def test_parse_dict_nested_eval(self):
+        stream = _context_as_stream((
+            '<context id="test">'
+                '<template id="%s">'
+                    '<init>'
+                        '<arg>'
+                            '<dict>'
+                                '<item>'
+                                    '<key>'
+                                        '<eval>&quot;seven&quot;</eval>'
+                                    '</key>'
+                                    '<value><int>7</int></value>'
+                                '</item>'
+                                '<item>'
+                                    '<key><int>9</int></key>'
+                                    '<value>'
+                                        '<eval>&quot;nine&quot;</eval>'
+                                    '</value>'
+                                '</item>'
+                            '</dict>'
+                        '</arg>'
+                    '</init>'
+                '</template>'
+            '</context>'
+        ) % self.id())
+        context = XMLContext(stream)
+        evaluator = context[self.id()].args[0]
+        self.assertTrue(type(evaluator) is Evaluator)
+        self.assertTrue(evaluator.factory is dict)
+        # evaluator args is itself a sequence; Aglyph uses list-of-tuples for
+        # the keys and values
+        self.assertTrue(type(evaluator.args[0][0][0]) is partial)
+        self.assertTrue(type(evaluator.args[0][1][1]) is partial)
+        self.assertEqual({"seven": 7, 9: "nine"}, evaluator(None))
+
     def test_parse_set(self):
         stream = _context_as_stream((
             '<context id="test">'
@@ -853,6 +968,33 @@ class XMLContextTest(_BaseContextTest):
         self.assertTrue(type(evaluator) is Evaluator)
         self.assertTrue(evaluator.factory is set)
         self.assertEqual([[]], evaluator.args)
+
+    def test_parse_set_nested_eval(self):
+        stream = _context_as_stream((
+            '<context id="test">'
+                '<template id="%s">'
+                    '<init>'
+                        '<arg>'
+                            '<set>'
+                                '<eval>79</eval>'
+                                '<eval>True</eval>'
+                                '<eval>&quot;test&quot;</eval>'
+                            '</set>'
+                        '</arg>'
+                    '</init>'
+                '</template>'
+            '</context>'
+        ) % self.id())
+        context = XMLContext(stream)
+        evaluator = context[self.id()].args[0]
+        self.assertTrue(type(evaluator) is Evaluator)
+        self.assertTrue(evaluator.factory is set)
+        # the argument to the evaluator factory is itself a sequence (list)
+        self.assertEqual(1, len(evaluator.args))
+        for p in evaluator.args[0]:
+            self.assertTrue(type(p) is partial)
+            self.assertTrue(p.func is literal_eval)
+        self.assertEqual(set([79, True, "test"]), evaluator(None))
 
     def test_process_attributes_unexpected_children(self):
         stream = _context_as_stream((
@@ -960,6 +1102,24 @@ class XMLContextTest(_BaseContextTest):
         self.assertEqual("ref1", template.attributes["attr1"])
         self.assertTrue(type(template.attributes["attr2"]) is Reference)
         self.assertEqual("ref2", template.attributes["attr2"])
+
+    def test_attribute_eval(self):
+        stream = _context_as_stream((
+            '<context id="test">'
+                '<template id="%s">'
+                    '<attributes>'
+                        '<attribute name="primes">'
+                            '<eval>(2, 3, 5, 7)</eval>'
+                        '</attribute>'
+                    '</attributes>'
+                '</template>'
+            '</context>'
+        ) % self.id())
+        context = XMLContext(stream)
+        template = context[self.id()]
+        self.assertTrue(type(template.attributes["primes"]) is partial)
+        self.assertTrue(template.attributes["primes"].func is literal_eval)
+        self.assertEqual((2, 3, 5, 7), template.attributes["primes"]())
 
     def test_parse_component_implicit(self):
         stream = _context_as_stream((

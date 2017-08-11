@@ -47,7 +47,9 @@ and then uses the API classes mentioned above to populate the context.
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
+from ast import literal_eval
 from collections import OrderedDict
+from functools import partial
 import logging
 import sys
 import xml.etree.ElementTree as ET
@@ -1096,6 +1098,29 @@ class XMLContext(Context):
         """
         component_id = reference_element.attrib["id"]
         return ref(component_id)
+
+    def _parse_eval(self, eval_element):
+        """Return a partial object that will evaluate an expression
+        parsed from *eval_element*.
+
+        :arg xml.etree.ElementTree.Element eval_element:\
+           an ``<eval>`` element
+        :rtype: :obj:`functools.partial`
+
+        ..versionadded:: 3.0.0
+           The partial object will use Python's :func:`ast.literal_eval`
+           function to evaluate the expression when it is called. (Prior
+           versions of Aglyph used the builtin :obj:`eval` function.)
+
+        .. seealso::
+           `Eval really is dangerous
+           <http://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html>`_
+              Ned Batchelder's insanely thorough discussion of :obj:`eval`
+
+        """
+        if eval_element.text is None:
+            raise AglyphError("<eval> cannot be an empty element")
+        return partial(literal_eval, eval_element.text)
 
     def __repr__(self):
         return self.__repr

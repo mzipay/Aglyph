@@ -108,6 +108,14 @@ assemble components.
   is in the Aglyph cache, Python is free to garbage-collect it, in which
   case the next assemble request creates (and caches) a new object.
   (See https://docs.python.org/3/library/weakref.html)
+
+There is one additional strategy that is never specified explicitly:
+"_imported". This strategy is used when a component represents a member
+of a module or class that is imported. (Objects of such components are
+singletons in the truest Python sense.)
+When declaring <component ... member-name="...">, simply leave out the
+strategy attribute; Aglyph will use "_imported" automatically when a
+member-name is given.
 -->
 <!ENTITY % AssemblyStrategies
 	"prototype | singleton | borg | weakref"
@@ -314,9 +322,13 @@ defined in the same context.
 For example, the following two <arg> definitions are synonymous:
 	(1) <arg><reference id="some-component"/></arg>
 	(2) <arg reference="some-component"/>
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT arg
-	(%PyBuiltins; | reference)?
+	(%PyBuiltins; | reference | eval)?
 >
 <!ATTLIST arg
 	keyword NMTOKEN #IMPLIED
@@ -345,9 +357,13 @@ defined in the same context.
 For example, the following two <attribute> definitions are synonymous:
 	(1) <attribute><reference id="some-component"/></attribute>
 	(2) <attribute reference="some-component"/>
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT attribute
-	(%PyBuiltins; | reference)?
+	(%PyBuiltins; | reference | eval)?
 >
 <!ATTLIST attribute
 	name NMTOKEN #REQUIRED
@@ -489,18 +505,26 @@ Aglyph recognizes the special (case-insensitive) values "NaN",
 The list element represents a Python list.
 
 Each child element represents an item in the list.
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT list
-	(%PyBuiltins; | reference)*
+	(%PyBuiltins; | reference | eval)*
 >
 
 <!--
 The tuple element represents a Python tuple.
 
 Each child element represents an item in the tuple.
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT tuple
-	(%PyBuiltins; | reference)*
+	(%PyBuiltins; | reference | eval)*
 >
 
 <!--
@@ -529,12 +553,16 @@ For example, the following two <key> definitions are synonymous:
 	(1) <key><reference id="some-hashable-component"/></key>
 	(2) <key reference="some-hashable-component"/>
 
-If the key is a reference (either the @reference attribute or a
-<reference> child element), the object that results from assembling the
-referenced component MUST implement the __hash__ protocol.
+If the key element specifies a reference or eval literal, the object
+that results from assembling the referenced component or evaluating the
+literal expression MUST implement the __hash__ protocol.
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT key
-	(%PyHashables; | reference)?
+	(%PyHashables; | reference | eval)?
 >
 <!ATTLIST key
 	reference IDREF #IMPLIED
@@ -551,9 +579,13 @@ defined in the same context.
 For example, the following two <value> definitions are synonymous:
 	(1) <value><reference id="some-component"/></value>
 	(2) <value reference="some-component"/>
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT value
-	(%PyBuiltins; | reference)?
+	(%PyBuiltins; | reference | eval)?
 >
 <!ATTLIST value
 	reference IDREF #IMPLIED
@@ -563,9 +595,13 @@ For example, the following two <value> definitions are synonymous:
 The set element represents a Python set.
 
 Each child element represents an item in the set.
+
+NOTE: The <eval> element may only contain Python literal expressions.
+(Please see the Python Standard Library documentation for the
+`ast.literal_eval' function.)
 -->
 <!ELEMENT set
-	(%PyBuiltins; | reference)*
+	(%PyBuiltins; | reference | eval)*
 >
 
 <!--
@@ -585,4 +621,11 @@ definition.
 <!ATTLIST reference
 	id IDREF #REQUIRED
 >
+
+<!--
+The eval element's child text node MUST ONLY contain a Python literal
+expression that can be parsed by the Python Standard Library
+`ast.literal_eval' function.
+-->
+<!ELEMENT eval (#PCDATA)>
 

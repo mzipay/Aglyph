@@ -98,6 +98,16 @@ class ComponentTest(TemplateTest):
     def test_strategy_is_prototype_by_default(self):
         self.assertEqual("prototype", self._support.strategy)
 
+    def test_strategy_is_imported_by_default_for_member_name(self):
+        support = Component(
+            "test.dummy.ModuleClass", member_name="NestedClass")
+        self.assertEqual("imported", support.strategy)
+
+    def test_strategy_must_be_imported_for_member_name(self):
+        self.assertRaises(
+            AglyphError, Component, "test.dummy.ModuleClass",
+            member_name="NestedClass", strategy="prototype")
+
     def test_rejects_unrecognized_strategy(self):
         e_expected = ValueError(
             "unrecognized assembly strategy 'unrecognized'")

@@ -85,6 +85,31 @@ class _BaseContextTest(ContextBuilderTest):
         self.assertEqual(
             [test_component], list(self._context.iter_components()))
 
+    def test_prototype_implicit_strategy(self):
+        (self._context.component("myObject").
+            create(dummy.ModuleClass).init(None).register())
+        self.assertEqual("prototype", self._context["myObject"].strategy)
+
+    def test_prototype_explicit_strategy(self):
+        (self._context.component("myObject").
+            create(dummy.ModuleClass, strategy="prototype").init(None).
+            register())
+        self.assertEqual("prototype", self._context["myObject"].strategy)
+
+    def test_imported_implicit_strategy(self):
+        (self._context.component("NestedClass").
+            create(dummy.ModuleClass, member_name="NestedClass").
+            init(None).register())
+        self.assertEqual("imported", self._context["NestedClass"].strategy)
+
+    def test_imported_explicit_strategy(self):
+        (self._context.component("NestedClass").
+            create(
+                dummy.ModuleClass, member_name="NestedClass",
+                strategy="imported").
+            init(None).register())
+        self.assertEqual("imported", self._context["NestedClass"].strategy)
+
 
 class ContextTest(_BaseContextTest):
 

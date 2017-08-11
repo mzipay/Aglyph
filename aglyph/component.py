@@ -66,8 +66,8 @@ factory.)
 .. rubric:: Strategies and Lifecycle methods
 
 :data:`aglyph.component.Strategy` defines the assembly strategies
-supported by Aglyph (*"prototype"*, *"singleton"*, *"borg"*, and
-*"weakref"*).
+supported by Aglyph (*"prototype"*, *"imported"*, *"singleton"*,
+*"borg"*, and *"weakref"*).
 
 :data:`LifecycleState` defines assmebly states for components at
 which Aglyph supports calling named methods on the objects of those
@@ -101,8 +101,8 @@ __all__ = [
 _log = logging.getLogger(__name__)
 
 Strategy = namedtuple(
-    "Strategy", ["PROTOTYPE", "SINGLETON", "BORG", "WEAKREF", "IMPORTED"])(
-        "prototype", "singleton", "borg", "weakref", "_imported")
+    "Strategy", ["PROTOTYPE", "IMPORTED", "SINGLETON", "BORG", "WEAKREF"])(
+        "prototype", "imported", "singleton", "borg", "weakref")
 """Define the component assembly strategies implemented by Aglyph.
 
 .. rubric:: "prototype"
@@ -110,7 +110,28 @@ Strategy = namedtuple(
 A new object is always created, initialized, wired, and returned.
 
 .. note::
-   "prototype" is the default assembly strategy for Aglyph components.
+   "prototype" is the default assembly strategy for Aglyph components
+   that do not specify a member name.
+
+.. rubric:: "imported"
+
+.. versionadded:: 3.0.0
+
+An already-created (loaded) object is obtained from an imported module
+or class (as opposed to creating the object directly).
+Such components will always resolve (i.e. be assembled) to the same
+objects; but those objects are not be cached by Aglyph as they will
+exhibit "natural" singleton behavior so long as the containing module
+is referenced in :attr:`sys.modules`.
+
+It is not necessary to explicitly set the strategy to "imported" when
+using *member_name*. Explicitly setting strategy="imported" and **not**
+specifying *member_name* - or specifying *member_name* with any explicit
+strategy other than "imported" - will raise :exc:`AglyphError`.
+
+.. warning::
+   The "imported" strategy is only valid (and is the only allowed value)
+   when *member_name* is specified for a component.
 
 .. rubric:: "singleton"
 
@@ -154,26 +175,6 @@ and returned.
 .. note::
    Please refer to the :mod:`weakref` module for a detailed explanation
    of weak reference behavior.
-
-.. rubric:: "_imported"
-
-.. versionadded:: 3.0.0
-
-This is a special-case assembly strategy that supports components which
-use *member_name* to **acquire** an already-created object from an
-imported module or class (as opposed to creating the object directly).
-Such components will always resolve (i.e. be assembled) to the same
-objects; but those objects should not be cached by Aglyph as they will
-exhibit "natural" singleton behavior so long as the containing module
-is referenced in :attr:`sys.modules`.
-
-The "_imported" strategy is only valid (and is the only allowed value)
-when *member_name* is specified for a component.
-
-It is not necessary to explicitly set the strategy to "_imported" when
-using *member_name*. Explicitly setting strategy="_imported" and **not**
-specifying *member_name* - or specifying *member_name* with any explicit
-strategy other than "_imported" - will raise :exc:`AglyphError`.
 
 """
 
@@ -745,10 +746,10 @@ class Component(Template):
 
         .. versionadded:: 3.0.0
            When :attr:`member_name` is specified, the strategy **must**
-           be ``Strategy.IMPORTED`` (*"_imported"*). Aglyph will use the
-           "_imported" strategy automatically for components that
+           be ``Strategy.IMPORTED`` (*"imported"*). Aglyph will use the
+           "imported" strategy automatically for components that
            specify *member_name*; setting strategy to anything other
-           than "_imported" when specifying *member_name* will raise
+           than "imported" when specifying *member_name* will raise
            :exc:`AglyphError`.
 
         Please see :data:`Strategy` for a description of the component
@@ -842,12 +843,12 @@ class Component(Template):
         self._factory_name = factory_name
         self._member_name = member_name
 
-        # issues/5: default strategy is "_imported" when member_name is
+        # issues/5: default strategy is "imported" when member_name is
         # specified, otherwise "prototype"
         if strategy is None:
             strategy = Strategy.IMPORTED if member_name else Strategy.PROTOTYPE
 
-        # issues/5: member_name requires "_imported" strategy and vice-versa
+        # issues/5: member_name requires "imported" strategy and vice-versa
         if member_name and strategy != Strategy.IMPORTED:
             raise AglyphError(
                 "strategy MUST be %r (implicit) if member_name is specified" %

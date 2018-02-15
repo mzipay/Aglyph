@@ -263,3 +263,5 @@ autodoc_member_order = 'bysource'
 autodoc_default_flags = ['show-inheritance']
 autoclass_content = "both"
 
+suppress_warnings = ['image.nonlocal_uri']
+

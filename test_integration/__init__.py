@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2018 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -33,13 +33,16 @@ import inspect
 import logging
 import os
 
+# does logging config for unit tests
+import test
+
 from aglyph import __version__
 
 __all__ = [
     "find_basename",
 ]
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("test_integration")
 
 
 def find_basename(basename):

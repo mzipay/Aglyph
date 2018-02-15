@@ -4,14 +4,11 @@ Component inheritance using templates
 
 :Release: |release|
 
-.. versionadded:: 2.1.0
-
 Aglyph supports a form of inheritance by allowing developers to declare that a
-component or template has a **parent**.
+component or template has a "parent."
 
-The initialization arguments (posiitonal and keyword) and attributes of the
-parent behave similarly to a `partial function
-<https://docs.python.org/3/library/functools.html#functools.partial>`_. Any
+The initialization arguments (positional and keyword) and attributes of the
+parent behave similarly to those of :func:`functools.partial`. Any
 positional arguments declared for a child are *appended* to the parent's
 declared positional arguments, and any keyword arguments and attributes
 declared for a child take precedence over (possibly overriding) the same-named
@@ -106,38 +103,44 @@ is common, but that the request handler class differs:
    >>> cgi_server.RequestHandlerClass
    <class 'http.server.CGIHTTPRequestHandler'>
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 In a *bindings.py* module::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
     
-   binder = Binder("cookbook-binder")
-   binder.describe("base-server").init(("localhost", 8000))
-   binder.bind("http.server.SimpleHTTPRequestHandler", to="http.server",
-               member="SimpleHTTPRequestHandler")
-   (binder.bind("simple-server", to="http.server.HTTPServer",
-         parent="base-server").
-      init(Reference("http.server.SimpleHTTPRequestHandler")))
-   binder.bind("http.server.CGIHTTPRequestHandler", to="http.server",
-               member="CGIHTTPRequestHandler")
-   (binder.bind("cgi-server", to="http.server.HTTPServer",
-         parent="base-server").
-      init(Reference("http.server.CGIHTTPRequestHandler")))
+   context = Context("cookbook-context")
+   context.template("base-server").init(("localhost", 8000)).register()
+   (context.component("simple-handler").
+       create("http.server", member_name="SimpleHTTPRequestHandler").
+       register())
+   (context.component("simple-server", parent_id_spec="base-server").
+       create("http.server.HTTPServer").
+       init(ref("simple-handler")).
+       register())
+   (context.component("cgi-handler").
+       create("http.server", member_name="CGIHTTPRequestHandler").
+       register())
+   (context.component("cgi-server", parent_id_spec="base-server").
+       create("http.server.HTTPServer").
+       init(ref("cgi-handler")).
+       register())
 
 As in the XML example, assembling the "simple-server" and "cgi-server"
 components shows that the server address is common, but that the request
 handler class differs:
 
-   >>> from bindings import binder
-   >>> simple_server = binder.assemble("simple-server")
+   >>> from aglyph.assembler import Assembler
+   >>> from bindings import context
+   >>> assembler = Assembler(context)
+   >>> simple_server = assembler.assemble("simple-server")
    >>> simple_server.server_address
    ('localhost', 8000)
    >>> simple_server.RequestHandlerClass
    <class 'http.server.SimpleHTTPRequestHandler'>
-   >>> cgi_server = binder.assemble("cgi-server")
+   >>> cgi_server = assembler.assemble("cgi-server")
    >>> cgi_server.server_address
    ('localhost', 8000)
    >>> cgi_server.RequestHandlerClass
@@ -213,29 +216,35 @@ non-default values for the request queue size and socket timeout:
    >>> custom_server.timeout
    3.0
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 In a *bindings.py* module::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
     
-   binder = Binder("cookbook-binder")
-   binder.bind("request-handler", to="http.server",
-               member="SimpleHTTPRequestHandler")
-   (binder.bind("default-server", to="http.server.HTTPServer")
-      init(("localhost", 8000), Reference("request-handler")))
-   (binder.bind("custom-server", to="http.server.HTTPServer",
-         parent="default-server").
-      attributes(request_queue_size=15, timeout=3.0))
+   context = Context("cookbook-context")
+   (context.component("request-handler").
+       create("http.server", member_name="SimpleHTTPRequestHandler").
+       register())
+   (context.component("default-server").
+      create("http.server.HTTPServer").
+      init(("localhost", 8000), ref("request-handler")).
+      register())
+   (context.component("custom-server", parent_id_spec="default-server").
+      create("http.server.HTTPServer").
+      set(request_queue_size=15, timeout=3.0).
+      register())
 
 As in the XML example, assembling the "default-server" and "custom-server"
 components shows that the server address and request handler class are common,
 but that the request queue size and timeout differ:
 
-   >>> from bindings import binder
-   >>> default_server = binder.assemble("default-server")
+   >>> from aglyph.assembler import Assembler
+   >>> from bindings import context
+   >>> assembler = Assembler(context)
+   >>> default_server = assembler.assemble("default-server")
    >>> default_server.server_address
    ('localhost', 8000)
    >>> default_server.RequestHandlerClass
@@ -244,7 +253,7 @@ but that the request queue size and timeout differ:
    5
    >>> default_server.timeout is None
    True
-   >>> custom_server = binder.assemble("custom-server")
+   >>> custom_server = assembler.assemble("custom-server")
    >>> custom_server.server_address
    ('localhost', 8000)
    >>> custom_server.RequestHandlerClass
@@ -348,24 +357,24 @@ In a *coookbook-context.xml* document::
             parent-id="incendiary-tool" />
    </context>
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 In a *bindings.py* module::
 
-   from aglyph.binder import Binder
+   from aglyph.context import Context
     
-   binder = Binder("cookbook-binder")
-   binder.describe("mechanical-tool",
-                   after_inject="calibrate", before_clear="disengage")
-   binder.bind("cookbook.Hydrospanner", strategy="singleton",
-               parent="mechanical-tool")
-   binder.bind("cookbook.Nervesplicer", strategy="singleton",
-               parent="mechanical-tool", after_inject="prepare")
-   binder.describe("incendiary-tool",
-                   after_inject="ignite", before_clear="extinguish")
-   binder.bind("cookbook.Macrofuser", strategy="singleton",
-               parent="incendiary-tool")
-   binder.bind("cookbook.Vibrotorch", strategy="singleton",
-               parent="incendiary-tool")
+   context = Context("cookbook-context")
+   (context.template("mechanical-tool").
+       call(after_inject="calibrate", before_clear="disengage").
+       register())
+   context.singleton("cookbook.Hydrospanner", parent_id_spec="mechanical-tool").register()
+   (context.singleton("cookbook.Nervesplicer", parent_id_spec="mechanical-tool").
+       call(after_inject="prepare").
+       register())
+   (context.template("incendiary-tool").
+       call(after_inject="ignite", before_clear="extinguish").
+       register())
+   context.singleton("cookbook.Macrofuser", parent_id_spec="incendiary-tool").register()
+   context.singleton("cookbook.Vibrotorch", parent_id_spec="incendiary-tool").register()
 

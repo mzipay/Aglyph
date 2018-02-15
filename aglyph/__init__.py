@@ -30,8 +30,9 @@ used by Aglyph.
    Aglyph uses the standard :mod:`logging` module, but by default
    registers a :class:`logging.NullHandler` to suppress messages.
 
-   To enable Aglyph logging messages, configure a logger and handler for
-   the *"aglyph"* log channel (see :mod:`logging.config`).
+   To enable Aglyph logging, configure a logger and handler for the
+   *"aglyph"* log channel (see :mod:`logging.config`).
+
 
 .. note::
    .. versionadded:: 3.0.0
@@ -41,8 +42,9 @@ used by Aglyph.
    all tracing is **deactivated** by default.
 
    To activate tracing:
-   1. Configure a logger and handler for the *"aglyph"* log channel.
-      (Set the level to :attr:`autologging.TRACE`.)
+
+   1. Configure a logger and handler for the *"aglyph"* log channel and
+      set the logging level to :attr:`autologging.TRACE`.
    2. Run Aglyph with the *AGLYPH_TRACED* environment variable set to a
       **non-empty** value.
 
@@ -50,7 +52,7 @@ used by Aglyph.
 
 from collections import namedtuple
 
-# see http://semver.org/
+# see https://semver.org/
 version_info = namedtuple(
     "version_info", ["major", "minor", "patch", "pre_release", "metadata"])(
         3, 0, 0, "", "")

@@ -1,19 +1,23 @@
-from aglyph.binder import Binder
-from aglyph.component import Reference
-
-from movies.lister import MovieLister
 from movies.finder import MovieFinder, SQLMovieFinder
+from movies.lister import MovieLister
+
+from aglyph.component import Reference as ref
+from aglyph.context import Context
 
 
-class MoviesBinder(Binder):
+context = Context("movies-context")
 
-    def __init__(self):
-        super(MoviesBinder, self).__init__("movies-binder")
-        (self.bind("delim-finder",
-                   to="movies.finder.ColonDelimitedMovieFinder",
-                   strategy="singleton").
-            init("movies.txt"))
-        (self.bind(MovieFinder, to=SQLMovieFinder, strategy="borg").
-            init("movies.db"))
-        self.bind(MovieLister).init(MovieFinder)
+(context.singleton("delim-finder").
+    create("movies.finder.ColonDelimitedMovieFinder").
+    init("movies.txt").
+    register())
+
+# makes SQLMovieFinder the default impl bound to "movies.finder.MovieFinder"
+(context.borg(MovieFinder).
+    create(SQLMovieFinder).
+    init("movies.db").
+    register())
+
+# will initialize MovieLister with an object of SQLMovieFinder
+context.prototype(MovieLister).init(ref(MovieFinder)).register()
 

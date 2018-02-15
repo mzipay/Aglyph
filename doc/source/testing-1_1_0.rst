@@ -2,8 +2,14 @@
 Aglyph 1.1.0 testing summary
 ============================
 
-`CPython <http://www.python.org/>`_
-===================================
+.. _CPython: https://www.python.org/
+.. _PyPy: http://pypy.org/
+.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _IronPython: http://ironpython.net/
+.. _Jython: http://www.jython.org/
+
+`CPython`_
+==========
 
 +---------+---------------------------------------------+
 | Version | Platform                                    |
@@ -29,8 +35,8 @@ Aglyph 1.1.0 testing summary
 | 3.2.1   | Mac OS X 10.6.8 (Darwin-10.8.0-i386-64bit)  |
 +---------+---------------------------------------------+
 
-`PyPy <http://pypy.org/>`_
-==========================
+`PyPy`_
+=======
 
 +-------------+--------------------------------------------+
 | Version     | Platform                                   |
@@ -38,8 +44,8 @@ Aglyph 1.1.0 testing summary
 | 1.6 (2.7.1) | Mac OS X 10.6.8 (Darwin-10.8.0-i386-64bit) |
 +-------------+--------------------------------------------+
 
-`Stackless Python <http://www.stackless.com/>`_
-===============================================
+`Stackless Python`_
+===================
 
 +---------+---------------------------------------------+
 | Version | Platform                                    |
@@ -49,8 +55,8 @@ Aglyph 1.1.0 testing summary
 | 3.2.1   | Windows 7 Ultimate (Windows-7-6.1.7601-SP1) |
 +---------+---------------------------------------------+
 
-`IronPython <http://ironpython.net/>`_
-======================================
+`IronPython`_
+=============
 
 +---------+-----------------------------------------------------------------+
 | Version | Platform                                                        |
@@ -58,8 +64,8 @@ Aglyph 1.1.0 testing summary
 | 2.7     | Windows 7 Ultimate (Windows-7-6.1.7601-SP1; .NET 4.0.30319.237) |
 +---------+-----------------------------------------------------------------+
 
-`Jython <http://www.jython.org/>`_
-==================================
+`Jython`_
+=========
 
 +---------+------------------------------------------------------------+
 | Version | Platform                                                   |

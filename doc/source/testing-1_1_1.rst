@@ -2,15 +2,21 @@
 Aglyph 1.1.1 testing summary
 ============================
 
-.. versionchanged:: 1.1.1
-   The Aglyph test suite is no longer executed under
-   `Python 3.0 <http://www.python.org/download/releases/3.0/>`_, which reached
-   end-of-life with the release of
-   `Python 3.1 <http://www.python.org/download/releases/3.1/>`_ on June 27th,
-   2009.
+.. _CPython: https://www.python.org/
+.. _PyPy: http://pypy.org/
+.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _IronPython: http://ironpython.net/
+.. _Jython: http://www.jython.org/
+.. _Python 3.0 lifespan: https://www.python.org/dev/peps/pep-0361/#release-lifespan
 
-`CPython <http://www.python.org/>`_
-===================================
+.. warning::
+   .. versionchanged:: 1.1.1
+
+   The `Python 3.0 lifespan`_ has ended; the Aglyph test suite is no longer
+   executed under this version.
+
+`CPython`_
+==========
 
 +---------+--------------------------------------------------------------------+
 | Version | Platform                                                           |
@@ -40,8 +46,8 @@ Aglyph 1.1.1 testing summary
 |         | Darwin-10.8.0-i386-64bit GCC 4.2.1 (Apple Inc. build 5666) (dot 3) |
 +---------+--------------------------------------------------------------------+
 
-`PyPy <http://pypy.org/>`_
-==========================
+`PyPy`_
+=======
 
 +-------------+-------------------------------+
 | Version     | Platform                      |
@@ -51,8 +57,8 @@ Aglyph 1.1.1 testing summary
 |             | Darwin-10.8.0-i386-64bit      |
 +-------------+-------------------------------+
 
-`Stackless Python <http://www.stackless.com/>`_
-===============================================
+`Stackless Python`_
+===================
 
 +----------------------+--------------------------------------------------------------------+
 | Version              | Platform                                                           |
@@ -66,8 +72,8 @@ Aglyph 1.1.1 testing summary
 |                      | Darwin-10.8.0-i386-64bit GCC 4.2.1 (Apple Inc. build 5646) (dot 1) |
 +----------------------+--------------------------------------------------------------------+
 
-`IronPython <http://ironpython.net/>`_
-======================================
+`IronPython`_
+=============
 
 +---------+-----------------------------------------------------------------+
 | Version | Platform                                                        |
@@ -75,8 +81,8 @@ Aglyph 1.1.1 testing summary
 | 2.7.3   | Windows-7-6.1.7601-SP1 cli-32bit .NET 4.0.30319.296 (32-bit)    |
 +---------+-----------------------------------------------------------------+
 
-`Jython <http://www.jython.org/>`_
-==================================
+`Jython`_
+=========
 
 +---------+-----------------------------------------------------------------------------------------------------------------------------------------------------+
 | Version | Platform                                                                                                                                            |

@@ -4,35 +4,44 @@ Getting started with Aglyph
 
 :Release: |release|
 
+.. _Inversion of Control Containers and the Dependency Injection pattern: https://martinfowler.com/articles/injection.html
+.. _Python Dependency Injection [PDF]: http://www.aleax.it/yt_pydi.pdf
+.. _Download Python: https://www.python.org/downloads/
+.. _Dive Into Python 2: http://www.diveintopython.net/
+.. _The Python 2 Tutorial: https://docs.python.org/2/tutorial/index.html
+.. _Dive Into Python 3: http://www.diveintopython3.net/
+.. _The Python 3 Tutorial: https://docs.python.org/3/tutorial/index.html
+.. _Aglyph SourceForge project: https://sourceforge.net/projects/aglyph/files/
+.. _Aglyph PyPI page: https://pypi.python.org/pypi/Aglyph
+.. _Aglyph GitHub repository: https://github.com/mzipay/Aglyph
+.. _Virtualenv: https://virtualenv.pypa.io/
+.. _Full Grammar specification: https://docs.python.org/3/reference/grammar.html
+.. _The Borg design pattern: http://code.activestate.com/recipes/66531-singleton-we-dont-need-no-stinkin-singleton-the-bo/
+
 During this brief tutorial, you will download and install Aglyph, build a
 simple Python application based on the *MovieLister* component discussed in
-`Inversion of Control Containers and the Dependency Injection pattern
-<http://martinfowler.com/articles/injection.html>`_, then modify the
-application to take advantage of Aglyph dependency injection. This process will
-allow you understand the Dependency Injection pattern in general, as well as
-the Aglyph approach to Dependency Injection.
+`Inversion of Control Containers and the Dependency Injection pattern`_,
+then modify the application to take advantage of Aglyph dependency injection.
+This process will allow you understand the Dependency Injection pattern in
+general, and the Aglyph approach to Dependency Injection in particular.
 
 This tutorial is a "whirlwind tour" of Aglyph that covers only the basics. Once
 you have completed the steps, read the :doc:`cookbook` for additional
-guidelines and examples. Also review the :doc:`api-ref` and the
-:download:`Aglyph context DTD <../../resources/aglyph-context.dtd>` to
+guidelines and examples. Also review the :doc:`api-ref`, :doc:`context-fluent-api`
+and the :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>` to
 understand the details.
 
 The tutorial assumes that you are familiar with Python development in general,
-and that Python 2.7 or 3.3+ is already installed on your system:
+and that Python 2.7 or 3.3+ is already installed on your system.
 
-* `Download Python <http://www.python.org/download/>`_
-* Browse `Dive Into Python 2 <http://www.diveintopython.net/>`_ and/or
-  `The Python 2 Tutorial <http://docs.python.org/2/tutorial/index.html>`_
-* Browse `Dive Into Python 3 <http://www.diveintopython3.net/>`_ and/or
-  `The Python 3 Tutorial <http://docs.python.org/3/tutorial/index.html>`_
+* `Download Python`_
+* Browse `Dive Into Python 2`_ and/or `The Python 2 Tutorial`_
+* Browse `Dive Into Python 3`_ and/or `The Python 3 Tutorial`_
 
 .. note::
    It is recommended, but not required, that you read the `Inversion of
-   Control Containers and the Dependency Injection pattern
-   <http://martinfowler.com/articles/injection.html>`_ and `Python Dependency
-   Injection [PDF] <http://www.aleax.it/yt_pydi.pdf>`_ articles before
-   beginning this tutorial.
+   Control Containers and the Dependency Injection pattern`_ and
+   `Python Dependency Injection [PDF]`_ articles before beginning this tutorial.
 
 .. _download-and-install:
 
@@ -42,23 +51,21 @@ and that Python 2.7 or 3.3+ is already installed on your system:
 There are several options for downloading and installing Aglyph. Choose the
 method that best suits your needs or preferences.
 
-Download and install a source or built distribution from SourceSource
----------------------------------------------------------------------
+Download and install a source or built distribution from SourceForge
+--------------------------------------------------------------------
 
 If you use Windows, a source ZIP distribution and EXE and MSI installers are
-available from the `Aglyph SourceForge project
-<http://sourceforge.net/projects/aglyph/files/aglyph/>`_.
+available from the `Aglyph SourceForge project`_.
 
 Run the EXE or MSI installer after downloading, or unpack the ZIP distribution
 and run the following command from within the distribution directory::
 
    python setup.py install
 
-Download and install a source distribution from PyPI
-----------------------------------------------------
+Download and install a source distribution from the Python Package Index (PyPI)
+-------------------------------------------------------------------------------
 
-The Aglyph source distribution can be downloaded from the
-`Aglyph Python Package Index page <https://pypi.python.org/pypi/Aglyph>`_.
+The Aglyph source distribution can be downloaded from the `Aglyph PyPI page`_.
 
 Unpack the archive and run the following command from with the distribution
 directory::
@@ -68,9 +75,8 @@ directory::
 Clone the Aglyph repository from GitHub
 ---------------------------------------
 
-To install the latest release from a clone of the `Aglyph repository
-<https://github.com/mzipay/Aglyph>`_, execute the following commands from a
-shell::
+To install the latest release from a clone of the `Aglyph GitHub repository`_,
+execute the following commands from a shell::
 
    git clone https://github.com/mzipay/Aglyph.git
    cd Aglyph
@@ -79,9 +85,9 @@ shell::
 Install into a virtual environment
 ----------------------------------
 
-You can also create a `virtualenv <http://www.virtualenv.org/>`_ (details not
-covered here) and install Aglyph into it by running the following commands from
-a shell (assumes the virtual environment is active)::
+You can also create a `Virtualenv`_ (details not covered here) and install
+Aglyph into it by running the following commands from a shell (assumes the
+virtual environment is active)::
 
    pip install Aglyph
 
@@ -89,8 +95,8 @@ Regardless of installation method, verify that the installation was successful
 by importing the :mod:`aglyph` module from a Python interpreter. For example::
 
    $ python
-   Python 3.5.3 (default, Feb  2 2017, 09:17:41)
-   [GCC 4.2.1 Compatible Apple LLVM 7.0.2 (clang-700.1.81)] on darwin
+   Python 3.5.4 (default, Oct  9 2017, 12:07:29) 
+   [GCC 6.4.1 20170727 (Red Hat 6.4.1-1)] on linux
    Type "help", "copyright", "credits" or "license" for more information.
    >>> import aglyph
    >>> aglyph.__version__
@@ -109,7 +115,7 @@ tutorial source code (including the already-populated SQLite database).
 
 .. note::
    Both ZIP files are also available under the *examples/* directory if you
-   cloned the `Aglyph repository <https://github.com/mzipay/Aglyph>`_.
+   cloned the `Aglyph GitHub repository`_.
 
 .. warning::
    Jython users will not be able to run the tutorial code because the standard
@@ -314,7 +320,7 @@ movies information::
            except:
                pass
 
-The ``SQLVMovieFinder`` expects a database name (a filename, or *":memory:"*
+The ``SQLMovieFinder`` expects a database name (a filename, or *":memory:"*
 for an in-memory database). We'll create a *movies.db* file so that it contains
 the same records as the original *movies.txt* file:
 
@@ -385,23 +391,21 @@ collection of component definitions. A *component*
 including how it is created/acquired and its dependencies. Any component can
 itself be a dependency of any other component(s).
 
-In Aglyph, a context is defined by the :class:`aglyph.context.Context` class. A
-specialized subclass, :class:`aglyph.context.XMLContext`, is provided to allow a
-context to be defined declaratively in an XML document. Such XML documents
-must conform to the :download:`Aglyph context DTD
-<../../resources/aglyph-context.dtd>`.
+In Aglyph, a context is defined by the :class:`aglyph.context.Context` class.
+Objects of this class can be created and populated either directly or by using
+:doc:`context-fluent-api`. A specialized subclass,
+:class:`aglyph.context.XMLContext`, is also provided to allow a context to be
+defined declaratively in an XML document. Such XML documents should conform to
+the :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`.
 
-.. versionadded:: 1.1.0
-   The :class:`aglyph.binder.Binder` class offers a "programmatic
-   configuration" option for Aglyph. Use an instance of this class to both
-   define and assemble your application components.
-
-In this section, we will create a declarative XML context **and** an Aglyph
-binder for *movielisterapp*, in order to demonstrate each approach.
+In this section, we will create a declarative XML context **and** use
+:doc:`context-fluent-api` for *movielisterapp* in order to demonstrate each
+approach.
 
 .. warning::
    In practice, you should choose **either** :class:`aglyph.context.XMLContext`
-   or :class:`aglyph.binder.Binder` for configuring Aglyph.
+   or :class:`aglyph.context.Context` (:doc:`context-fluent-api`) when
+   configuring Aglyph for your application.
 
 First, we'll create the XML context document as *movies-context.xml*::
 
@@ -454,70 +458,65 @@ Some interesting things to note here:
       dotted_name: NAME ('.' NAME)*
 
    .. seealso::
-      `Full Grammar specification
-      <http://docs.python.org/release/3/reference/grammar.html>`_
+      `Full Grammar specification`_
 
 Notice that the *movies.lister.MovieLister* component is being injected with a
 reference to the *movies.finder.MovieFinder* component, which describes an
 instance of ``movies.finder.SQLMovieFinder``. We could easily change back to
 using ``movies.finder.ColonDelimitedMovieFinder`` by changing the reference.
 
-Next, we'll create an alternative, programmatic configuration as the
-``MoviesBinder`` class (a subclass of :class:`aglyph.binder.Binder`) in the
-*movies/__init__.py* module::
+Next, we'll create an equivalent context, but this time using
+:doc:`context-fluent-api`. In *movies/__init__.py*::
 
-   from aglyph.binder import Binder
-   
-   from movies.lister import MovieLister
    from movies.finder import MovieFinder, SQLMovieFinder
-   
-   class MoviesBinder(Binder):
-   
-       def __init__(self):
-           super(MoviesBinder, self).__init__("movies-binder")
-           (self.bind("delim-finder",
-                      to="movies.finder.ColonDelimitedMovieFinder").
-               init("movies.txt"))
-           self.bind(MovieFinder, to=SQLMovieFinder).init("movies.db")
-           self.bind(MovieLister).init(MovieFinder)
+   from movies.lister import MovieLister
 
-There are several interesting things to note about ``MoviesBinder``:
+   from aglyph.component import Reference as ref
+   from aglyph.context import Context
 
-* Because ``ColonDelimitedMovieFinder`` is bound using a custom ID that is
-  *not* a dotted name ("delim-finder"), the ``to`` keyword argument is
-  required, and **must** specify either the explicit dotted name or a reference
-  to the class itself so that Aglyph knows how to import it.
-* The ``MovieFinder`` abstract base class is bound to the ``SQLMovieFinder``
-  implementation class using references to the classes themselves, which causes
-  the binder to *automatically* determine the dotted names. In this case, the
-  ID "movies.finder.MovieFinder" is bound to the dotted name
-  "movies.finder.SQLMovieFinder".
-* ``MovieLister`` isn't bound **to** anything. Why? Python does not support
-  interfaces as a language construct (mixins and :mod:`abc` are the
-  alternatives). So in this case, ``MovieLister`` actually serves as *both* the
-  "interface" and the implementation. Duck-typing means that "anything that
-  looks like a MovieLister and acts like a MovieLister" should be treated *as*
-  a ``MovieLister``. We could just as easily create a specialized subclass
-  (say, ``FancyMovieLister``) and then bind *it* to ``MovieLister`` using
-  ``bind(MovieLister, to=FancyMovieLister)``.
-* The :meth:`aglyph.binder.Binder.bind` method returns a proxy object that
-  allows us to specify the initialization (constructor) dependencies. The
-  dependencies must be specified according to the signature of the initializer.
-  The ``MovieLister.__init__`` method accepts a single positional argument
-  that must be a concrete ``MovieFinder``.
-* Notice that when the positional argument for ``MovieLister.__init__`` is
-  specified, a reference to the ``MovieFinder`` class is used. Because this
-  argument is not a dotted name string, Aglyph will *automatically* determine
-  the dotted name of the class ("movies.finder.MovieFinder") and turn it into
-  an :class:`aglyph.component.Reference`. Since ``MovieFinder`` was bound to
-  ``SQLMovieFinder``, this means that, at runtime, Aglyph will resolve the
-  ``Reference("movies.finder.MovieFinder")`` to an instance of
-  ``SQLMovieFiner``.
 
-Take a minute to examine the XML context and the ``MoviesBinder`` class; they
-produce *identical* configurations for Aglyph. Each will inject the string
-*"movies.db"* into a ``SQLMovieFinder``, and then inject the ``SQLMovieFinder``
-instance into a ``MovieLister``.
+   context = Context("movies-context")
+
+   (context.component("delim-finder").
+       create("movies.finder.ColonDelimitedMovieFinder").
+       init("movies.txt").
+       register())
+
+   # makes SQLMovieFinder the default impl bound to "movies.finder.MovieFinder"
+   (context.component(MovieFinder).
+       create(SQLMovieFinder).
+       init("movies.db").
+       register())
+
+   # will initialize MovieLister with an object of SQLMovieFinder
+   context.component(MovieLister).init(ref(MovieFinder)).register()
+
+Compare this context carefully with the XML declarative context above; they
+are identical. However, there are several interesting things to note about
+initializing the context using the fluent API:
+
+* Here we simply use the ``component(...)`` method, which results in all components
+  being of the default type (prototype). Defining components of different types
+  (i.e. prototype, singleton, borg, weakref) is simply a matter of using the
+  corresponding method name. We'll use some of these in the next part of the tutorial.
+  These methods are the "entry points" into the fluent configuration API.
+* Each component definition is terminated by a call to the ``register()``
+  method. This method **must** be the final call, as it (a) terminates the
+  chained-call sequence and, more importantly, (b) finalizes the compoonent
+  definition in the context. (If you get "component not found" errors when
+  using the fluent API, the first thing to check is that you remembered to
+  call ``register()``!)
+* The component methods (``prototype(...)`` / ``singleton(...)`` / ``borg(...)``
+  / ``weakref(...)``) and the ``create(...)`` method can accept dotted-name strings
+  *as well as* objects. If the argument is **not** a string, Aglyph determines
+  its dotted-name and uses that value.
+  So in the above context, for example, ``create(SQLMovieFinder)`` is actually
+  equivalent to ``create("movies.finder.SQLMovieFinder")``.
+* Unlike the component and create methods, the ``init(...)`` and ``set(...)``
+  (not shown here) methods do **not** automatically convert non-string arguments
+  to dotted names. This is so that classes and other callables may be used
+  directly as arguments. This is why we must use ``init(ref(MovieFinder))``
+  (note the use of ``ref(...)``) when defining the MovieLister component.
 
 Now that we have created Aglyph configurations for *movielisterapp*, it's time
 to modify the *app.py* script to use dependency injection. To demonstrate the
@@ -553,33 +552,23 @@ Running the application produces the same results as usual::
    Once Upon a Time in the West
    Once Upon a Time in America
 
-The *app_binder.py* script will use the ``MoviesBinder`` configuration::
+The *app_fluent.py* script will use the context that was created in
+*movies/__init__.py*::
 
    import sys
-   from movies import MoviesBinder
-   from movies.lister import MovieLister
-   
-   binder = MoviesBinder()
-   
-   lister = binder.lookup(MovieLister)
+
+   from aglyph.assembler import Assembler
+   from movies import context
+
+   assembler = Assembler(context)
+
+   lister = assembler.assemble("movies.lister.MovieLister")
    for movie in lister.movies_directed_by("Sergio Leone"):
        sys.stdout.write("%s\n" % movie.title)
 
-Here, we create the binder and then use it to look up the concrete
-implementation of ``MovieLister`` that we have configured.
-
-.. note::
-   Like the :meth:`aglyph.binder.Binder.bind` method, the
-   :meth:`aglyph.binder.Binder.lookup` method can accept a reference to a
-   class, and will *automatically* determine the dotted name for that class.
-   Because we bound the ID "movies.lister.MovieLister" to the ``MovieLister``
-   class, ``binder.lookup(MovieLister)`` is equivalent to
-   ``binder.lookup("movies.lister.MovieLister")``, and will produce an instance
-   of ``MovieLister`` with its dependencies injected as we expect.
-
 Again, running the application produces the expected results::
 
-   $ python app_binder.py 
+   $ python app_fluent.py 
    The Colossus of Rhodes
    Once Upon a Time in the West
    Once Upon a Time in America
@@ -612,7 +601,7 @@ For details of what each assembly strategy implies, please refer to
 
 .. seealso::
 
-   `Singleton? We don't need no stinkin' singleton: the Borg design pattern (Python recipe) <http://code.activestate.com/recipes/66531-singleton-we-dont-need-no-stinkin-singleton-the-bo/>`_
+   `The Borg design pattern`_
       Alex Martelli's original Borg recipe (from ActiveState Python Recipes)
 
    Module :mod:`weakref`
@@ -663,29 +652,32 @@ The modified XML context looks like this::
 We added ``strategy="singleton"`` to the *"delim-finder"* component, and
 changed the ``MovieLister`` argument to specify ``reference="delim-finder"``.
 
-The modifed *movies/__init__.py* module and ``MoviesBinder`` class look like
-this (note the additional import of :class:`aglyph.component.Reference`)::
+The modifed *movies/__init__.py* module looks like this::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
-   
-   from movies.lister import MovieLister
    from movies.finder import MovieFinder, SQLMovieFinder
-   
-   
-   class MoviesBinder(Binder):
-   
-       def __init__(self):
-           super(MoviesBinder, self).__init__("movies-binder")
-           (self.bind("delim-finder",
-                      to="movies.finder.ColonDelimitedMovieFinder",
-                      strategy="singleton").
-               init("movies.txt"))
-           (self.bind(MovieFinder, to=SQLMovieFinder, strategy="borg").
-               init("movies.db"))
-           self.bind(MovieLister).init(Reference("delim-finder"))
+   from movies.lister import MovieLister
 
-We added ``strategy="singleton"`` when binding the *"delim-finder"* component.
+   from aglyph.component import Reference as ref
+   from aglyph.context import Context
+
+
+   context = Context("movies-context")
+
+   (context.singleton("delim-finder").
+       create("movies.finder.ColonDelimitedMovieFinder").
+       init("movies.txt").
+       register())
+
+   # makes SQLMovieFinder the default impl bound to "movies.finder.MovieFinder"
+   (context.borg(MovieFinder).
+       create(SQLMovieFinder).
+       init("movies.db").
+       register())
+
+   # will initialize MovieLister with an object of ColonDelimitedMovieFinder
+   context.component(MovieLister).init(ref("delim-finder")).register()
+
+We used the ``singleton(...)`` method to define the *"delim-finder"* component.
 Also, because the component ID *"delim-finder"* is not a dotted name, we
 need to manually specify that the ``MovieLister`` argument is an
 :class:`aglyph.component.Reference` to *"delim-finder"*.
@@ -729,21 +721,33 @@ The final modified XML context looks like this::
        </component>
    </context>
 
-The final modifed ``MoviesBinder`` class looks like this::
+The final modifed *movies/__init__.py* looks like this::
 
-   class MoviesBinder(Binder):
-   
-       def __init__(self):
-           super(MoviesBinder, self).__init__("movies-binder")
-           (self.bind("delim-finder",
-                      to="movies.finder.ColonDelimitedMovieFinder",
-                      strategy="singleton").
-               init("movies.txt"))
-           (self.bind(MovieFinder, to=SQLMovieFinder, strategy="borg").
-               init("movies.db"))
-           self.bind(MovieLister).init(MovieFinder)
+   from movies.finder import MovieFinder, SQLMovieFinder
+   from movies.lister import MovieLister
 
-Running either the *app_xml.py* or *app_binder.py* version of the application
+   from aglyph.component import Reference as ref
+   from aglyph.context import Context
+
+
+   context = Context("movies-context")
+
+   (context.singleton("delim-finder").
+       create("movies.finder.ColonDelimitedMovieFinder").
+       init("movies.txt").
+       register())
+
+   # makes SQLMovieFinder the default impl bound to "movies.finder.MovieFinder"
+   (context.borg(MovieFinder).
+       create(SQLMovieFinder).
+       init("movies.db").
+       register())
+
+   # will initialize MovieLister with an object of SQLMovieFinder
+   context.prototype(MovieLister).init(ref(MovieFinder)).register()
+
+
+Running either the *app_xml.py* or *app_fluent.py* version of the application
 with the final configuration changes still produces the expected results::
 
    The Colossus of Rhodes
@@ -762,7 +766,7 @@ the *movielisterapp* sample application).
 Suggested next steps:
 
 #. Read the :doc:`cookbook`.
-#. Read the :doc:`api-ref`.
+#. Read the :doc:`api-ref` and :doc:`context-fluent-api`.
 #. Read the :download:`Aglyph context DTD
    <../../resources/aglyph-context.dtd>`. The DTD is fully commented, and
    explains some of the finer points of using XML configuration.

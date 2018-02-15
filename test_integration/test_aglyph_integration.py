@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2018 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -31,7 +31,6 @@ import logging
 import unittest
 
 from aglyph import __version__
-from test import enable_debug_logging
 
 # don't use __name__ here; can be run as "__main__"
 _logger = logging.getLogger("test_integration.test_aglyph_integration")
@@ -51,6 +50,5 @@ def suite():
 
 
 if (__name__ == "__main__"):
-    enable_debug_logging(suite)
     unittest.TextTestRunner().run(suite())
 

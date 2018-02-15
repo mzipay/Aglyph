@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-# Copyright (c) 2006, 2011, 2013-2017 Matthew Zipay.
+# Copyright (c) 2006, 2011, 2013-2018 Matthew Zipay.
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -37,58 +37,49 @@ import unittest
 
 from aglyph import __version__
 from aglyph.assembler import Assembler
-from aglyph.binder import Binder
-from aglyph.context import XMLContext, Reference as ref
+from aglyph.context import XMLContext
 from aglyph.integration.cherrypy import AglyphDIPlugin
 
-from test import dummy, enable_debug_logging, skip_if
+from test import dummy
 from test_integration import find_basename
-
-try:
-    import cherrypy
-    cherrypy_is_available = True
-except:
-    cherrypy_is_available = False
-
-__all__ = [
-    "suite"
-]
 
 # don't use __name__ here; can be run as "__main__"
 _logger = logging.getLogger("test_integration.test_cherrypy")
 
-if (cherrypy_is_available):
+try:
+    import cherrypy
+    cherrypy_is_available = True
     _logger.info("using CherryPy %s", cherrypy.__version__)
-    cherrypy.server.unsubscribe()
-    cherrypy.config.update(find_basename("cherrypy.ini"))
-    _logger.info("unsubscribed cherrypy.server and updated cherrypy.config")
-else:
+except:
+    cherrypy_is_available = False
     _logger.error("cherrypy is not available!")
 
-
-class _PluginTestBinder(Binder):
-
-    def __init__(self):
-        super(_PluginTestBinder, self).__init__(
-            binder_id="cherrypy-aglyphdiplugin-test-binder")
-        self.bind("alpha", to=dummy.Alpha).init(None)
-        self.bind(dummy.Beta, strategy="singleton")
-        self.bind("gamma", to=dummy.Gamma, strategy="borg").init(None)
-        self.bind(dummy.Delta, strategy="weakref")
+__all__ = [
+    "AglyphDIPluginTest",
+    "suite"
+]
 
 
-@skip_if(not cherrypy_is_available, "cherrypy is not available!")
+@unittest.skipIf(not cherrypy_is_available, "cherrypy is not available!")
 class AglyphDIPluginTest(unittest.TestCase):
     """Test the :class:`aglyph.integration.cherrypy.AglyphDIPlugin`
     class.
 
     """
 
+    @classmethod
+    def setUpClass(cls):
+        cherrypy.server.unsubscribe()
+        cherrypy.config.update(find_basename("cherrypy.ini"))
+        _logger.info("unsubscribed cherrypy.server and updated cherrypy.config")
+
     def setUp(self):
-        eager_init = "_lazy_" not in str(self)
-        cherrypy.engine.aglyph = AglyphDIPlugin(cherrypy.engine,
-                                                _PluginTestBinder(),
-                                                eager_init=eager_init)
+        cherrypy.engine.aglyph = AglyphDIPlugin(
+            cherrypy.engine,
+            Assembler(
+                XMLContext(
+                    find_basename("cherrypy-aglyphdiplugin-test-context.xml"))),
+            eager_init="_lazy_" not in str(self))
         cherrypy.engine.aglyph.subscribe()
         cherrypy.engine.start()
         self.bus = cherrypy.engine
@@ -100,26 +91,32 @@ class AglyphDIPluginTest(unittest.TestCase):
         cherrypy.engine.aglyph = None
         del cherrypy.engine.aglyph
 
+    @classmethod
+    def tearDownClass(cls):
+        cherrypy.engine.exit()
+
     def test_aglyph_assemble(self):
-        obj = self.bus.publish("aglyph-assemble", "alpha").pop()
-        self.assertTrue(obj.__class__ is dummy.Alpha)
+        obj = self.bus.publish("aglyph-assemble", "module-class-1").pop()
+        self.assertTrue(obj.__class__ is dummy.ModuleClass)
 
     def test_eager_aglyph_init_singletons(self):
-        self.assertTrue("test.dummy.Beta" in
-                        cherrypy.engine.aglyph._assembler._cache["singleton"])
+        self.assertTrue(
+            "test.dummy.factory_function" in
+                cherrypy.engine.aglyph._assembler._caches["singleton"])
         ids = self.bus.publish("aglyph-init-singletons").pop()
         self.assertEqual(0, len(ids))
 
     def test_lazy_aglyph_init_singletons(self):
-        self.assertFalse("test.dummy.Beta" in
-                         cherrypy.engine.aglyph._assembler._cache["singleton"])
+        self.assertFalse(
+            "test.dummy.factory_function" in
+                cherrypy.engine.aglyph._assembler._caches["singleton"])
         ids = self.bus.publish("aglyph-init-singletons").pop()
-        self.assertEqual(["test.dummy.Beta"], ids)
+        self.assertEqual(["test.dummy.factory_function"], ids)
 
     def test_eager_aglyph_clear_singletons(self):
         # all singletons have been assembled
         ids = self.bus.publish("aglyph-clear-singletons").pop()
-        self.assertEqual(["test.dummy.Beta"], ids)
+        self.assertEqual(["test.dummy.factory_function"], ids)
         # now clear again without re-assembling
         ids = self.bus.publish("aglyph-clear-singletons").pop()
         self.assertEqual(0, len(ids))
@@ -129,26 +126,28 @@ class AglyphDIPluginTest(unittest.TestCase):
         ids = self.bus.publish("aglyph-clear-singletons").pop()
         self.assertEqual(0, len(ids))
         # now assemble a singleton and clear again
-        self.bus.publish("aglyph-assemble", "test.dummy.Beta")
+        self.bus.publish("aglyph-assemble", "test.dummy.factory_function")
         ids = self.bus.publish("aglyph-clear-singletons").pop()
-        self.assertEqual(["test.dummy.Beta"], ids)
+        self.assertEqual(["test.dummy.factory_function"], ids)
 
     def test_eager_aglyph_init_borgs(self):
-        self.assertTrue("gamma" in
-                        cherrypy.engine.aglyph._assembler._cache["borg"])
+        self.assertTrue(
+            "module-class-2" in
+                cherrypy.engine.aglyph._assembler._caches["borg"])
         ids = self.bus.publish("aglyph-init-borgs").pop()
         self.assertEqual(0, len(ids))
 
     def test_lazy_aglyph_init_borgs(self):
-        self.assertFalse("gamma" in
-                         cherrypy.engine.aglyph._assembler._cache["borg"])
+        self.assertFalse(
+            "module-class-2" in
+                cherrypy.engine.aglyph._assembler._caches["borg"])
         ids = self.bus.publish("aglyph-init-borgs").pop()
-        self.assertEqual(["gamma"], ids)
+        self.assertEqual(["module-class-2"], ids)
 
     def test_eager_aglyph_clear_borgs(self):
         # all borgs have been assembled
         ids = self.bus.publish("aglyph-clear-borgs").pop()
-        self.assertEqual(["gamma"], ids)
+        self.assertEqual(["module-class-2"], ids)
         # now clear again without re-assembling
         ids = self.bus.publish("aglyph-clear-borgs").pop()
         self.assertEqual(0, len(ids))
@@ -158,9 +157,9 @@ class AglyphDIPluginTest(unittest.TestCase):
         ids = self.bus.publish("aglyph-clear-borgs").pop()
         self.assertEqual(0, len(ids))
         # now assemble a borg and clear again
-        self.bus.publish("aglyph-assemble", "gamma")
+        self.bus.publish("aglyph-assemble", "module-class-2")
         ids = self.bus.publish("aglyph-clear-borgs").pop()
-        self.assertEqual(["gamma"], ids)
+        self.assertEqual(["module-class-2"], ids)
 
     def _test_aglyph_clear_weakrefs(self):
         # no weakrefs have been assembled
@@ -168,9 +167,9 @@ class AglyphDIPluginTest(unittest.TestCase):
         self.assertEqual(0, len(ids))
         # now assemble a weakref and clear again (keep a reference to the
         # object so the weakref doesn't die during the test!)
-        obj = self.bus.publish("aglyph-assemble", "test.dummy.Delta").pop()
+        obj = self.bus.publish("aglyph-assemble", "factory-function-2").pop()
         ids = self.bus.publish("aglyph-clear-weakrefs").pop()
-        self.assertEqual(["test.dummy.Delta"], ids)
+        self.assertEqual(["factory-function-2"], ids)
 
     # no difference between eager/lazy, as weakrefs are never eagerly
     # initialized (makes no sense to do so since the references would be dead
@@ -191,6 +190,5 @@ def suite():
 
 
 if (__name__ == "__main__"):
-    enable_debug_logging(suite)
     unittest.TextTestRunner().run(suite())
 

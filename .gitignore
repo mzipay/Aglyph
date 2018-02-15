@@ -9,7 +9,7 @@ __pycache__/
 MANIFEST
 .eggs/
 Aglyph.egg-info/
-aglyph-*-env/
+test-*-env/
 resources/movielisterapp-*.zip
 example/movielisterapp-aglyph.sh
 example/movielisterapp-basic.sh

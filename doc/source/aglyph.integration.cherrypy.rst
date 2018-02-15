@@ -1,11 +1,9 @@
-=====================================================================================================
-:mod:`aglyph.integration.cherrypy` --- Integrating Aglyph with `CherryPy <http://www.cherrypy.org/>`_
-=====================================================================================================
+=======================================================================
+:mod:`aglyph.integration.cherrypy` --- Integrating Aglyph with CherryPy
+=======================================================================
 
 :Release: |release|
 
 .. automodule:: aglyph.integration.cherrypy
-
-.. autoclass:: aglyph.integration.cherrypy.AglyphDIPlugin
    :members:
 

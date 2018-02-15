@@ -4,6 +4,20 @@ Other notable usage scenarios
 
 :Release: |release|
 
+.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _PyPy: http://pypy.org/
+.. _stackless.tasklet: https://stackless.readthedocs.io/en/latest/library/stackless/tasklets.html
+.. _Stackless Python "Tasklets": https://bitbucket.org/stackless-dev/stackless/wiki/Tasklets
+.. _IronPython: http://ironpython.net/
+.. _System.Xml.DtdProcessing: https://msdn.microsoft.com/en-us/library/system.xml.dtdprocessing.aspx
+.. _System.Xml.ValidationType: https://msdn.microsoft.com/en-us/library/system.xml.validationtype.aspx
+.. _System.Xml.XmlReaderSettings: https://msdn.microsoft.com/en-us/library/system.xml.xmlreadersettings.aspx
+.. _System.Xml.XmlReader: https://msdn.microsoft.com/en-us/library/system.xml.xmlreader.aspx
+.. _Jython: http://www.jython.org/
+.. _java.util.Collections#synchronizedMap(java.util.Map): https://docs.oracle.com/javase/8/docs/api/java/util/Collections.html#synchronizedMap(java.util.Map
+.. _java.util.LinkedHashMap: https://docs.oracle.com/javase/8/docs/api/java/util/LinkedHashMap.html
+.. _Expat: https://libexpat.github.io/
+
 * :ref:`staticmethod-classmethod-nestedclass-component`
 * :ref:`member-component`
 * :ref:`impl-specific-component`
@@ -14,8 +28,6 @@ Other notable usage scenarios
 
 Describe components for static methods, class methods, or nested classes
 ========================================================================
-
-.. versionadded:: 2.0.0
 
 You may encounter cases where objects for which you want to describe components
 are created through static methods (``@staticmethod``), class methods
@@ -110,29 +122,30 @@ components as we would any other Aglyph components:
    2. :attr:`aglyph.component.Component.factory_name` must be *relative to*
       the importable ``dotted_name``.
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 Here is an equivalent programmatic configuration in a *bindings.py* module::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
    
-   binder = Binder("delorean-binder")
-   binder.bind("default-drive", to="delorean",
-               factory="EquipmentFoundry.get_default_capacitor_drive")
-   binder.bind("capacitor-nodrive", to="delorean.EquipmentFoundry",
-               factory="FluxCapacitor")
-   (binder.bind("capacitor-withdrive", to="delorean.EquipmentFoundry",
-                factory="FluxCapacitor.with_capacitor_drive").
-       init(Reference("default-drive")))
+   context = Context("delorean-context")
+   (context.component("default-drive").
+       create("delorean", factory_name="EquipmentFoundry.get_default_capacitor_drive").
+       register())
+   (context.component("capacitor-nodrive").
+       create("delorean.EquipmentFoundry", factory_name="FluxCapacitor").
+       register())
+   (context.component("capacitor-withdrive").
+       create("delorean.EquipmentFoundry", factory_name="FluxCapacitor.with_capacitor_drive").
+       init(ref("default-drive")).
+       register())
 
 .. _member-component:
 
 Describe components for module or class members
 ===============================================
-
-.. versionadded:: 2.0.0
 
 Similar in nature to the ``factory_name`` property explained in the previous
 section, the :attr:`aglyph.component.Component.member_name` property provides a
@@ -196,19 +209,22 @@ opposed to an *instance* thereof):
 >>> assembler.assemble("request-handler-class") is httpd.RequestHandlerClass
 True
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 Here is an equivalent programmatic configuration in a *bindings.py* module::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
    
-   binder = Binder("cookbook-binder")
-   binder.bind("request-handler-class", to="http.server",
-               member="BaseHTTPRequestHandler")
-   (binder.bind("http-server", to="http.server.HTTPServer").
-       init(("localhost", 8080), Reference("request-handler-class")))
+   context = Context("cookbook-context")
+   (context.component("request-handler-class").
+       create("http.server", member_name="BaseHTTPRequestHandler").
+       register())
+   (context.component("http-server").
+       create("http.server.HTTPServer").
+       init(("localhost", 8080), ref("request-handler-class")).
+       register())
 
 .. _impl-specific-component:
 
@@ -226,14 +242,11 @@ implementation of Python.
 
 Example 1: Describe a component for a Stackless Python or PyPy tasklet
 ----------------------------------------------------------------------
-The `Stackless Python <http://www.stackless.com/>`_ and
-`PyPy <http://pypy.org/>`_ Python implementations support the
-`stackless.tasklet <http://www.stackless.com/wiki/Tasklets>`_ wrapper, which
-allows any callable to run as a microthread.
+The `Stackless Python`_ and `PyPy`_ Python implementations support the
+`stackless.tasklet`_ wrapper, which allows any callable to run as a microthread.
 
 The examples below demonstrate the Aglyph configuration for a variation of the
-sample code given in the `Stackless Python "Tasklets"
-<http://www.stackless.com/wiki/Tasklets>`_ Wiki article.
+sample code given in the `Stackless Python "Tasklets"`_ Wiki article.
 
 Using declarative XML configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -261,8 +274,8 @@ Assembling and running this tasklet looks like this:
 >>> task.run()
 'aCallable: assembled by Aglyph'
 
-Using programmatic Binder configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using fluent API configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Below is an example of programmatic configuration, but with a twist - we allow
 Aglyph to inject the function argument into the task so that we only need to
@@ -271,37 +284,36 @@ has setter method semantics.
 
 In a *bindings.py* module::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
    
-   binder = Binder("cookbook-binder")
-   binder.bind("aCallable-func", to="cookbook", member="aCallable")
-   (binder.bind("aCallable-task", to="stackless.tasklet").
-       init(Reference("aCallable-func")).
-       attributes(setup="injected by Aglyph"))
+   context = Context("cookbook-context")
+   context.component("aCallable-func").create("cookbook", member="aCallable").register()
+   (context.component("aCallable-task").
+       create("stackless.tasklet").
+       init(ref("aCallable-func")).
+       set(setup="injected by Aglyph").
+       register())
 
 Assembling and running this tasklet looks like this:
 
->>> from bindings import binder
->>> task = binder.lookup("aCallable-task")
+>>> from aglyph.assembler import Assembler
+>>> from bindings import context
+>>> assembler = Assembler(context)
+>>> task = assembler.assemble("aCallable-task")
 >>> task.run()
 'aCallable: injected by Aglyph'
 
 Example 2: Describe a component for a .NET XmlReader
 ----------------------------------------------------
-`IronPython <http://ironpython.net/>`_ developers have access to the .NET
-Framework Standard Library and any custom assemblies via the ``clr`` module,
-allowing any .NET namespace to be loaded into the IronPython runtime and used.
+`IronPython`_ developers have access to the .NET Framework Standard Library and
+any custom assemblies via the ``clr`` module, allowing any .NET namespace to be
+loaded into the IronPython runtime and used.
 
-In the examples below, we use `System.Xml.DtdProcessing
-<http://msdn.microsoft.com/en-us/library/system.xml.dtdprocessing.aspx>`_,
-`System.Xml.ValidationType
-<http://msdn.microsoft.com/en-us/library/system.xml.validationtype.aspx>`_,
-`System.Xml.XmlReaderSettings
-<http://msdn.microsoft.com/en-us/library/system.xml.xmlreadersettings.aspx>`_,
-and `System.Xml.XmlReader
-<http://msdn.microsoft.com/en-us/library/system.xml.xmlreader.aspx>`_ to
-configure an XML reader that parses a fictitious "AppConfig.xml" document.
+In the examples below, we use `System.Xml.DtdProcessing`_,
+`System.Xml.ValidationType`_, `System.Xml.XmlReaderSettings`_, and
+`System.Xml.XmlReader`_ to configure an XML reader that parses a fictitious
+"AppConfig.xml" document.
 
 .. warning::
    When using IronPython, the .NET namespace for any class referenced in an
@@ -356,47 +368,56 @@ fictitious application configuration reader:
 >>> assembler.assemble("app-config-reader")
 <System.Xml.XmlValidatingReaderImpl object at 0x000000000000002B [System.Xml.XmlValidatingReaderImpl]>
 
-Using programmatic Binder configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using fluent API configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Here is an equivalent programmatic configuration in a *bindings.py* module::
 
-   from aglyph.binder import Binder
+   from aglyph.context import Context
    from aglyph.component import Reference
     
-   binder = Binder("dotnet-binder")
-   binder.bind("dtd-parse", to="System.Xml", member="DtdProcessing.Parse")
-   binder.bind("dtd-validate", to="System.Xml", member="ValidationType.DTD")
-   (binder.bind("xmlreader-settings", to="System.Xml.XmlReaderSettings").
-       attributes(IgnoreComments=True,
-                  IgnoreProcessingInstructions=True,
-                  IgnoreWhitespace=True,
-                  DtdProcessing=Reference("dtd-parse"),
-                  ValidationType=Reference("dtd-validate")))
-   (binder.bind("app-config-reader", to="System.Xml.XmlReader", factory="Create").
-       init("file:///C:/Example/Settings/AppConfig.xml",
-            Reference("xmlreader-settings")))
+   context = Context("dotnet-context")
+   (context.component("dtd-parse").
+       create("System.Xml", member="DtdProcessing.Parse").
+       register())
+   (context.component("dtd-validate").
+       create("System.Xml", member="ValidationType.DTD").
+       register())
+   (context.component("xmlreader-settings").
+       create("System.Xml.XmlReaderSettings").
+       set(
+           IgnoreComments=True,
+           IgnoreProcessingInstructions=True,
+           IgnoreWhitespace=True,
+           DtdProcessing=Reference("dtd-parse"),
+           ValidationType=Reference("dtd-validate")).
+       register())
+   (context.component("app-config-reader").
+       create("System.Xml.XmlReader", factory_name="Create").
+       init(
+           "file:///C:/Example/Settings/AppConfig.xml",
+           Reference("xmlreader-settings")).
+       register())
 
 The code to assemble the fictitious application configuration reader looks like
 this:
 
 >>> import clr
 >>> clr.AddReference("System.Xml")
->>> from bindings import binder
->>> binder.lookup("app-config-reader")
+>>> from aglyph.assembler import Assembler
+>>> from bindings import context
+>>> assembler = Assembler(context)
+>>> assembler.assemble("app-config-reader")
 <System.Xml.XmlValidatingReaderImpl object at 0x000000000000002B [System.Xml.XmlValidatingReaderImpl]>
 
 Example 3: Describe a component for a Java™ LinkedHashMap
 ---------------------------------------------------------
-`Jython <http://www.jython.org/>`_ developers have direct access to the
-Java™ Platform API and any custom JARs in the runtime *CLASSPATH*.
+`Jython`_ developers have direct access to the Java™ Platform API and any custom
+JARs in the runtime *CLASSPATH*.
 
 In the examples below, we use
-`java.util.Collections#synchronizedMap(java.util.Map)
-<http://docs.oracle.com/javase/6/docs/api/java/util/Collections.html#synchronizedMap(java.util.Map)>`_
-and `java.util.LinkedHashMap
-<http://docs.oracle.com/javase/6/docs/api/java/util/LinkedHashMap.html>`_ to
-configure a thread-safe, insertion-order hash map.
+`java.util.Collections#synchronizedMap(java.util.Map)`_ and `java.util.LinkedHashMap`_
+to configure a thread-safe, insertion-order hash map.
 
 Using declarative XML configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -423,24 +444,27 @@ To assemble our map:
 >>> mapping.__class__
 <type 'java.util.Collections$SynchronizedMap'>
 
-Using programmatic Binder configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using fluent API configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Here is an equivalent programmatic configuration in a *bindings.py* module::
 
-   from aglyph.binder import Binder
+   from aglyph.context import Context
    from aglyph.component import Reference
     
-   binder = Binder("java-binder")
-   binder.bind("java.util.LinkedHashMap")
-   (binder.bind("threadsafe-ordered-map", to="java.util.Collections",
-                factory="synchronizedMap").
-       init(Reference("java.util.LinkedHashMap")))
+   context = Context("java-context")
+   context.component("java.util.LinkedHashMap")
+   (context.component("threadsafe-ordered-map").
+       create("java.util.Collections", factory_name="synchronizedMap").
+       init(Reference("java.util.LinkedHashMap")).
+       register())
 
 Assembling the map looks like this:
 
->>> from bindings import binder
->>> mapping = binder.lookup("threadsafe-ordered-map")
+>>> from aglyph.assembler import Assembler
+>>> from bindings import context
+>>> assembler = Assembler(context)
+>>> mapping = assembler.assemble("threadsafe-ordered-map")
 >>> mapping.__class__
 <type 'java.util.Collections$SynchronizedMap'>
 
@@ -450,8 +474,7 @@ Use a custom XML parser for XMLContext
 ======================================
 
 Aglyph uses the :mod:`xml.etree.ElementTree` API for processing context
-documents. By default, ElementTree uses the `expat
-<http://expat.sourceforge.net/>`_ XML parser (via
+documents. By default, ElementTree uses the `Expat`_ XML parser (via
 :class:`xml.etree.ElementTree.XMLParser`) to build element structures.
 
 However, developers may subclass :class:`xml.etree.ElementTree.XMLParser` to
@@ -459,11 +482,9 @@ use *any* XML parser; simply pass an instance of the subclass to
 :class:`aglyph.context.XMLContext` as the ``parser`` keyword argument.
 
 .. note::
-   For an example, please refer to :class:`aglyph.compat.ipytree.CLRXMLParser`,
+   For a real, working example, please refer to ``aglyph._compat.CLRXMLParser``,
    which is an :class:`xml.etree.ElementTree.XMLParser` subclass that uses the
-   .NET `System.Xml.XmlReader
-   <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader.aspx>`_
-   parser.
+   .NET `System.Xml.XmlReader`_ parser.
 
 .. _clear-caches:
 

@@ -2,8 +2,12 @@
 What's new in release 2.0.0?
 ============================
 
-* `Python 2.5 <http://www.python.org/download/releases/2.5/>`_ is no longer
-  supported (and Aglyph 2.0.0 will not run on Python 2.5 without patching).
+.. _Python 2.5 lifespan: https://www.python.org/dev/peps/pep-0356/#release-schedule
+.. _Read the Docs Sphinx Theme: https://github.com/rtfd/sphinx_rtd_theme
+
+* The `Python 2.5 lifespan`_ has ended and it is no longer actively
+  supported in Aglyph.
+  *(Aglyph 2.0.0 will not run on Python 2.5 without patching)*
 * Creating components using :obj:`staticmethod`, :obj:`classmethod`, and nested
   classes (any level) is now supported via
   :attr:`aglyph.component.Component.factory_name`.
@@ -39,6 +43,5 @@ What's new in release 2.0.0?
 * The :doc:`get-started` tutorial and accompanying sample code have been
   revamped to better demonstrate the various Aglyph configuration approaches,
   as well as to provide more substantive component examples.
-* Aglyph documentation now uses the `Read the Docs Theme
-  <http://read-the-docs.readthedocs.org/en/latest/theme.html>`_.
+* Aglyph documentation now uses the `Read the Docs Sphinx Theme`_.
 

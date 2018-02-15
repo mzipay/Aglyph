@@ -36,6 +36,10 @@ A context can be created in pure Python using the following API classes:
   lazily evaluate component initialization arguments and attributes)
 * :class:`aglyph.context.Context` or a subclass
 
+.. versionadded:: 3.0.0
+   For easier programmatic configuration, refer to
+   :doc:`context-fluent-api`.
+
 Alternatively, a context can be defined using a declarative XML syntax
 that conforms to the :download:`Aglyph context DTD
 <../../resources/aglyph-context.dtd>` (included in the *resources/*
@@ -81,6 +85,7 @@ _log = logging.getLogger(__name__)
 @traced
 @logged
 class _ContextBuilder(object):
+    """Entry points for the Aglyph Context fluent API."""
 
     def component(self, component_id_spec, parent_id_spec=None):
         """Return a fluent :class:`Component` builder for
@@ -95,7 +100,7 @@ class _ContextBuilder(object):
            name identifies this component's parent definition
 
         .. versionadded:: 3.0.0
-           This method is part of the Aglyph "fluent context" API.
+           This method is an entry point into :doc:`context-fluent-api`.
 
         """
         return _ComponentBuilder(
@@ -115,7 +120,7 @@ class _ContextBuilder(object):
            name identifies this component's parent definition
 
         .. versionadded:: 3.0.0
-           This method is part of the Aglyph "fluent context" API.
+           This method is an entry point into :doc:`context-fluent-api`.
 
         """
         return self.component(
@@ -136,7 +141,7 @@ class _ContextBuilder(object):
            name identifies this component's parent definition
 
         .. versionadded:: 3.0.0
-           This method is part of the Aglyph "fluent context" API.
+           This method is an entry point into :doc:`context-fluent-api`.
 
         """
         return self.component(
@@ -157,7 +162,7 @@ class _ContextBuilder(object):
            name identifies this component's parent definition
 
         .. versionadded:: 3.0.0
-           This method is part of the Aglyph "fluent context" API.
+           This method is an entry point into :doc:`context-fluent-api`.
 
         """
         return self.component(
@@ -178,7 +183,7 @@ class _ContextBuilder(object):
            name identifies this component's parent definition
 
         .. versionadded:: 3.0.0
-           This method is part of the Aglyph "fluent context" API.
+           This method is an entry point into :doc:`context-fluent-api`.
 
         """
         return self.component(
@@ -198,7 +203,7 @@ class _ContextBuilder(object):
            name identifies this template's parent definition
 
         .. versionadded:: 3.0.0
-           This method is part of the Aglyph "fluent context" API.
+           This method is an entry point into :doc:`context-fluent-api`.
 
         """
         return _TemplateBuilder(
@@ -208,12 +213,40 @@ class _ContextBuilder(object):
 @traced
 @logged
 class _CreationBuilderMixin(object):
+    """Methods to describe object creation."""
 
     __slots__ = []
 
     def create(
             self, dotted_name_spec=None, factory_name=None, member_name=None,
             strategy=None):
+        """Specify the object creation aspects of a component being
+        defined.
+
+        :keyword dotted_name_spec:
+           an **importable** dotted name or an object whose dotted name
+           will be introspected
+        :keyword factory_name:
+           names a :obj:`callable` member of the object represented by
+           the dotted name
+        :keyword member_name:
+           names **any** member of the object represented by the dotted
+           name
+        :keyword strategy:
+           specifies the component assembly strategy
+        :return:
+           *self* (to support chained calls)
+
+        Any keyword whose value is ``None`` will be ignored (i.e.
+        ``None`` values are not explicitly set).
+
+        .. note::
+           The *member_name* and *strategy* keywords are mutually
+           exclusive. Any component definition that specifies a
+           *member_name* is implicitly assigned the special strategy
+           "imported".
+
+        """
         # do not explicitly assign None values; calls can be chained
         if dotted_name_spec is not None:
             self._dotted_name_spec = dotted_name_spec
@@ -229,18 +262,20 @@ class _CreationBuilderMixin(object):
 @traced
 @logged
 class _InjectionBuilderMixin(object):
+    """Methods to describe injected dependencies."""
 
     __slots__ = []
 
     def init(self, *args, **keywords):
-        """Configure the base initialization arguments (positional and
-        keyword) for templates and/or components that will extend this
-        template.
+        """Specify the initialization arguments (positional and
+        keyword) for templates and/or components.
 
         :arg tuple args:
            the positional initialization arguments
         :arg dict keywords:
            the keyword initialization arguments
+        :return:
+           *self* (to support chained calls)
 
         .. note::
            Successive calls to this method on the same instance have a
@@ -253,6 +288,21 @@ class _InjectionBuilderMixin(object):
         return self
 
     def set(self, *pairs, **attributes):
+        """Specify the setter (method/attribute/property) depdendencies
+        for tempaltes and/or components.
+
+        :arg pairs:
+           a sequence of (name, value) 2-tuples (optional)
+        :arg attributes:
+           a mapping of name->value dependencies
+        :return:
+           *self* (to support chained calls)
+
+        .. note::
+           Successive calls to this method on the same instance have a
+           cumulative effect (i.e. the attributes mapping is updated).
+
+        """
         self._attributes.update(pairs, **attributes)
         return self
 
@@ -260,10 +310,28 @@ class _InjectionBuilderMixin(object):
 @traced
 @logged
 class _LifecycleBuilderMixin(object):
+    """Methods to describe lifecyle method names."""
 
     __slots__ = []
 
     def call(self, after_inject=None, before_clear=None):
+        """Specify the names of lifecycle methods to be called for
+        templates and/or components.
+
+        :arg after_inject:
+           the name of the method to call after a component has been
+           assembled but before it is returned to the caller
+        :arg before_clear:
+           the name of the method to call immediately before a
+           *singleton*, *borg*, or *weakref* object is evicted from
+           the internal cache
+        :return:
+           *self* (to support chained calls)
+
+        Any keyword whose value is ``None`` will be ignored (i.e.
+        ``None`` values are not explicitly set).
+
+        """
         # do not explicitly assign None values; calls can be chained
         if after_inject is not None:
             self._after_inject = after_inject
@@ -275,10 +343,20 @@ class _LifecycleBuilderMixin(object):
 @traced
 @logged
 class _RegistrationMixin(object):
+    """Methods to handle registering a template or component in a
+    context.
+
+    """
 
     __slots__ = []
 
     def register(self):
+        """Add a component or template definition to a context.
+
+        :return:
+           ``None`` (terminates the fluent call sequence)
+
+        """
         definition = self._init_definition()
 
         definition._args = self._args
@@ -289,6 +367,10 @@ class _RegistrationMixin(object):
         # implicit return None terminates this fluent call sequence
 
     def _init_definition(self):
+        """Create the :class:`Component` or :class:`Template` definition
+        that will be registered in the :class:`Context`
+
+        """
         raise NotImplementedError()
 
 

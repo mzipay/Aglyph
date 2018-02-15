@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE context SYSTEM "../resources/aglyph-context.dtd">
 <context id="aglyph-cherrypy-test-context">
-	<component id="alpha" dotted-name="test.dummy.Alpha">
+	<component id="module-class-1" dotted-name="test.dummy.ModuleClass">
 		<init>
-			<arg><none/></arg>
+			<arg><None/></arg>
 		</init>
 	</component>
-	<component id="test.dummy.Beta" strategy="singleton"/>
-	<component id="gamma" dotted-name="test.dummy.Gamma" strategy="borg">
+	<component id="test.dummy.factory_function" strategy="singleton">
 		<init>
-			<arg><none/></arg>
+			<arg><None/></arg>
 		</init>
 	</component>
-	<component id="test.dummy.Delta" strategy="weakref"/>
+	<component id="module-class-2" dotted-name="test.dummy.ModuleClass" strategy="borg">
+		<init>
+			<arg><None/></arg>
+		</init>
+	</component>
+	<component id="factory-function-2" dotted-name="test.dummy.factory_function" strategy="weakref">
+		<init>
+			<arg><None/></arg>
+		</init>
+	</component>
 </context>
 

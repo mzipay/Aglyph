@@ -2,19 +2,18 @@
 Aglyph 2.1.0 testing summary
 ============================
 
-.. versionchanged:: 2.1.0
-   The Aglyph test suite is no longer executed under
-   `Python 2.6 <http://www.python.org/download/releases/2.6/>`_, which reached
-   end-of-life with the release of
-   `Python 2.6.9 <https://www.python.org/download/releases/2.6.9/>`_ on October
-   29th, 2013.
+.. _CPython: https://www.python.org/
+.. _PyPy: http://pypy.org/
+.. _Stackless Python: https://github.com/stackless-dev/stackless 
+.. _IronPython: http://ironpython.net/
+.. _Jython: http://www.jython.org/
+.. _Python 2.6 lifespan: https://www.python.org/dev/peps/pep-0361/#release-lifespan
 
-.. versionchanged:: 2.0.0
-   The Aglyph test suite is no longer executed under
-   `Python 2.5 <http://www.python.org/download/releases/2.5/>`_, which reached
-   end-of-life with the release of
-   `Python 2.5.6 <http://www.python.org/download/releases/2.5.6/>`_ on May
-   26th, 2011.
+.. warning::
+   .. versionchanged:: 2.1.0
+   
+   The `Python 2.6 lifespan`_ has ended; the Aglyph test suite is no longer executed
+   under this version.
 
 .. note::
    Prior to each Aglyph release being committed, tagged, and packaged, its test
@@ -27,8 +26,8 @@ Aglyph 2.1.0 testing summary
    means that I no longer publish or withhold a release based on the test suite
    results from that particular Python version.
 
-`CPython <http://www.python.org/>`_
-===================================
+`CPython`_
+==========
 
 +---------+---------------------------------------------------------------------------------------+
 | Version | Platform                                                                              |
@@ -58,8 +57,8 @@ Aglyph 2.1.0 testing summary
 |         | Windows-7-6.1.7601-SP1 MSC v.1600 32 bit (Intel)                                      |
 +---------+---------------------------------------------------------------------------------------+
 
-`PyPy <http://pypy.org/>`_
-==========================
+`PyPy`_
+=======
 
 +-------------------------+--------------------------------------------------------------------+
 | Version                 | Platform                                                           |
@@ -75,8 +74,8 @@ Aglyph 2.1.0 testing summary
 |                         | Windows-7-6.1.7601-SP1                                             |
 +-------------------------+--------------------------------------------------------------------+
 
-`Stackless Python <http://www.stackless.com/>`_
-===============================================
+`Stackless Python`_
+===================
 
 +------------------------------+---------------------------------------------------------------------------------------------------+
 | Version                      | Platform                                                                                          |
@@ -90,8 +89,8 @@ Aglyph 2.1.0 testing summary
 |                              | (3.3-slp:cea13d5e707f+, Apr 10 2014, 10:33:27) [MSC v.1600 32 bit (Intel)] Windows-7-6.1.7601-SP1 |
 +------------------------------+---------------------------------------------------------------------------------------------------+
 
-`IronPython <http://ironpython.net/>`_
-======================================
+`IronPython`_
+=============
 
 +---------+--------------------------------------------------------------------+
 | Version | Platform                                                           |
@@ -99,8 +98,8 @@ Aglyph 2.1.0 testing summary
 |   2.7.5 | Windows-7-6.1.7601-SP1 cli-32bit .NET 4.0.30319.18408 (32-bit)     |
 +---------+--------------------------------------------------------------------+
 
-`Jython <http://www.jython.org/>`_
-==================================
+`Jython`_
+=========
 
 +---------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Version | Platform                                                                                                                                                        |

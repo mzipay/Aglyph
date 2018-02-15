@@ -82,7 +82,7 @@ import logging
 from autologging import traced
 
 from aglyph import __version__
-from aglyph.compat import name_of
+from aglyph._compat import name_of
 
 from cherrypy.process.plugins import SimplePlugin
 

@@ -4,6 +4,12 @@ Understand the general features of Aglyph
 
 :Release: |release|
 
+.. _CPython: https://www.python.org/
+.. _PyPy: http://pypy.org/
+.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _IronPython: http://ironpython.net/
+.. _Jython: http://www.jython.org/
+
 .. _version-impl-support:
 
 Aglyph supports Python 2 and 3 (CPython), PyPy, Stackless, IronPython, and Jython
@@ -12,11 +18,11 @@ Aglyph supports Python 2 and 3 (CPython), PyPy, Stackless, IronPython, and Jytho
 The single Aglyph distribution and API is 100% compatible across Python
 language versions 2.7 and 3.3+, and the implementations listed below:
 
-* `CPython <http://www.python.org/>`_
-* `PyPy <http://pypy.org/>`_
-* `Stackless Python <http://www.stackless.com/>`_
-* `IronPython <http://ironpython.net/>`_
-* `Jython <http://www.jython.org/>`_
+* `CPython`_
+* `PyPy`_
+* `Stackless Python`_
+* `IronPython`_
+* `Jython`_
 
 The :doc:`testing` provides detailed information for the Python implementation
 releases and platforms under which the Aglyph unit test suite is executed.

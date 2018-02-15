@@ -4,6 +4,8 @@ Common usage scenarios
 
 :Release: |release|
 
+.. _GNU dbm: https://www.gnu.org.ua/software/gdbm/
+
 All examples are shown with XML configuration *and* programmatic configuration,
 where appropriate.
 
@@ -89,22 +91,24 @@ Accordingly, we use the component IDs to assemble these components:
 >>> ninthtest_info = assembler.assemble("ninthtest-info-conx")
 >>> python_org = assembler.assemble("python-org-conx")
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
-Using :class:`aglyph.binder.Binder` to describe a simple component in a
+Using :doc:`context-fluent-api` to describe a simple component in a
 *bindings.py* module::
 
    from http.client import HTTPConnection
-   from aglyph.binder import Binder
+   from aglyph.context import Context
 
-   binder = Binder("cookbook-binder")
-   binder.bind(HTTPConnection).init("ninthtest.info", 80, timeout=5)
+   context = Context("cookbook-context")
+   context.prototype(HTTPConnection).init("ninthtest.info", 80, timeout=5).register()
 
 To assemble and use the component:
 
->>> from bindings import binder
->>> conx = binder.lookup("http.client.HTTPConnection")
+>>> from aglyph.assembler import Assembler
+>>> from bindings import context
+>>> assembler = Assembler(context)
+>>> conx = assembler.assemble("http.client.HTTPConnection")
 >>> conx.request("GET", '/')
 >>> response = conx.getresponse()
 >>> print(response.status, response.reason)
@@ -114,19 +118,25 @@ And like XML contexts, when we wish to use multiple components of the same
 dotted name, we must give them unique component IDs::
 
    from http.client import HTTPConnection
-   from aglyph.binder import Binder
+   from aglyph.context import Context
    
-   binder = Binder("cookbook-binder")
-   (binder.bind("ninthtest-info-conx", to=HTTPConnection).
-       init("ninthtest.info", 80, timeout=5))
-   (binder.bind("python-org-conx", to=HTTPConnection).
-       init("www.python.org", 80, timeout=5))
+   context = Context("cookbook-context")
+   (context.prototype("ninthtest-info-conx").
+       create(HTTPConnection).
+       init("ninthtest.info", 80, timeout=5).
+       register())
+   (context.prototype("python-org-conx").
+       create(HTTPConnection).
+       init("www.python.org", 80, timeout=5).
+       register())
 
 Assembling these components now requires the custom component IDs:
 
->>> from bindings import binder
->>> ninthtest_info = binder.lookup("ninthtest-info-conx")
->>> python_org = binder.lookup("python-org-conx")
+>>> from aglyph.assembler import Assembler
+>>> from bindings import context
+>>> assembler = Assembler(context)
+>>> ninthtest_info = assembler.assemble("ninthtest-info-conx")
+>>> python_org = assembler.assemble("python-org-conx")
 
 .. _builtin-components:
 
@@ -134,7 +144,7 @@ Describe any Python builtin type as a component
 ===============================================
 
 Python builtin types (e.g. :obj:`int`, :obj:`list`) can be identified by an
-importable dotted name, and so may specified as components in Aglyph.
+importable dotted name, and so may be defined as components in Aglyph.
 
 Using declarative XML configuration
 -----------------------------------
@@ -170,20 +180,22 @@ In the XML context document *"cookbook-context.xml"*::
        </component>
    </context>
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 Because the builtin types are accessible without having to do an explicit
-import, the Binder configuration is very simple.
+import, the fluent configuration is very simple.
 
 In a *bindings.py* module::
 
-   from aglyph.binder import Binder
+   from aglyph.context import Context
    
-   binder = Binder("cookbook-binder")
-   binder.bind("foods", to=frozenset).init(["spam", "eggs"])
-   (binder.bind("opened-file", to=open).
-       init("/path/to/file.txt", encoding="ISO-8859-1"))
+   context = Context("cookbook-context")
+   context.prototype("foods").create(frozenset).init(["spam", "eggs"]).register()
+   (context.prototype("opened-file").
+       create(open).
+       init("/path/to/file.txt", encoding="ISO-8859-1").
+       register())
 
 .. _component-reference:
 
@@ -246,26 +258,32 @@ automatically assemble and inject the *"ninthtest-home-page"* component:
 >>> print(ninthtest_url.status, ninthtest_url.reason)
 200 OK
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 In a *bindings.py* module::
 
    from urllib.request import Request, urlopen
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
    
-   binder = Binder("cookbook-binder")
-   (binder.bind("ninthtest-home-page", to=Request).
-       init("http://ninthtest.info/"))
-   (binder.bind("ninthtest-url", to=urlopen).
-       init(Reference("ninthtest-home-page"), timeout=5))
+   context = Context("cookbook-context")
+   (context.component("ninthtest-home-page").
+       create(Request).
+       init("http://ninthtest.info/").
+       register())
+   (context.component("ninthtest-url").
+       create(urlopen).
+       init(ref("ninthtest-home-page"), timeout=5).
+       register())
 
-When the *"ninthtest-url"* component is assembled, the binder will
+When the *"ninthtest-url"* component is assembled, the assembler will
 automatically assemble and inject the *"ninthtest-home-page"* component:
 
->>> from bindings import binder
->>> ninthtest_url = binder.lookup("ninthtest-url")
+>>> from aglyph.assembler import Assembler
+>>> from bindings import context
+>>> assembler = Assembler(context)
+>>> ninthtest_url = assembler.assemble("ninthtest-url")
 >>> print(ninthtest_url.status, ninthtest_url.reason)
 200 OK
 
@@ -337,23 +355,25 @@ Aglyph automatically creates an :class:`aglyph.component.Reference` for any
        </component>
    </context>
 
-Using programmatic Binder configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using fluent API configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In a *bindings.py* module::
 
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
+   from aglyph.context import Context
+   from aglyph.component import Reference as ref
 
-   binder = Binder("cookbook-binder")
-   (binder.bind("cookbook-formatter", to="logging.Formatter").
-       init("%(asctime)s %(levelname)s %(message)s"))
-   (binder.bind("cookbook-handler", to="logging.handlers.RotatingFileHandler").
+   context = Context("cookbook-context")
+   (context.component("cookbook-formatter").create("logging.Formatter").
+       init("%(asctime)s %(levelname)s %(message)s").register())
+   (context.component("cookbook-handler").create("logging.handlers.RotatingFileHandler").
        init("/var/log/cookbook.log", maxBytes=1048576, backupCount=3).
-       attributes(setFormatter=Reference("cookbook-formatter")))
-   (binder.bind("cookbook-logger", to="logging.getLogger", strategy="singleton").
+       set(setFormatter=ref("cookbook-formatter")).
+       register())
+   (context.singleton("cookbook-logger").create("logging.getLogger").
        init("cookbook").
-       attributes(addHandler=Reference("cookbook-handler")))
+       attributes(addHandler=ref("cookbook-handler")).
+       register())
 
 .. _deferred-partial-evaluator:
 
@@ -417,12 +437,12 @@ argument is automatically turned into an :class:`aglyph.component.Evaluator`::
        </component>
    </context>
 
-Using programmatic Binder configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using fluent API configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
    Unlike XML configuration, there is no provision for automatically creating
-   an :class:`aglyph.component.Evaluator` when using Binder. Any value that
+   an :class:`aglyph.component.Evaluator` when using :doc:`context-fluent-api`. Any value that
    should be the result of a :obj:`functools.partial` or an
    :class:`aglyph.component.Evaluator` must be **explicitly** specified as
    such.
@@ -430,21 +450,21 @@ Using programmatic Binder configuration
 In a *bindings.py* module::
 
    import functools
-   from aglyph.binder import Binder
+   from aglyph.context import Context
 
-   binder = Binder("cookbook-binder")
-   (binder.bind("cookbook.WorkflowManager").
-       init(states=functools.partial(dict,
-                                     UNA="Unassigned",
-                                     OPE="Open (Assigned)",
-                                     CLO="Closed")))
+   context = Context("cookbook-context")
+   (context.component("cookbook.WorkflowManager").
+       init(states=functools.partial(
+           dict,
+           UNA="Unassigned",
+           OPE="Open (Assigned)",
+           CLO="Closed")).
+       register())
 
 .. _after-inject-lifecycle-method:
 
 Declare a method to be called on an object after its dependencies have been injected
 ====================================================================================
-
-.. versionadded:: 2.1.0
 
 At times it may be desirable (or necessary) to call an "initialization" method
 on an assembled object before it is returned to the caller for use. For this
@@ -464,8 +484,8 @@ method may be appropriate. Alternatively, it could be declared in a template
 (see :doc:`cookbook-templating`).
 
 Regardless of the configuration approach, the behavior is that the assembled
-object's ``prepare()`` method is called **before** the object is returned from
-the assembler or binder to the caller.
+object's ``prepare()`` method is called **after** the object is injected but
+**before** the object is returned to the caller.
 
 Using declarative XML configuration
 -----------------------------------
@@ -479,25 +499,28 @@ Note the use of the *after-inject* attribute on the ``<context>`` element::
       <component id="object-c" dotted-name="cookbook.PreparableObjectC" />
    </context>
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
-Note the use of the *after_inject* keyword argument to
-:class:`aglyph.binder.Binder`::
+Note the use of the *after_inject* keyword argument to the ``call(...)``
+method::
 
-   from aglyph.binder import Binder
+   from aglyph.context import Context
 
-   binder = Binder("cookbook-binder", after_inject="prepare")
-   binder.bind("object-a", to="cookbook.PreparableObjectA")
-   binder.bind("object-b", to="cookbook.PreparableObjectB")
-   binder.bind("object-c", to="cookbook.PreparableObjectC")
+   context = Context("cookbook-context", after_inject="prepare")
+   context.component("object-a").create("cookbook.PreparableObjectA").register()
+   context.component("object-b").create("cookbook.PreparableObjectB").register()
+   context.component("object-c").create("cookbook.PreparableObjectC").register()
+
+Additionally, the fluent API supports a ``call(...)`` method that may be used
+to specify a lifecycle method::
+
+   context.component("cookbook.AnotherObject").call(after_inject="ready").register()
 
 .. _before-clear-lifecycle-method:
 
 Declare a method to be called on a *singleton*, *borg*, or *weakref* object before it is cleared from cache
 ===========================================================================================================
-
-.. versionadded:: 2.1.0
 
 At times it may be desirable (or necessary) to call a "finalization" method on
 a cached object before it is cleared from Aglyph's internal cache. For this
@@ -511,13 +534,12 @@ template, and/or component level.
    declared at the context, template, and/or component level for a given
    object.
 
-Following is an example that declares a *singleton* `GNU dbm
-<http://www.gnu.org.ua/software/gdbm/>`_ key/data store using Python's
-:mod:`dbm.gnu` module. The store is configured to be opened in "fast" mode,
-meaning that writes are not synchronized. When using GDBM, it is important that
-every file opened is also closed (which causes any pending writes to be
-synchronized - i.e. written to disk). The example shows how to declare that the
-``close()`` method is to be called before the cached GDBM object is evicted
+Following is an example that declares a *singleton* `GNU dbm`_ key/date store
+using Python's :mod:`dbm.gnu` module. The store is configured to be opened in
+"fast" mode, meaning that writes are not synchronized. When using GDBM, it is
+important that every file opened is also closed (which causes any pending writes
+to be synchronized - i.e. written to disk). The example shows how to declare that
+the ``close()`` method is to be called before the cached GDBM object is evicted
 from the Aglyph singleton cache.
 
 Using declarative XML configuration
@@ -538,18 +560,20 @@ element::
       </component>
    </context>
 
-Using programmatic Binder configuration
----------------------------------------
+Using fluent API configuration
+------------------------------
 
 Here we use the *before_clear* keyword argument when binding the GDBM store
 object::
 
-   from aglyph.binder import Binder
+   from aglyph.context import Context
 
-   binder = Binder("cookbook-binder")
-   (binder.bind("store", to="dbm.gnu", factory="open",
-                strategy="singleton", before_clear="close").
-       init("/var/cookbook-store.db", "cf"))
+   context = Context("cookbook-context")
+   (context.singleton("store").
+       create("dbm.gnu", factory_name="open").
+       init("/var/cookbook-store.db", "cf").
+       call(before_clear="close").
+       register())
 
 .. warning::
    Be careful when declaring ``before_clear`` lifecycle methods for *weakref*

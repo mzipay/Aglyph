@@ -2,11 +2,11 @@
 
 http://ninthtest.info/aglyph-python-dependency-injection/
 
-[![PyPI version](https://img.shields.io/pypi/v/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph)
-![Python version](https://img.shields.io/pypi/pyversions/Aglyph.svg)
-![Python implementation](https://img.shields.io/pypi/implementation/Aglyph.svg)
-![License](https://img.shields.io/pypi/l/Aglyph.svg)
-[![Wheel availability](https://img.shields.io/pypi/wheel/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph)
+[![Aglyph PyPI version](https://img.shields.io/pypi/v/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph)
+![Aglyph supported Python version](https://img.shields.io/pypi/pyversions/Aglyph.svg)
+![Aglyph supported Python implementation](https://img.shields.io/pypi/implementation/Aglyph.svg)
+![Aglyph License](https://img.shields.io/pypi/l/Aglyph.svg)
+[![Aglyph Wheel availability](https://img.shields.io/pypi/wheel/Aglyph.svg)](https://pypi.python.org/pypi/Aglyph)
 
 ## Introduction
 
@@ -34,7 +34,7 @@ Aglyph is a Dependency Injection framework for Python that...
 * is proactively tested on [CPython](https://www.python.org/),
   [Jython](http://www.jython.org/), [IronPython](http://ironpython.net/),
   [PyPy](http://pypy.org/>), and
-  [Stackless Python](https://bitbucket.org/stackless-dev/stackless/wiki/Home)
+  [Stackless Python](https://github.com/stackless-dev/stackless)
 * is fully logged *and traced* for ease of troubleshooting (note: tracing is
   disabled by default, and can be activated by setting an environment variable)
 

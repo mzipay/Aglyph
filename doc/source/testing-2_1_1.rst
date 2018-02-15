@@ -1,5 +1,5 @@
 ============================
-Aglyph 3.0.0 testing summary
+Aglyph 2.1.1 testing summary
 ============================
 
 .. _CPython: https://www.python.org/
@@ -7,12 +7,12 @@ Aglyph 3.0.0 testing summary
 .. _Stackless Python: https://github.com/stackless-dev/stackless
 .. _IronPython: http://ironpython.net/
 .. _Jython: http://www.jython.org/
-.. _Python 3.3 lifespan: https://www.python.org/dev/peps/pep-0398/#lifespan
+.. _Python 3.2 lifespan: https://www.python.org/dev/peps/pep-0392/#lifespan
 
 .. warning::
-   .. versionchanged:: 3.0.0
-
-   The `Python 3.3 lifespan`_ has ended; the Aglyph test suite is no longer
+   .. versionchanged:: 2.1.1
+   
+   The `Python 3.2 lifespan`_ has ended; the Aglyph test suite is no longer
    executed under this version.
 
 .. note::
@@ -98,16 +98,4 @@ Aglyph 3.0.0 testing summary
 +---------+--------------------------------------------------------------------------------------------------------------+
 |         | Java-1.8.0_51-Java_HotSpot-TM-_Client_VM,_25.51-b03,_Oracle_Corporation-on-Windows_7-6.1-x86                 |
 +---------+--------------------------------------------------------------------------------------------------------------+
-
-Previous releases of Aglyph
-===========================
-
-.. toctree::
-   :maxdepth: 1
-
-   testing-2_1_1
-   testing-2_1_0
-   testing-2_0_0
-   testing-1_1_1
-   testing-1_1_0
 

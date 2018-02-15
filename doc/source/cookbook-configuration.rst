@@ -4,11 +4,13 @@ Choose a configuration approach for Aglyph
 
 :Release: |release|
 
+.. _Text Vs. Data Instead Of Unicode Vs. 8-bit: https://docs.python.org/release/3.0/whatsnew/3.0.html#text-vs-data-instead-of-unicode-vs-8-bit
+
 Aglyph explicitly supports two methods of configuration:
 
 1. Declarative XML configuration conforming to the
    :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`
-2. Programmatic configuration via :class:`aglyph.binder.Binder`
+2. Programmatic configuration via :doc:`context-fluent-api`
 
 Opinions vary widely on the merits of XML (particularly for configuration), but
 in fairness there's also plenty of debate over the merits of "code as
@@ -17,7 +19,7 @@ strives to **not** have an opinion one way or the other by supporting *either*
 approach.
 
 However, both approaches to Aglyph configuration have strengths and weaknesses
-that you should understand before choosing one over another.
+that you should understand before choosing one over the other.
 
 .. _xml-config:
 
@@ -80,20 +82,20 @@ the *"mutable"* attribute above into an :class:`aglyph.component.Evaluator`
 *"cookbook.Example"* component is assembled, the ``Evaluator`` for the
 *"mutable"* attribute is called, which will produce a *new* ``list`` object.
 
-Why is this important? Consider a corresponding ``Binder`` configuration for
+Why is this important? Consider a corresponding programmatic configuration for
 the same component::
 
-   binder.bind("cookbook.Example").attributes(mutable=[1, 2, 3])
+   context.prototype("cookbook.Example").set(mutable=[1, 2, 3]).register()
 
 This configuration leads to a (likely) logic error: **all** objects of the
 *"cookbook.Example"* component will share a reference to a single list object.
 An example illustrates the problem:
 
->>> example1 = binder.lookup("cookbook.Example")
+>>> example1 = assembler.assemble("cookbook.Example")
 >>> example1.mutable
 [1, 2, 3]
 >>> example1.mutable.append(4)
->>> example2 = binder.lookup("cookbook.Example")
+>>> example2 = assembler.assemble("cookbook.Example")
 >>> example2.mutable
 [1, 2, 3, 4]
 
@@ -101,9 +103,7 @@ Uh-oh! That's almost certainly *not* what we intended. To guard against this
 behavior, we would need to modify the binding::
 
    from functools import partial
-   binder.bind("cookbook.Example").attributes(
-       mutable=partial(list, [1, 2, 3])
-   )
+   context.prototype("cookbook.Example").set(mutable=partial(list, [1, 2, 3])).register()
 
 Now we will get a "fresh" list every time the component is assembled, so
 modifying the list on one instance will not affect the lists of any other
@@ -214,8 +214,7 @@ Unicode and character encoding differences between Python 2 and Python 3
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The builtin :obj:`str` type has changed significantly between Python 2 and
-Python 3 (see `Text Vs. Data Instead Of Unicode Vs. 8-bit
-<http://docs.python.org/release/3.0/whatsnew/3.0.html#text-vs-data-instead-of-unicode-vs-8-bit>`_).
+Python 3 (see `Text Vs. Data Instead Of Unicode Vs. 8-bit`_).
 
 In short: :obj:`str` represented encoded byte data up to and including
 Python 2, but representes *Unicode text* as of Python 3.0:
@@ -260,95 +259,22 @@ To summarize the above:
    the attribute is **ignored** in Python 3 (a *WARNING*-level log message is
    emitted to the *aglyph.context.XMLContext* channel if it is present).
 
-.. _binder-config:
+.. _fluent-config:
 
-Programmatic configuration using Binder
-=======================================
+Programmatic configuration using the Context fluent API
+=======================================================
 
-.. versionadded:: 1.1.0
+.. versionadded:: 3.0.0
 
-An :class:`aglyph.binder.Binder` can be used to both define *and* assemble
-components, and can be used in "chained call" fashion to minimize the amount of
-code necessary to configure Aglyph.
+Objects of :class:`aglyph.context.Context` now support a chained call "fluent" API.
+Please refer to :doc:`context-fluent-api` for details.
 
-The easiest way to use ``Binder`` is to create an instance of it within its own
-module, configure it, then import the instance from elsewhere in your
-application to make use of it.
-
-For example, in a *cookbook/bindings.py* module::
-
-   from aglyph.binder import Binder
-   
-   binder = Binder("my-app-binder")
-   binder.bind("cookbook.Example").init("sample").attributes(priority=1)
-   # ... as many bindings as needed ...
-
-The :meth:`aglyph.binder.Binder.bind` method returns a proxy object that has
-``init`` and ``attributes`` methods which you can use to specify the arguments
-and attributes/properties/setters, respectively.
-
-Elsewhere in your application, you can assemble a *"cookbook.Example"* object
-like this::
-
-   from cookbook.bindings import binder
-   
-   example = binder.lookup("cookbook.Example")
-
-Referring to other components using ``Binder`` is a matter of using
-:class:`aglyph.component.Reference` to specify argument or attribute values::
-
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
-   
-   binder = Binder("my-app-binder")
-   binder.bind("cookbook.Thing").init("value")
-   binder.bind("cookbook.Transmogrifier").init(Reference("cookbook.Thing"))
-
-.. note::
-   The :doc:`cookbook-common` cookbook article provides a number of detailed
-   examples of using ``Binder`` for Aglyph configuration.
-
-Binder can generate component IDs and References automatically
---------------------------------------------------------------
-
-``Binder`` supports a form of "shorthand" which can be used when a component's
-ID will be its importable dotted name.
-
-Let's rewrite the previous example to demonstrate::
-
-   from cookbook import Thing, Transmogrifier
-   from aglyph.binder import Binder
-   from aglyph.component import Reference
-   
-   binder = Binder("my-app-binder")
-   binder.bind(Thing).init("value")
-   binder.bind(Transmogrifier).init(Thing)
-
-Notice that we are now passing the ``Thing`` and ``Transmogrifier`` classes
-directly to the ``bind`` and ``init`` methods.
-
-The :meth:`aglyph.binder.Binder.bind` method's *component_spec* argument and
-*to* keyword will automatically convert any class, unbound function, or module
-into an importable dotted name string. Likewise, the ``init`` and
-``attributes`` methods of the proxy object returned by ``bind()`` will convert
-any *value* that is a class, unbound function, or module into an
-:class:`aglyph.component.Reference` to that object.
-
-So in the above example, ``bind(Thing)`` actually expands to
-``bind("cookbook.Thing")``, ``bind(Transmogrifier)`` to
-``bind("cookbook.Transmogrifier")``, and ``init(Thing)`` to
-``init(Reference("cookbook.Thing"))``.
-
-.. warning::
-   The technique shown here will **not** work for components that are assigned
-   a user-specified component ID that is not a Python dotted name. In those
-   cases, ``Reference("user-component-id")`` **must** be used to specify a
-   reference.
+.. _custom-config:
 
 Custom configuration using Context
 ==================================
 
-Do **neither** declarative XML nor programmatic configuration suit your fancy?
+Do **neither** declarative XML nor fluent configuration suit your fancy?
 
 An :class:`aglyph.context.Context` is just a :obj:`dict` that maps component ID
 strings (i.e. :attr:`aglyph.component.Component.component_id`) to
@@ -356,7 +282,7 @@ strings (i.e. :attr:`aglyph.component.Component.component_id`) to
 philosophy and "roll your own" configuration mechanism!
 
 .. note::
-   Both :class:`aglyph.context.XMLContext` and :class:`aglyph.binder.Binder`
-   are simply adaptors that create and populate an internal
-   :class:`aglyph.context.Context`!
+   Look at :class:`aglyph.context.XMLContext` for a starting point - it's just a
+   :class:`aglyph.context.Context` subclass that populates itself from a parsed
+   XML document.
 

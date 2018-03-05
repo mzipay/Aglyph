@@ -275,11 +275,11 @@ class Assembler(object):
         self.__log.info("created %r", component)
         return obj
 
-    # issues/5: support "imported" strategy when using member_name
+    # issues/5: support "_imported" strategy when using member_name
     # (objects of these components are created like prototypes though they
     # exhibit singleton behavior as long as the containing module is
     # referenced in sys.modules)
-    _create_imported = _create_prototype
+    _create__imported = _create_prototype
 
     def _create_singleton(self, component):
         """Return the singleton object for *component*.

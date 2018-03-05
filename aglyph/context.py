@@ -244,7 +244,7 @@ class _CreationBuilderMixin(object):
            The *member_name* and *strategy* keywords are mutually
            exclusive. Any component definition that specifies a
            *member_name* is implicitly assigned the special strategy
-           "imported".
+           "_imported".
 
         """
         # do not explicitly assign None values; calls can be chained

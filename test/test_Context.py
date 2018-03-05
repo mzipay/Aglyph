@@ -32,7 +32,7 @@ import unittest
 
 from aglyph import AglyphError, __version__
 from aglyph._compat import name_of
-from aglyph.component import Component, Template
+from aglyph.component import Component, Strategy, Template
 from aglyph.context import _ComponentBuilder, _TemplateBuilder, Context
 
 from test import assertRaisesWithMessage, dummy
@@ -100,15 +100,15 @@ class _BaseContextTest(ContextBuilderTest):
         (self._context.component("NestedClass").
             create(dummy.ModuleClass, member_name="NestedClass").
             init(None).register())
-        self.assertEqual("imported", self._context["NestedClass"].strategy)
+        self.assertEqual("_imported", self._context["NestedClass"].strategy)
 
     def test_imported_explicit_strategy(self):
         (self._context.component("NestedClass").
             create(
                 dummy.ModuleClass, member_name="NestedClass",
-                strategy="imported").
+                strategy="_imported").
             init(None).register())
-        self.assertEqual("imported", self._context["NestedClass"].strategy)
+        self.assertEqual("_imported", self._context["NestedClass"].strategy)
 
 
 class ContextTest(_BaseContextTest):

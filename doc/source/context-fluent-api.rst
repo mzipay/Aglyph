@@ -113,8 +113,8 @@ assumed.
    When a component specifies a *member_name* (i.e. objects of the
    component are "created" by attribute access on the object identified
    by a dotted name), then the creation strategy is implicitly set to
-   "imported" and cannot be set explicitly. In short - *member_name* and
-   *strategy* are mutually exclusive.
+   "_imported" and SHOULD NOT be set explicitly. In short - consider
+   *member_name* and *strategy* to be mutually exclusive.
 
 .. _fluent-refs:
 

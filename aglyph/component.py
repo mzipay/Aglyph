@@ -160,6 +160,14 @@ and returned.
 
 .. versionadded:: 3.0.0
 
+.. note::
+   The "_imported" strategy is only valid (and is the only allowed
+   value) when *member_name* is specified for a component.
+
+   Since this strategy is implicitly assigned and is intended for
+   internal use by Aglyph itself, it is not exposed on the
+   ``Strategy`` named tuple.
+
 An already-created (loaded) object is obtained from an imported module
 or class (as opposed to creating the object directly).
 Such components will always resolve (i.e. be assembled) to the same
@@ -168,18 +176,17 @@ exhibit "natural" singleton behavior so long as the containing module
 is referenced in :attr:`sys.modules`.
 
 It is not necessary to explicitly set the strategy to "_imported" when
-using *member_name*. However, explicitly setting strategy="_imported"
-and **not** specifying *member_name* - or specifying *member_name* with
-any explicit strategy other than "_imported" - will raise
-:exc:`AglyphError`.
+using *member_name* - Aglyph will default to "_imported" when it sees
+a non-empty *member_name* defined.
 
 .. warning::
-   The "_imported" strategy is only valid (and is the only allowed
-   value) when *member_name* is specified for a component.
+   Explicitly setting strategy="_imported" **without** specifying
+   *member_name* will raise :exc:`AglyphError`.
 
-   Since this strategy is implicitly assigned and is intended for
-   internal use by Aglyph itself, it is not exposed on the
-   ``Strategy`` named tuple.
+   Specifying *member_name* with any explicit strategy other than
+   "_imported" will ignore the explicit strategy, change it to
+   "_imported" internally, and issue a :class:`UserWarning` to that
+   effect.
 
 """
 
@@ -751,11 +758,10 @@ class Component(Template):
 
         .. versionadded:: 3.0.0
            When :attr:`member_name` is specified, the strategy **must**
-           be ``"_imported"`` (*"_imported"*). Aglyph will use
-           the "_imported" strategy automatically for components that
-           specify *member_name*; setting strategy to anything other
-           than "_imported" when specifying *member_name* will raise
-           :exc:`AglyphError`.
+           be *"_imported"*. Aglyph will use the "_imported" strategy
+           automatically for components that specify *member_name*;
+           setting strategy to anything other than "_imported" when
+           specifying *member_name* will issue :class:`UserWarning`.
 
         Please see :data:`Strategy` for a description of the component
         assembly strategies supported by Aglyph.
@@ -856,18 +862,23 @@ class Component(Template):
 
         # issues/5: member_name requires "_imported" strategy and vice-versa
         if member_name and strategy != "_imported":
-            raise AglyphError(
-                "strategy MUST be %r (implicit) if member_name is specified" %
-                "_imported")
+            warnings.warn(
+                ("ignoring strategy %r for component %r -- strategy MUST be "
+                "'_imported' (implicit) if member_name is specified") %
+                    (strategy, component_id),
+                UserWarning)
+            strategy = "_imported"
         elif strategy == "_imported" and not member_name:
             raise AglyphError(
-                "strategy %r is only valid if member_name is specified",
-                "_imported")
+                "strategy '_imported' is only valid if member_name is specified")
 
         if strategy not in Strategy and strategy != "_imported":
             raise ValueError("unrecognized assembly strategy %r" % strategy)
         self._strategy = strategy
 
+        # issues/5: also see Assembler._call_lifecycle_method, which issues a
+        # RuntimeWarning for _imported components that describe an after_inject
+        # method
         if (strategy in [Strategy.PROTOTYPE, "_imported"]
                 and before_clear):
             warnings.warn(

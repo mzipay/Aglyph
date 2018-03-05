@@ -104,9 +104,20 @@ class ComponentTest(TemplateTest):
         self.assertEqual("_imported", support.strategy)
 
     def test_strategy_must_be_imported_for_member_name(self):
-        self.assertRaises(
-            AglyphError, Component, "test.dummy.ModuleClass",
-            member_name="NestedClass", strategy="prototype")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            component = Component(
+                "test.dummy.ModuleClass",
+                member_name="NestedClass", strategy="prototype")
+
+            self.assertEqual(1, len(w))
+            self.assertEqual(
+                "ignoring strategy 'prototype' for component "
+                    "'test.dummy.ModuleClass' -- strategy MUST be '_imported' "
+                    "(implicit) if member_name is specified",
+                str(w[0].message))
+
+        self.assertEqual("_imported", component.strategy)
 
     def test_rejects_unrecognized_strategy(self):
         e_expected = ValueError(

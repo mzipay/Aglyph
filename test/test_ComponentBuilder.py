@@ -57,8 +57,7 @@ class ComponentBuilderTest(TemplateBuilderTest):
         cls._definition_type = Component
 
     def test_register_dotted_name_from_object(self):
-        self._builder.create(
-            dotted_name_spec=dummy.factory_function).register()
+        self._builder.create(dotted_name=dummy.factory_function).register()
         self.assertEqual(
             "test.dummy.factory_function",
             self._builder._context["test.dummy.ModuleClass"].dotted_name)

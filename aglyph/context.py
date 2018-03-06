@@ -87,14 +87,14 @@ _log = logging.getLogger(__name__)
 class _ContextBuilder(object):
     """Entry points for the Aglyph Context fluent API."""
 
-    def component(self, component_id_spec, parent_id_spec=None):
+    def component(self, component_id_spec, parent=None):
         """Return a fluent :class:`Component` builder for
-        *component_spec*.
+        *component_id_spec*.
 
         :arg component_id_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_id_spec:
+        :keyword parent:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
@@ -104,17 +104,17 @@ class _ContextBuilder(object):
 
         """
         return _ComponentBuilder(
-            self, component_id_spec, parent_id_spec=parent_id_spec)
+            self, component_id_spec, parent=parent)
 
-    def prototype(self, component_spec, parent_id_spec=None):
+    def prototype(self, component_id_spec, parent=None):
         """Return a :data:`prototype <aglyph.component.Strategy>`
         :class:`Component` builder for a component identified by
-        *component_spec*.
+        *component_id_spec*.
 
-        :arg component_spec:
+        :arg component_id_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_id_spec:
+        :keyword parent:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
@@ -124,18 +124,18 @@ class _ContextBuilder(object):
 
         """
         return self.component(
-            component_spec, parent_id_spec=parent_id_spec).create(
+            component_id_spec, parent=parent).create(
                 strategy="prototype")
 
-    def singleton(self, component_spec, parent_id_spec=None):
+    def singleton(self, component_id_spec, parent=None):
         """Return a :data:`singleton <aglyph.component.Strategy>`
         :class:`Component` builder for a component identified by
-        *component_spec*.
+        *component_id_spec*.
 
-        :arg component_spec:
+        :arg component_id_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_id_spec:
+        :keyword parent:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
@@ -145,18 +145,18 @@ class _ContextBuilder(object):
 
         """
         return self.component(
-            component_spec, parent_id_spec=parent_id_spec).create(
+            component_id_spec, parent=parent).create(
                 strategy="singleton")
 
-    def borg(self, component_spec, parent_id_spec=None):
+    def borg(self, component_id_spec, parent=None):
         """Return a :data:`borg <aglyph.component.Strategy>`
         :class:`Component` builder for a component identified by
-        *component_spec*.
+        *component_id_spec*.
 
-        :arg component_spec:
+        :arg component_id_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_id_spec:
+        :keyword parent:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
@@ -166,18 +166,18 @@ class _ContextBuilder(object):
 
         """
         return self.component(
-            component_spec, parent_id_spec=parent_id_spec).create(
+            component_id_spec, parent=parent).create(
                 strategy="borg")
 
-    def weakref(self, component_spec, parent_id_spec=None):
+    def weakref(self, component_id_spec, parent=None):
         """Return a :data:`weakref <aglyph.component.Strategy>`
         :class:`Component` builder for a component identified by
-        *component_spec*.
+        *component_id_spec*.
 
-        :arg component_spec:
+        :arg component_id_spec:
            a context-unique identifier for this component; or the object
            whose dotted name will identify this component
-        :keyword parent_id_spec:
+        :keyword parent:
            the context-unique identifier for this component's parent
            template or component definition; or the object whose dotted
            name identifies this component's parent definition
@@ -187,17 +187,17 @@ class _ContextBuilder(object):
 
         """
         return self.component(
-            component_spec, parent_id_spec=parent_id_spec).create(
+            component_id_spec, parent=parent).create(
                 strategy="weakref")
 
-    def template(self, template_id_spec, parent_id_spec=None):
+    def template(self, template_id_spec, parent=None):
         """Return a :class:`Template` builder for a template identified
         by *template_spec*.
 
         :arg template_id_spec:
            a context-unique identifier for this template; or the object
            whose dotted name will identify this template
-        :keyword parent_id_spec:
+        :keyword parent:
            the context-unique identifier for this template's parent
            template or component definition; or the object whose dotted
            name identifies this template's parent definition
@@ -207,7 +207,7 @@ class _ContextBuilder(object):
 
         """
         return _TemplateBuilder(
-            self, template_id_spec, parent_id_spec=parent_id_spec)
+            self, template_id_spec, parent=parent)
 
 
 @traced
@@ -218,18 +218,17 @@ class _CreationBuilderMixin(object):
     __slots__ = []
 
     def create(
-            self, dotted_name_spec=None, factory_name=None, member_name=None,
-            strategy=None):
+            self, dotted_name=None, factory=None, member=None, strategy=None):
         """Specify the object creation aspects of a component being
         defined.
 
-        :keyword dotted_name_spec:
+        :keyword dotted_name:
            an **importable** dotted name or an object whose dotted name
            will be introspected
-        :keyword factory_name:
+        :keyword factory:
            names a :obj:`callable` member of the object represented by
            the dotted name
-        :keyword member_name:
+        :keyword member:
            names **any** member of the object represented by the dotted
            name
         :keyword strategy:
@@ -241,19 +240,19 @@ class _CreationBuilderMixin(object):
         ``None`` values are not explicitly set).
 
         .. note::
-           The *member_name* and *strategy* keywords are mutually
-           exclusive. Any component definition that specifies a
-           *member_name* is implicitly assigned the special strategy
+           The *member* and *strategy* keywords should be treated as
+           mutually exclusive. Any component definition that specifies a
+           *member* is implicitly assigned the special strategy
            "_imported".
 
         """
         # do not explicitly assign None values; calls can be chained
-        if dotted_name_spec is not None:
-            self._dotted_name_spec = dotted_name_spec
-        if factory_name is not None:
-            self._factory_name = factory_name
-        if member_name is not None:
-            self._member_name = member_name
+        if dotted_name is not None:
+            self._dotted_name_spec = dotted_name
+        if factory is not None:
+            self._factory_name = factory
+        if member is not None:
+            self._member_name = member
         if strategy is not None:
             self._strategy = strategy
         return self
@@ -391,10 +390,10 @@ class _TemplateBuilder(
         "_before_clear",
     ]
 
-    def __init__(self, context, unique_id_spec, parent_id_spec=None):
+    def __init__(self, context, unique_id_spec, parent=None):
         self._context = context
         self._unique_id_spec = unique_id_spec
-        self._parent_id_spec = parent_id_spec
+        self._parent_id_spec = parent
         self._args = []
         self._keywords = {}
         self._attributes = OrderedDict()
@@ -424,9 +423,9 @@ class _ComponentBuilder(_CreationBuilderMixin, _TemplateBuilder):
         "_strategy",
     ]
 
-    def __init__(self, context, unique_id_spec, parent_id_spec=None):
+    def __init__(self, context, unique_id_spec, parent=None):
         _TemplateBuilder.__init__(
-            self, context, unique_id_spec, parent_id_spec=parent_id_spec)
+            self, context, unique_id_spec, parent=parent)
         self._dotted_name_spec = None
         self._factory_name = None
         self._member_name = None

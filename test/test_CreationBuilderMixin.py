@@ -69,32 +69,31 @@ class CreationBuilderMixinTest(unittest.TestCase):
 
     def test_can_set_attributes_in_one_call(self):
         self._builder.create(
-            dotted_name_spec="dummy.ModuleClass", strategy="prototype")
+            dotted_name="dummy.ModuleClass", strategy="prototype")
         self.assertEqual("dummy.ModuleClass", self._builder._dotted_name_spec)
         self.assertIsNone(self._builder._factory_name)
         self.assertIsNone(self._builder._member_name)
         self.assertEqual("prototype", self._builder._strategy)
 
-    def test_can_set_attributes_in_one_call_with_factory_name(self):
-        # NOTE: specifying both factory_name AND member_name is not a valid
+    def test_can_set_attributes_in_one_call_with_factory(self):
+        # NOTE: specifying both factory AND member_name is not a valid
         # case, as this would be raised later as an error by
         # aglyph.component.Component
         self._builder.create(
-            dotted_name_spec="dummy", factory_name="factory_function",
+            dotted_name="dummy", factory="factory_function",
             strategy="prototype")
         self.assertEqual("dummy", self._builder._dotted_name_spec)
         self.assertEqual("factory_function", self._builder._factory_name)
         self.assertIsNone(self._builder._member_name)
         self.assertEqual("prototype", self._builder._strategy)
 
-    def test_can_set_attributes_in_one_call_with_member_name(self):
-        # NOTE: specifying both factory_name AND member_name is not a valid
+    def test_can_set_attributes_in_one_call_with_member(self):
+        # NOTE: specifying both factory AND member_name is not a valid
         # case, as this would be raised later as an error by
         # aglyph.component.Component; also, the strategy when member_name is
         # specified will ALWAYS be "_imported" (also enforced by
         # aglyph.component.Component)
-        self._builder.create(
-            dotted_name_spec="dummy", member_name="MODULE_MEMBER")
+        self._builder.create(dotted_name="dummy", member="MODULE_MEMBER")
         self.assertEqual("dummy", self._builder._dotted_name_spec)
         self.assertEqual("MODULE_MEMBER", self._builder._member_name)
         self.assertIsNone(self._builder._factory_name)
@@ -104,9 +103,9 @@ class CreationBuilderMixinTest(unittest.TestCase):
         # NOTE: this also indirectly asserts that None default values do not
         # "overwrite" previously-specified, non-None values in chained calls
         (self._builder.
-            create(dotted_name_spec="dummy").
+            create(dotted_name="dummy").
             create(strategy="prototype").
-            create(factory_name="factory_function"))
+            create(factory="factory_function"))
         self.assertEqual("dummy", self._builder._dotted_name_spec)
         self.assertEqual("factory_function", self._builder._factory_name)
         self.assertIsNone(self._builder._member_name)

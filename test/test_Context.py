@@ -98,15 +98,14 @@ class _BaseContextTest(ContextBuilderTest):
 
     def test_imported_implicit_strategy(self):
         (self._context.component("NestedClass").
-            create(dummy.ModuleClass, member_name="NestedClass").
+            create(dummy.ModuleClass, member="NestedClass").
             init(None).register())
         self.assertEqual("_imported", self._context["NestedClass"].strategy)
 
     def test_imported_explicit_strategy(self):
         (self._context.component("NestedClass").
             create(
-                dummy.ModuleClass, member_name="NestedClass",
-                strategy="_imported").
+                dummy.ModuleClass, member="NestedClass", strategy="_imported").
             init(None).register())
         self.assertEqual("_imported", self._context["NestedClass"].strategy)
 

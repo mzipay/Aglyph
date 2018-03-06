@@ -83,7 +83,7 @@ class TemplateBuilderTest(
     def test_register_parent_id_from_object(self):
         context = _MockContext()
         self._builder_type(
-            context, "test", parent_id_spec=dummy.ModuleClass).register()
+            context, "test", parent=dummy.ModuleClass).register()
         self.assertEqual("test.dummy.ModuleClass", context["test"].parent_id)
 
 

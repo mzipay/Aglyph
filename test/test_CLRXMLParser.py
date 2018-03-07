@@ -49,7 +49,7 @@ _document = (
     '<band genre="hair/glam metal">Mötley Crüe</band>\n'
 )
 
-_cp1252_document = as_encoded_bytes(_document % "cp1252", "cp1252")
+_cp1252_document = as_encoded_bytes(_document % "windows-1252", "cp1252")
 _utf8_document = as_encoded_bytes(_document % "utf-8", "utf-8")
 _u_motley_crue = as_unicode_text("Mötley Crüe")
 

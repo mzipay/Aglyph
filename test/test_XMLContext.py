@@ -359,7 +359,7 @@ class XMLContextTest(_BaseContextTest):
                     '</init>'
                 '</template>'
             '</context>'
-        ) % self.id(), document_encoding="cp1252")
+        ) % self.id(), document_encoding="windows-1252")
         # the default_encoding here is what is used to encode the value - NOT
         # the document encoding!
         context = XMLContext(stream, default_encoding="utf-8")

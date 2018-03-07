@@ -30,7 +30,7 @@ Aglyph is a Dependency Injection framework for Python that...
     decorators, specific naming conventions, or any other kind of
     syntactic "magic" necessary)
 * can inject not only 3rd-party dependencies, but also **dependents**
-* runs on Python 2.7 and 3.3+ using the same codebase
+* runs on Python 2.7 and 3.4+ using the same codebase
 * is proactively tested on [CPython](https://www.python.org/),
   [Jython](http://www.jython.org/), [IronPython](http://ironpython.net/),
   [PyPy](http://pypy.org/>), and

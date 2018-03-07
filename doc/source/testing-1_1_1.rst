@@ -4,7 +4,7 @@ Aglyph 1.1.1 testing summary
 
 .. _CPython: https://www.python.org/
 .. _PyPy: http://pypy.org/
-.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _Stackless Python: https://github.com/stackless-dev/stackless/wiki
 .. _IronPython: http://ironpython.net/
 .. _Jython: http://www.jython.org/
 .. _Python 3.0 lifespan: https://www.python.org/dev/peps/pep-0361/#release-lifespan

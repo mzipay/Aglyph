@@ -32,7 +32,7 @@ and the :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>` to
 understand the details.
 
 The tutorial assumes that you are familiar with Python development in general,
-and that Python 2.7 or 3.3+ is already installed on your system.
+and that Python 2.7 or 3.4+ is already installed on your system.
 
 * `Download Python`_
 * Browse `Dive Into Python 2`_ and/or `The Python 2 Tutorial`_

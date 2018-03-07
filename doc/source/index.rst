@@ -28,7 +28,7 @@ Aglyph --- Dependency Injection for Python
 .. _PyPy: http://pypy.org/
 .. _Jython: http://www.jython.org/
 .. _IronPython: http://ironpython.net/
-.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _Stackless Python: https://github.com/stackless-dev/stackless/wiki
 .. _Inversion of Control Containers and the Dependency Injection pattern: https://martinfowler.com/articles/injection.html
 .. _Python Dependency Injection [PDF]: http://www.aleax.it/yt_pydi.pdf
 .. _Semantic Versioning (SemVer): https://semver.org/
@@ -36,7 +36,7 @@ Aglyph --- Dependency Injection for Python
 Aglyph is a Dependency Injection framework for Python, supporting type 2
 (setter) and type 3 (constructor) injection.
 
-Aglyph runs on `CPython`_ 2.7 and 3.3+, and on recent versions of the `PyPy`_,
+Aglyph runs on `CPython`_ 2.7 and 3.4+, and on recent versions of the `PyPy`_,
 `Jython`_, `IronPython`_, and `Stackless Python`_ variants. See :doc:`testing`
 for a complete list of the Python versions and variants on which Aglyph has
 been tested.

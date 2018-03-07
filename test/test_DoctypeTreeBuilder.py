@@ -32,7 +32,11 @@ import unittest
 import xml.etree.ElementTree as ET
 
 from aglyph import __version__
-from aglyph._compat import AglyphDefaultXMLParser, DoctypeTreeBuilder
+from aglyph._compat import (
+    AglyphDefaultXMLParser,
+    DoctypeTreeBuilder,
+    is_jython
+)
 
 __all__ = [
     "DoctypeTreeBuilderTest",
@@ -89,6 +93,9 @@ class DoctypeTreeBuilderTest(unittest.TestCase):
         self.assertIsNone(self._tree_builder.doctype_pubid)
         self.assertIsNone(self._tree_builder.doctype_system)
 
+    @unittest.skipIf(
+        is_jython,
+        "the doctype() method is not called in the ET impl in Jython")
     def test_with_public_doctype(self):
         ET.XML(_public_doctype_document, parser=self._parser)
         self.assertEqual("context", self._tree_builder.doctype_name)
@@ -99,6 +106,9 @@ class DoctypeTreeBuilderTest(unittest.TestCase):
             "http://ninthtest.info/aglyph-python-dependency-injection/_downloads/aglyph-context.dtd",
             self._tree_builder.doctype_system)
 
+    @unittest.skipIf(
+        is_jython,
+        "the doctype() method is not called in the ET impl in Jython")
     def test_with_system_doctype(self):
         ET.XML(_system_doctype_document, parser=self._parser)
         self.assertEqual("context", self._tree_builder.doctype_name)

@@ -100,8 +100,9 @@ A note regarding the ``component()`` entry point method
 The strategy-specific entry point methods (``prototype()``, ``singleton()``,
 ``borg()`` and ``weakref()``) are implemented in terms of ``component()``.
 
-For example, calling ``singleton("my-id")`` is equivalent to calling
-``component("my-id").create("singleton")``.
+For example, calling ``singleton("package.ClassName")`` is the shorthand
+equivalent of calling
+``component("package.ClassName").create(strategy="singleton")``.
 
 If ``component("my-id")`` is used to define a component and no explicit
 strategy is specified, then the default strategy ("prototype") is
@@ -110,11 +111,11 @@ assumed.
 .. warning::
    There is one "special case" that warrants explanation:
 
-   When a component specifies a *member_name* (i.e. objects of the
+   When specifying a *member* using the fluent API (i.e. objects of the
    component are "created" by attribute access on the object identified
    by a dotted name), then the creation strategy is implicitly set to
    "_imported" and SHOULD NOT be set explicitly. In short - consider
-   *member_name* and *strategy* to be mutually exclusive.
+   *member* and *strategy* to be mutually exclusive.
 
 .. _fluent-refs:
 
@@ -147,12 +148,11 @@ only as a basis for further defining other templates or components.
 Here is an example::
 
    context.template("my-template").init("arg", keyword="kw").register()
-   (context.singleton("my-singleton", parent_id_spec="my-template").
+   (context.singleton("my-singleton", parent="my-template").
        create("module.ClassName").
        register())
 
-Notice that we have added ``parent_id_spec="my-template"`` to the
-singleton method call.
+Notice that we have added ``parent="my-template"`` to the singleton method call.
 
 Now when we assemble "my-singleton" its initializer will be called with
 the positional argument "arg" and the keyword argument keyword="kw".

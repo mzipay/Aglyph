@@ -114,16 +114,16 @@ In a *bindings.py* module::
    context = Context("cookbook-context")
    context.template("base-server").init(("localhost", 8000)).register()
    (context.component("simple-handler").
-       create("http.server", member_name="SimpleHTTPRequestHandler").
+       create("http.server", member="SimpleHTTPRequestHandler").
        register())
-   (context.component("simple-server", parent_id_spec="base-server").
+   (context.component("simple-server", parent="base-server").
        create("http.server.HTTPServer").
        init(ref("simple-handler")).
        register())
    (context.component("cgi-handler").
-       create("http.server", member_name="CGIHTTPRequestHandler").
+       create("http.server", member="CGIHTTPRequestHandler").
        register())
-   (context.component("cgi-server", parent_id_spec="base-server").
+   (context.component("cgi-server", parent="base-server").
        create("http.server.HTTPServer").
        init(ref("cgi-handler")).
        register())
@@ -226,13 +226,13 @@ In a *bindings.py* module::
     
    context = Context("cookbook-context")
    (context.component("request-handler").
-       create("http.server", member_name="SimpleHTTPRequestHandler").
+       create("http.server", member="SimpleHTTPRequestHandler").
        register())
    (context.component("default-server").
       create("http.server.HTTPServer").
       init(("localhost", 8000), ref("request-handler")).
       register())
-   (context.component("custom-server", parent_id_spec="default-server").
+   (context.component("custom-server", parent="default-server").
       create("http.server.HTTPServer").
       set(request_queue_size=15, timeout=3.0).
       register())
@@ -368,13 +368,13 @@ In a *bindings.py* module::
    (context.template("mechanical-tool").
        call(after_inject="calibrate", before_clear="disengage").
        register())
-   context.singleton("cookbook.Hydrospanner", parent_id_spec="mechanical-tool").register()
-   (context.singleton("cookbook.Nervesplicer", parent_id_spec="mechanical-tool").
+   context.singleton("cookbook.Hydrospanner", parent="mechanical-tool").register()
+   (context.singleton("cookbook.Nervesplicer", parent="mechanical-tool").
        call(after_inject="prepare").
        register())
    (context.template("incendiary-tool").
        call(after_inject="ignite", before_clear="extinguish").
        register())
-   context.singleton("cookbook.Macrofuser", parent_id_spec="incendiary-tool").register()
-   context.singleton("cookbook.Vibrotorch", parent_id_spec="incendiary-tool").register()
+   context.singleton("cookbook.Macrofuser", parent="incendiary-tool").register()
+   context.singleton("cookbook.Vibrotorch", parent="incendiary-tool").register()
 

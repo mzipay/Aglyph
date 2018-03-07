@@ -570,7 +570,7 @@ object::
 
    context = Context("cookbook-context")
    (context.singleton("store").
-       create("dbm.gnu", factory_name="open").
+       create("dbm.gnu", factory="open").
        init("/var/cookbook-store.db", "cf").
        call(before_clear="close").
        register())

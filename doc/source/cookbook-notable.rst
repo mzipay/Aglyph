@@ -4,10 +4,10 @@ Other notable usage scenarios
 
 :Release: |release|
 
-.. _Stackless Python: https://github.com/stackless-dev/stackless
+.. _Stackless Python: https://github.com/stackless-dev/stackless/wiki
 .. _PyPy: http://pypy.org/
 .. _stackless.tasklet: https://stackless.readthedocs.io/en/latest/library/stackless/tasklets.html
-.. _Stackless Python "Tasklets": https://bitbucket.org/stackless-dev/stackless/wiki/Tasklets
+.. _Stackless Python "Tasklets": https://github.com/stackless-dev/stackless/wiki/Tasklets
 .. _IronPython: http://ironpython.net/
 .. _System.Xml.DtdProcessing: https://msdn.microsoft.com/en-us/library/system.xml.dtdprocessing.aspx
 .. _System.Xml.ValidationType: https://msdn.microsoft.com/en-us/library/system.xml.validationtype.aspx
@@ -132,13 +132,13 @@ Here is an equivalent programmatic configuration in a *bindings.py* module::
    
    context = Context("delorean-context")
    (context.component("default-drive").
-       create("delorean", factory_name="EquipmentFoundry.get_default_capacitor_drive").
+       create("delorean", factory="EquipmentFoundry.get_default_capacitor_drive").
        register())
    (context.component("capacitor-nodrive").
-       create("delorean.EquipmentFoundry", factory_name="FluxCapacitor").
+       create("delorean.EquipmentFoundry", factory="FluxCapacitor").
        register())
    (context.component("capacitor-withdrive").
-       create("delorean.EquipmentFoundry", factory_name="FluxCapacitor.with_capacitor_drive").
+       create("delorean.EquipmentFoundry", factory="FluxCapacitor.with_capacitor_drive").
        init(ref("default-drive")).
        register())
 
@@ -219,7 +219,7 @@ Here is an equivalent programmatic configuration in a *bindings.py* module::
    
    context = Context("cookbook-context")
    (context.component("request-handler-class").
-       create("http.server", member_name="BaseHTTPRequestHandler").
+       create("http.server", member="BaseHTTPRequestHandler").
        register())
    (context.component("http-server").
        create("http.server.HTTPServer").
@@ -455,7 +455,7 @@ Here is an equivalent programmatic configuration in a *bindings.py* module::
    context = Context("java-context")
    context.component("java.util.LinkedHashMap")
    (context.component("threadsafe-ordered-map").
-       create("java.util.Collections", factory_name="synchronizedMap").
+       create("java.util.Collections", factory="synchronizedMap").
        init(Reference("java.util.LinkedHashMap")).
        register())
 

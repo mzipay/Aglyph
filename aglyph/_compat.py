@@ -53,6 +53,9 @@ from aglyph import __version__
 __all__ = [
     "is_python_2",
     "is_python_3",
+    "is_pypy",
+    "is_stackless",
+    "is_jython",
     "is_ironpython",
     "platform_detail",
     "TextType",
@@ -80,8 +83,28 @@ try:
 except:
     _py_impl = "Python"
 
+#: True if the runtime Python implementation is PyPy.
+is_pypy = \
+    _py_impl == "PyPy" and getattr(sys, "pypy_version_info", None) is not None
+
+try:
+    import stackless
+except:
+    _has_stackless = False
+else:
+    _py_impl = "Stackless Python"
+    _has_stackless = True
+
+#: True if the runtime Python implementation is Stackless Python.
+is_stackless = \
+    (not is_pypy) and _has_stackless and ("Stackless" in sys.version)
+
+#: True if the runtime Python implementation is Jython.
+is_jython = \
+    _py_impl == "Jython" and getattr(sys, "JYTHON_JAR", None) is not None
+
 #: True if the runtime Python implementation is IronPython.
-is_ironpython = "IronPython" == _py_impl
+is_ironpython = _py_impl == "IronPython"
 try:
     import clr
 except ImportError:
@@ -375,6 +398,9 @@ _log.debug(
     "compatibility details:\n"
         "  is_python_2? %r\n"
         "  is_python_3? %r\n"
+        "  is_pypy? %r\n"
+        "  is_stackless? %r\n"
+        "  is_jython? %r\n"
         "  is_ironpython? %r\n"
         "  TextType is %r\n"
         "  DataType is %r\n"
@@ -383,6 +409,9 @@ _log.debug(
         "  AglyphDefaultXMLParser is %r",
     is_python_2,
     is_python_3,
+    is_pypy,
+    is_stackless,
+    is_jython,
     is_ironpython,
     TextType,
     DataType,
@@ -391,5 +420,5 @@ _log.debug(
     AglyphDefaultXMLParser
 )
 
-del _sys_version, _py_impl, _platform, _builtins
+del _sys_version, _py_impl, _has_stackless, _platform, _builtins
 

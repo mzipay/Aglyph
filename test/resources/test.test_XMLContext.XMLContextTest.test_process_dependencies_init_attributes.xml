@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_process_dependencies_init_attributes">
+    <template id="test">
+        <init />
+        <attributes />
+    </template>
+</context>
+

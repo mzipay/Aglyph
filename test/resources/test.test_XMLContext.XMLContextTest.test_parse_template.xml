@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_template">
+    <template
+        id="test"
+        parent-id="parent"
+        after-inject="after_inject"
+        before-clear="before_clear"
+    />
+</context>
+

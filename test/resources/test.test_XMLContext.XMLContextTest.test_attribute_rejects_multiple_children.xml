@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_attribute_rejects_multiple_children">
+    <template id="test">
+        <attributes>
+            <attribute name="attr">
+                <str>string</str>
+                <int>79</int>
+            </attribute>
+        </attributes>
+    </template>
+</context>
+

@@ -27,13 +27,14 @@
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
+import codecs
 from inspect import getsourcefile
 import logging
 import logging.config
 import os
 import unittest
 
-from aglyph._compat import is_python_3
+from aglyph._compat import DataType, is_python_3
 
 # always force tracing when running test suite
 os.environ["AUTOLOGGING_TRACED_NOOP"] = ""
@@ -42,10 +43,9 @@ os.environ["AGLYPH_TRACED"] = "1"
 from autologging import TRACE
 
 __all__ = [
-    "as_encoded_bytes",
-    "as_unicode_text",
     "assertRaisesWithMessage",
-    "find_basename",
+    "find_resource",
+    "read_resource",
     "suite",
 ]
 
@@ -65,32 +65,32 @@ def assertRaisesWithMessage(
         test_case.fail("did not raise %r" % e_expected)
 
 
-def as_encoded_bytes(s, to_encoding):
-    """Return *s* as encoded byte data.
+def find_resource(relname):
+    """Locate *relname* relative to the ``test`` package.
 
-    The string *s* should be defined in a test module as a UTF-8
-    string literal.
-
-    """
-    return (
-        s.encode(to_encoding) if is_python_3 else
-        s.decode("utf-8").encode(to_encoding))
-
-
-def as_unicode_text(s):
-    """Return *s* as unicode text.
-
-    The string *s* should be defined in a test module as a UTF-8
-    string literal.
+    Return ``None`` if *relname* is not found.
 
     """
-    return s if is_python_3 else s.decode("utf-8")
+    init_filename = getsourcefile(find_resource)
+    resource_filename = os.path.join(os.path.dirname(init_filename), relname)
+    return resource_filename if os.path.isfile(resource_filename) else None
 
 
-def find_basename(basename):
-    """Locate *basename* relative to the ``test`` package."""
-    init_filename = getsourcefile(find_basename)
-    return os.path.join(os.path.dirname(init_filename), basename)
+def read_resource(relname, from_encoding="utf-8", to_encoding=None):
+    """Return either unicode text or encoded bytes representing
+    the file system resource identified by *relname* (which must be
+    relative to the ``test`` package.
+
+    Return ``None`` if *relname* is not found.
+
+    """
+    resource_filename = find_resource(relname)
+    if resource_filename is not None:
+        with codecs.open(resource_filename, encoding=from_encoding) as f:
+            resource = f.read()
+        return (
+            resource.encode(to_encoding) if to_encoding is not None
+            else resource)
 
 
 def suite():

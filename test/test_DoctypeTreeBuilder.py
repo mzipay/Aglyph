@@ -35,7 +35,8 @@ from aglyph import __version__
 from aglyph._compat import (
     AglyphDefaultXMLParser,
     DoctypeTreeBuilder,
-    is_jython
+    is_ironpython,
+    is_jython,
 )
 
 __all__ = [
@@ -94,7 +95,7 @@ class DoctypeTreeBuilderTest(unittest.TestCase):
         self.assertIsNone(self._tree_builder.doctype_system)
 
     @unittest.skipIf(
-        is_jython,
+        is_jython or is_ironpython,
         "the doctype() method is not called in the ET impl in Jython")
     def test_with_public_doctype(self):
         ET.XML(_public_doctype_document, parser=self._parser)
@@ -107,7 +108,7 @@ class DoctypeTreeBuilderTest(unittest.TestCase):
             self._tree_builder.doctype_system)
 
     @unittest.skipIf(
-        is_jython,
+        is_jython or is_ironpython,
         "the doctype() method is not called in the ET impl in Jython")
     def test_with_system_doctype(self):
         ET.XML(_system_doctype_document, parser=self._parser)

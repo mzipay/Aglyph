@@ -47,7 +47,7 @@ from aglyph.assembler import Assembler
 from aglyph.component import Evaluator
 from aglyph.context import Context, XMLContext
 
-from test import assertRaisesWithMessage, dummy, find_basename
+from test import assertRaisesWithMessage, dummy, find_resource
 
 __all__ = [
     "AssemblerTest",
@@ -63,7 +63,7 @@ class AssemblerTest(unittest.TestCase):
 
     def setUp(self):
         self._assembler = Assembler(
-            XMLContext(find_basename("test_Assembler-context.xml")))
+            XMLContext(find_resource("resources/test_Assembler-context.xml")))
 
     def test_assemble_unknown_component_spec_fails(self):
         self.assertRaises(KeyError, self._assembler.assemble, "not.in.context")

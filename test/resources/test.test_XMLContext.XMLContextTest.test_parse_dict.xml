@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_dict">
+    <template id="test">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <key><str>seventy-nine</str></key>
+                        <value><int>79</int></value>
+                    </item>
+                    <item>
+                        <key><int>97</int></key>
+                        <value><str>ninety-seven</str></value>
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </template>
+</context>
+

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_set_nested_eval">
+    <template id="test">
+        <init>
+            <arg>
+                <set>
+                    <eval>79</eval>
+                    <eval>True</eval>
+                    <eval>&quot;test&quot;</eval>
+                </set>
+            </arg>
+        </init>
+    </template>
+</context>
+

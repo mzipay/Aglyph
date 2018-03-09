@@ -27,6 +27,7 @@
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
 
+import codecs
 import logging
 import unittest
 import xml.etree.ElementTree as ET
@@ -34,7 +35,7 @@ import xml.etree.ElementTree as ET
 from aglyph import __version__
 from aglyph._compat import CLRXMLParser, is_ironpython, TextType
 
-from test import as_encoded_bytes, as_unicode_text
+from test import read_resource
 
 __all__ = [
     "CLRXMLParserTest",
@@ -44,14 +45,11 @@ __all__ = [
 # don't use __name__ here; can be run as "__main__"
 _log = logging.getLogger("test.test_CLRXMLParser")
 
-_document = (
-    '<?xml version="1.0" encoding="%s" standalone="yes" ?>\n'
-    '<band genre="hair/glam metal">Mötley Crüe</band>\n'
-)
-
-_cp1252_document = as_encoded_bytes(_document % "windows-1252", "cp1252")
-_utf8_document = as_encoded_bytes(_document % "utf-8", "utf-8")
-_u_motley_crue = as_unicode_text("Mötley Crüe")
+_cp1252_document = read_resource(
+    "resources/cp1252_context.xml", to_encoding="windows-1252")
+_utf8_document = read_resource(
+    "resources/utf8_context.xml", to_encoding="utf-8")
+_u_motleycrue = read_resource("resources/motleycrue.txt")
 
 
 class CLRXMLParserTest(unittest.TestCase):
@@ -74,7 +72,7 @@ class CLRXMLParserTest(unittest.TestCase):
         self.assertEqual("band", root.tag)
         self.assertEqual("hair/glam metal", root.attrib["genre"])
         self.assertTrue(type(root.text) is TextType)
-        self.assertEqual(_u_motley_crue, root.text)
+        self.assertEqual(_u_motleycrue, root.text)
 
     @unittest.skipIf(
         is_ironpython,

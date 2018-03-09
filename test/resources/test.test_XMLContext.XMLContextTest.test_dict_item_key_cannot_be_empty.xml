@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_dict_item_key_cannot_be_empty">
+    <template id="test">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <key />
+                        <value><str>value</str></value>
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </template>
+</context>
+

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_dict_item_unexpected_children">
+    <template id="test">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <unexpected />
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </template>
+</context>
+

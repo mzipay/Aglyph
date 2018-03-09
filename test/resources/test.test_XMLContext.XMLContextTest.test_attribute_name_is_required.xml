@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_attribute_name_is_required">
+    <template id="test">
+        <attributes>
+            <attribute><str>value</str></attribute>
+        </attributes>
+    </template>
+</context>
+

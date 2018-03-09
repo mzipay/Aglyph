@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_arg_keyword_cannot_be_empty">
+    <template id="test">
+        <init>
+            <arg keyword=""><str>string</str></arg>
+        </init>
+    </template>
+</context>
+

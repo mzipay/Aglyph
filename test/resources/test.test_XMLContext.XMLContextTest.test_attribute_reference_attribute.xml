@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_attribute_reference_attribute">
+    <template id="test">
+        <attributes>
+            <attribute name="attr1" reference="ref1" />
+            <attribute name="attr2">
+                <reference id="ref2" />
+            </attribute>
+        </attributes>
+    </template>
+</context>
+

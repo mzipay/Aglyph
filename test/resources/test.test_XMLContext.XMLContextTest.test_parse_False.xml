@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_False">
+    <template id="test">
+        <init>
+            <arg><False /></arg>
+        </init>
+    </template>
+</context>
+

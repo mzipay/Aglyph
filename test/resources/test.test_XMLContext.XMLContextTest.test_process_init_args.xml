@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_process_init_args">
+    <template id="test">
+        <init>
+            <arg><int>79</int></arg>
+            <arg keyword="keyword"><int>97</int></arg>
+        </init>
+    </template>
+</context>
+

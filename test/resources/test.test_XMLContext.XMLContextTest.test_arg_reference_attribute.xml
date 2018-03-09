@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_arg_reference_attribute">
+    <template id="test">
+        <init>
+            <arg reference="ref1" />
+            <arg><reference id="ref2" /></arg>
+            <arg keyword="kw1" reference="ref3" />
+            <arg keyword="kw2"><reference id="ref4" /></arg>
+        </init>
+    </template>
+</context>
+

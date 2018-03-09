@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="windows-1252" standalone="yes" ?>
+<band genre="hair/glam metal">Mötley Crüe</band>
+
+<!--
+Note that although the document encoding states "windows-1252", this
+physical file is actually UTF-8-encoded.
+
+The test method will read the file as UTF-8, producing Unicode text, and
+then encode to windows-1252. The windows-1252 bytes will then be passed
+to ET.XML along with the CLRXMLParser.
+
+This approach is taken to remain consistent w/r/t the test XML files
+that are used for aglyph.context.XMLContext.
+-->
+

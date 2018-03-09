@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_attribute_eval">
+    <template id="test">
+        <attributes>
+            <attribute name="primes">
+                <eval>(2, 3, 5, 7)</eval>
+            </attribute>
+        </attributes>
+    </template>
+</context>
+

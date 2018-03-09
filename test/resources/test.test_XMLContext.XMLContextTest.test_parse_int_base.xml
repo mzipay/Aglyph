@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_int_base">
+    <template id="test">
+        <init>
+            <arg>
+                <int base="2">1001111</int>
+            </arg>
+        </init>
+    </template>
+</context>
+

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="windows-1252" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_bytes">
+    <template id="test">
+        <init>
+            <arg>
+                <bytes>Mötley Crüe</bytes>
+            </arg>
+        </init>
+    </template>
+</context>
+
+<!--
+Note that although the document encoding states "windows-1252", this
+physical file is actually UTF-8-encoded.
+
+The test method will read the file as UTF-8, producing Unicode text, and
+then encode to windows-1252. The windows-1252 bytes will then be
+stored in a byte buffer which will serve as the stream passed to
+XMLContext.
+
+This approach is necessary to ensure that the test suite runs
+consistently across platforms and Python implementations.
+(IronPython on Windows is a particular pain point in this regard.)
+-->
+

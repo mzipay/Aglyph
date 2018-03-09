@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_dict_item_value_rejects_multiple_children">
+    <template id="test">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <key><str>key</str></key>
+                        <value>
+                            <str>value</str>
+                            <int>79</int>
+                        </value>
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </template>
+</context>
+

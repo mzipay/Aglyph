@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_float">
+    <template id="test">
+        <init>
+            <arg>
+                <float>7.9</float>
+            </arg>
+        </init>
+    </template>
+</context>
+

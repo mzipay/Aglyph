@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_arg_eval">
+    <template id="test">
+        <init>
+            <arg>
+                <eval>{&quot;primes&quot;: [2, 3, 5, 7]}</eval>
+            </arg>
+            <arg keyword="kw">
+                <eval>[None, True, False]</eval>
+            </arg>
+        </init>
+    </template>
+</context>
+

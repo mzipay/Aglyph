@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_process_init_unexpected_children">
+    <template id="test">
+        <init>
+            <unexpected />
+        </init>
+    </template>
+</context>
+

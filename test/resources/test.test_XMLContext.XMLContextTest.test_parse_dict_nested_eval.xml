@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_dict_nested_eval">
+    <template id="test">
+        <init>
+            <arg>
+                <dict>
+                    <item>
+                        <key>
+                            <eval>&quot;seven&quot;</eval>
+                        </key>
+                        <value><int>7</int></value>
+                    </item>
+                    <item>
+                        <key><int>9</int></key>
+                        <value>
+                            <eval>&quot;nine&quot;</eval>
+                        </value>
+                    </item>
+                </dict>
+            </arg>
+        </init>
+    </template>
+</context>
+

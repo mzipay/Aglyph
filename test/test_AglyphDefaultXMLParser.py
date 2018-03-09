@@ -45,7 +45,7 @@ from aglyph._compat import (
 from test.test_CLRXMLParser import (
     _cp1252_document,
     _utf8_document,
-    _u_motley_crue,
+    _u_motleycrue,
 )
 
 __all__ = [
@@ -89,7 +89,7 @@ class AglyphDefaultXMLParserTest(unittest.TestCase):
         self.assertEqual("band", root.tag)
         self.assertEqual("hair/glam metal", root.attrib["genre"])
         self.assertTrue(type(root.text) is TextType)
-        self.assertEqual(_u_motley_crue, root.text)
+        self.assertEqual(_u_motleycrue, root.text)
 
 
 def suite():

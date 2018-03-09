@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_str_as_data">
+    <template id="test">
+        <init>
+            <arg>
+                <str encoding="windows-1252">Mötley Crüe</str>
+            </arg>
+        </init>
+    </template>
+</context>
+

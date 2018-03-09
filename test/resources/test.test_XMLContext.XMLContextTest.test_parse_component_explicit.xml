@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_component_explicit">
+    <component 
+        id="test"
+        dotted-name="explicit.dotted.name"
+        factory-name="factory"
+        strategy="singleton"
+        parent-id="parent"
+        after-inject="after_inject"
+        before-clear="before_clear"
+    />
+</context>
+

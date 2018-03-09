@@ -50,6 +50,8 @@ import xml.etree.ElementTree as ET
 
 from aglyph import __version__
 
+from autologging import logged, traced
+
 __all__ = [
     "is_python_2",
     "is_python_3",
@@ -235,14 +237,11 @@ class DoctypeTreeBuilder(ET.TreeBuilder):
 
 if is_ironpython:
     clr.AddReference("System.IO")
-    clr.AddReference("System.Text")
     clr.AddReference("System.Xml")
 
-    _log.info(
-        "loaded System.IO, System.Text, and System.Xml CLR namespaces")
+    _log.info("loaded System.IO and System.Xml CLR namespaces")
 
     from System.IO import StringReader
-    from System.Text.RegularExpressions import Regex, RegexOptions
     from System.Xml import (
         DtdProcessing,
         ValidationType,
@@ -250,9 +249,6 @@ if is_ironpython:
         XmlReader,
         XmlReaderSettings
     )
-
-    _CRE_ENCODING = Regex(
-        "encoding=['\"](?<enc_name>.*?)['\"]", RegexOptions.Compiled)
 
 
     @traced
@@ -290,12 +286,10 @@ if is_ironpython:
                 settings.DtdProcessing = DtdProcessing.Parse
                 settings.ValidationType = ValidationType.DTD
             self.settings = settings
-            self.version = "%s %s" % (
-                platform.platform(), platform.python_compiler())
-            self.__log.debug("ET parser version is %r", self.version)
+            self.version = platform.python_compiler()
+            self.__log.debug("ET parser version is %s", self.version)
             self._target = target
             self._buffer = []
-            self._document_encoding = "UTF-8"  # default
 
         def feed(self, data):
             """Add more XML data to be parsed.
@@ -322,38 +316,37 @@ if is_ironpython:
             """
             xml_string = "".join(self._buffer)
             self._buffer = None
+
             reader = XmlReader.Create(StringReader(xml_string), self.settings)
-            while reader.Read():
+
+            # figure out which encoding to use
+            next = reader.Read()
+            document_encoding = (
+                reader.GetAttribute("encoding")
+                if next and reader.NodeType == XmlNodeType.XmlDeclaration
+                else None)
+            if document_encoding:
+                self.__log.info(
+                    "parsed document encoding %r from XML declaration",
+                    document_encoding)
+            else:
+                document_encoding = "UTF-8"
+                self.__log.warn(
+                    "document encoding is missing! assuming default %r",
+                    document_encoding)
+
+            while next:
                 if reader.IsStartElement():
                     self._start_element(reader)
                 elif reader.NodeType in [XmlNodeType.Text, XmlNodeType.CDATA]:
-                    # decode the value first (see the comment for
-                    # 'self._document_encoding' and the docstring for
-                    # '_parse_xml_declaration(xml_decl)'
-                    self._target.data(
-                        reader.Value.decode(self._document_encoding))
+                    # decode the value first to work around IronPython quirk
+                    self._target.data(reader.Value.decode(document_encoding))
                 elif reader.NodeType == XmlNodeType.EndElement:
                     self._target.end(reader.LocalName)
-                elif reader.NodeType == XmlNodeType.XmlDeclaration:
-                    self._parse_xml_declaration(reader.Value)
+
+                next = reader.Read()
+
             return self._target.close()
-
-        def _parse_xml_declaration(self, xml_decl):
-            """Parse the document encoding from *xml_decl*.
-
-            :arg str xml_decl:
-                the literal DOCTYPE declaration
-
-            *xml_decl* is reported by `System.Xml.XmlReader
-            <http://msdn.microsoft.com/en-us/library/system.xml.xmlreader>`_
-            as a node of the type `XmlNodeType.XmlDeclaration
-            <http://msdn.microsoft.com/en-us/library/system.xml.xmlnodetype>`_.
-
-            """
-            enc_name = _CRE_ENCODING.Match(xml_decl).Groups["enc_name"].Value
-            if enc_name:
-                self.__log.info("document encoding is %r", enc_name)
-                self._document_encoding = enc_name
 
         def _start_element(self, reader):
             """Notify the tree builder that a start element has been

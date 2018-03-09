@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context
+    id="test_Assembler-context"
+    after-inject="context_after_inject"
+    before-clear="context_before_clear"
+>
+
+    <component
+        id="RAISE"
+        dotted-name="test.dummy"
+        member-name="RAISE"
+    />
+
+    <!-- test_detects_circular_dependency -->
+    <component id="circular-1" dotted-name="test.dummy.ModuleClass">
+        <init><arg reference="circular-2" /></init>
+    </component>
+    <component id="circular-2" dotted-name="test.dummy.ModuleClass">
+        <init><arg reference="circular-3" /></init>
+    </component>
+    <component id="circular-3" dotted-name="test.dummy.ModuleClass">
+        <init><arg reference="circular-1" /></init>
+    </component>
+
+    <!-- test_circular_dependency_check_is_threadsafe -->
+    <!-- https://github.com/mzipay/Aglyph/issues/3 -->
+    <component id="not-circular-1" dotted-name="test.dummy.ModuleClass">
+        <init><arg reference="not-circular-2" /></init>
+    </component>
+    <component id="not-circular-2" dotted-name="test.dummy.ModuleClass">
+        <init><arg reference="not-circular-3" /></init>
+    </component>
+    <component id="not-circular-3" dotted-name="test.dummy.ModuleClass">
+        <init><arg><None /></arg></init>
+    </component>
+
+    <!-- test_factory_name_initializer -->
+    <component
+        id="factory-init"
+        dotted-name="test.dummy"
+        factory-name="outer_function"
+    />
+
+    <!-- test_member_name_initializer -->
+    <component
+        id="member-init"
+        dotted-name="test.dummy"
+        member-name="MODULE_MEMBER"
+    />
+
+    <!-- test_component_args_extend_parent_args -->
+    <template id="parent-args">
+        <init><arg><int>1</int></arg></init>
+    </template>
+    <component
+        id="component-args"
+        dotted-name="test.dummy.factory_function"
+        parent-id="parent-args"
+    >
+        <init><arg><int>2</int></arg></init>
+    </component>
+
+    <!-- test_component_keywords_extend_parent_keywords -->
+    <template id="parent-keywords">
+        <init>
+            <arg><None /></arg>
+            <arg keyword="keyword"><int>1</int></arg>
+        </init>
+    </template>
+    <component
+        id="component-keywords"
+        dotted-name="test.dummy.factory_function"
+        parent-id="parent-keywords"
+    >
+        <init><arg keyword="keyword"><int>2</int></arg></init>
+    </component>
+
+    <!-- test_reference_arg_is_resolved -->
+    <component id="seven" dotted-name="math.sqrt">
+        <init><arg><int>49</int></arg></init>
+    </component>
+    <component id="ref-arg" dotted-name="test.dummy.ModuleClass">
+        <init><arg reference="seven" /></init>
+    </component>
+
+    <!-- test_reference_keyword_is_resolved -->
+    <component id="ref-kw" dotted-name="test.dummy.ModuleClass">
+        <init>
+            <arg><None /></arg>
+            <arg keyword="keyword" reference="seven" />
+        </init>
+    </component>
+
+    <!-- test_evaluator_arg_is_resolved -->
+    <component id="eval-arg" dotted-name="test.dummy.ModuleClass">
+        <init><arg><list><str>test</str></list></arg></init>
+    </component>
+
+    <!-- test_evaluator_keyword_is_resolved -->
+    <component id="eval-kw" dotted-name="test.dummy.ModuleClass">
+        <init>
+            <arg><None /></arg>
+            <arg keyword="keyword"><list><str>test</str></list></arg>
+        </init>
+    </component>
+
+    <!-- test_value_arg_is_resolved -->
+    <!-- test_value_kw_is_resolved -->
+    <component id="value-arg-kw" dotted-name="test.dummy.factory_function">
+        <init>
+            <arg><int>79</int></arg>
+            <arg keyword="keyword"><int>97</int></arg>
+        </init>
+    </component>
+
+    <!-- test_builtin_immutable_initialized -->
+   <!-- https://github.com/mzipay/Aglyph/issues/2 -->
+   <component id="builtins.str"><!-- Python 3 -->
+      <init><arg><str>test</str></arg></init>
+   </component>
+   <component id="__builtin__.str"><!-- Python 2 -->
+      <init><arg><str>test</str></arg></init>
+   </component>
+
+    <!-- test_initialization_failure_raises_AglyphError -->
+    <component id="failing-class-init" dotted-name="test.dummy.ModuleClass">
+        <init>
+            <arg reference="RAISE" />
+        </init>
+    </component>
+
+    <!-- test_member_init_with_args_issues_warning -->
+    <component
+        id="member-init-with-args"
+        dotted-name="test.dummy"
+        member-name="ModuleClass.CLASS_MEMBER"
+    >
+        <init>
+            <arg><str>test</str></arg>
+        </init>
+    </component>
+
+    <!-- test_member_init_with_kwargs_issues_warning -->
+    <component
+        id="member-init-with-kwargs"
+        dotted-name="test"
+        member-name="dummy.MODULE_MEMBER"
+    >
+        <init>
+            <arg keyword="keyword"><str>test</str></arg>
+        </init>
+    </component>
+
+</context>
+

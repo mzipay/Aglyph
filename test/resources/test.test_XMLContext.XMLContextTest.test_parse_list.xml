@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE context SYSTEM "../../resources/aglyph-context.dtd">
+<context id="test_parse_list">
+    <template id="test">
+        <init>
+            <arg>
+                <list>
+                    <unicode>Mötley Crüe</unicode>
+                    <int>79</int>
+                    <None />
+                </list>
+            </arg>
+        </init>
+    </template>
+</context>
+

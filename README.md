@@ -46,8 +46,6 @@ The easiest way to install Aglyph is to use [pip](https://pip.pypa.io/):
 $ pip install Aglyph
 ```
 
-Alternative source and binary installation options are described below.
-
 To verify that an installation was successful:
 
 ```python
@@ -55,6 +53,12 @@ To verify that an installation was successful:
 >>> aglyph.__version__
 '3.0.0'
 ```
+
+After installing, take a look at [Getting started with Aglyph](
+http://aglyph.readthedocs.io/en/latest/get-started.html) and the
+[Aglyph cookbook](http://aglyph.readthedocs.io/en/latest/cookbook.html).
+
+Alternative source and binary installation options are described below.
 
 ### Source installation
 

@@ -6,8 +6,7 @@ setup(
     name="Aglyph",
     version="3.0.0",
     description=
-        "Aglyph is a Dependency Injection framework for Python, "
-        "supporting type 2 (setter) and type 3 (constructor) injection.",
+        "Aglyph is a Dependency Injection framework for Python.",
     long_description="""\
 * supports type 2 (setter) and type 3 (constructor) dependency injection
 * can assemble *prototype*, *singleton*, *borg*, and *weakref* components
@@ -27,7 +26,7 @@ setup(
     decorators, specific naming conventions, or any other kind of
     syntactic "magic" necessary)
 * can inject not only 3rd-party dependencies, but also **dependents**
-* runs on Python 2.7 and 3.3+ using the same codebase
+* runs on Python 2.7 and 3.4+ using the same codebase
 * is proactively tested on `CPython <https://www.python.org/>`_,
   `Jython <http://www.jython.org/>`_, `IronPython <http://ironpython.net/>`_,
   `PyPy <http://pypy.org/>`_, and

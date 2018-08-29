@@ -100,7 +100,7 @@ by importing the :mod:`aglyph` module from a Python interpreter. For example::
    Type "help", "copyright", "credits" or "license" for more information.
    >>> import aglyph
    >>> aglyph.__version__
-   '3.0.0'
+   '3.0.0.post1'
 
 2. Download, extract, and run the *movielisterapp* application
 ==============================================================

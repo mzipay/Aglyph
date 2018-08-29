@@ -51,7 +51,7 @@ To verify that an installation was successful:
 ```python
 >>> import aglyph
 >>> aglyph.__version__
-'3.0.0'
+'3.0.0.post1'
 ```
 
 After installing, take a look at [Getting started with Aglyph](

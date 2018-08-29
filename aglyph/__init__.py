@@ -33,7 +33,6 @@ used by Aglyph.
    To enable Aglyph logging, configure a logger and handler for the
    *"aglyph"* log channel (see :mod:`logging.config`).
 
-
 .. note::
    .. versionadded:: 3.0.0
 
@@ -52,13 +51,19 @@ used by Aglyph.
 
 from collections import namedtuple
 
-# see https://semver.org/
+#: .. deprecated:: 3.0.0.post1
+#:    Reference :attr:`__version__` **only** as the canonical public
+#:    version identifier.
 version_info = namedtuple(
     "version_info", ["major", "minor", "patch", "pre_release", "metadata"])(
-        3, 0, 0, "", "")
+        3, 0, 0, "", ".post1")
 
 __author__ = "Matthew Zipay <mattz@ninthtest.info>"
-__version__ = "%d.%d.%d%s%s" % version_info
+# PEP 440 canonical public version identifier:
+#         "[N!]N(.N)*[{a|b|rc}N][.postN][.devN]"
+# (see https://www.python.org/dev/peps/pep-0440/, specifically section #id48,
+# and https://semver.org/)
+__version__ = "3.0.0.post1"
 
 from inspect import ismodule
 import logging
@@ -72,7 +77,6 @@ if not os.getenv("AGLYPH_TRACED"):
 from autologging import traced
 
 __all__ = [
-    "version_info",
     "AglyphError",
     "format_dotted_name",
     "resolve_dotted_name",

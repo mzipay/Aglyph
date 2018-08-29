@@ -2,23 +2,19 @@
 
 from setuptools import setup
 
+with open("README.md") as f:
+    long_description = f.read()
+
+with open("requirements.txt") as f:
+    requirements = [line.strip() for line in f]
+
 setup(
     name="Aglyph",
-    version="3.0.0",
+    version="3.0.0.post1",
     description=
         "Aglyph is a Dependency Injection framework for Python.",
-    long_description="""\
-+ supports type 2 (setter) and type 3 (constructor) dependency injection
-+ can assemble prototype, singleton, borg, and weakref components
-+ supports templates (i.e. component inheritance) and lifecycle methods
-+ works with any kind of object creation pattern you'll encounter (constructor, factory function/method, attribute/property access, import)
-+ configured declaratively, either programmatically through a fluent API or using a simple XML syntax
-+ non-intrusive wiring style does not require modification of any existing sources (no decorators, no naming conventions, no syntactic "magic" needed)
-+ can inject not only 3rd-party dependencies, but also dependents (even Java/.NET classes under Jython/IronPython)
-+ runs on Python 2.7 and 3.4+ using the same codebase
-+ proactively tested on CPython, Jython, IronPython, PyPy and Stackless Python
-+ fully logged and traced for easy troubleshooting (note: tracing is disabled by default, and can be activated by setting an environment variable)
-""",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="Matthew Zipay",
     author_email="mattz@ninthtest.info",
     url="http://ninthtest.info/aglyph-python-dependency-injection/",
@@ -27,9 +23,7 @@ setup(
         "aglyph",
         "aglyph.integration",
     ],
-    install_requires=[
-        "Autologging>=1.1.0",
-    ],
+    install_requires=requirements,
     test_suite="test.suite",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -44,6 +38,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: IronPython",
         "Programming Language :: Python :: Implementation :: Jython",

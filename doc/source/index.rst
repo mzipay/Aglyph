@@ -77,14 +77,15 @@ Table of Contents
 Aglyph versioning
 -----------------
 
-Aglyph follows the `Semantic Versioning (SemVer)`_ guidelines.
+Aglyph follows :pep:`440` for versioning and maintains
+`Semantic Versioning (SemVer)`_ compatibility.
 
 The Aglyph version is always defined as the ``__version__`` member of the
 ``aglyph/__init__.py`` module:
 
 >>> import aglyph
 >>> aglyph.__version__
-'3.0.0'
+'3.0.0.post1'
 
 The :download:`Aglyph context DTD <../../resources/aglyph-context.dtd>`
 includes the Aglyph version in the filename and in a header comment.

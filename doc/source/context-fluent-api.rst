@@ -203,6 +203,12 @@ property. Like the fluent API entry point methods and ``create()``,
 :class:`aglyph.component.Reference` is also capable of introspecting a
 dotted name.
 
+.. warning::
+   Callable object dotted-name introspection for **nested** callables
+   (e.g. nested classes) does not work in Python versions prior to 3.3
+   because the introspection depends on the *Qualified name for classes
+   and functions* (i.e. ``__qualname__``, specified in :pep:`3155`).
+
 .. _fluent-api-methods:
 
 Overview of the Context fluent API methods

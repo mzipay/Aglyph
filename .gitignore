@@ -5,18 +5,17 @@
 *.bak
 *.swp
 *.tmp
+*.sh
+*.bat
 __pycache__/
 MANIFEST
 .eggs/
 Aglyph.egg-info/
-test-*-env/
+*-venv/
 resources/movielisterapp-*.zip
-example/movielisterapp-aglyph.sh
-example/movielisterapp-basic.sh
 NOTES.txt
 build/
 dist/
 doc/build/
-test-versions-variants.*
 .eggs/
 

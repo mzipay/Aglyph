@@ -58,6 +58,7 @@ __all__ = [
     "is_pypy",
     "is_stackless",
     "is_jython",
+    "has_clr",
     "is_ironpython",
     "platform_detail",
     "TextType",
@@ -105,12 +106,15 @@ is_stackless = \
 is_jython = \
     _py_impl == "Jython" and getattr(sys, "JYTHON_JAR", None) is not None
 
-#: True if the runtime Python implementation is IronPython.
-is_ironpython = _py_impl == "IronPython"
 try:
     import clr
-except ImportError:
-    is_ironpython = False
+    clr.AddReference("System")
+    has_clr = True
+except:
+    has_clr = False
+
+#: True if the runtime Python implementation is IronPython.
+is_ironpython = _py_impl == "IronPython" and has_clr
 
 _platform = None
 try:
@@ -394,7 +398,7 @@ _log.debug(
         "  is_pypy? %r\n"
         "  is_stackless? %r\n"
         "  is_jython? %r\n"
-        "  is_ironpython? %r\n"
+        "  is_ironpython? %r (has_clr? %r)\n"
         "  TextType is %r\n"
         "  DataType is %r\n"
         "  _instance_type is %r\n"
@@ -405,7 +409,7 @@ _log.debug(
     is_pypy,
     is_stackless,
     is_jython,
-    is_ironpython,
+    is_ironpython, has_clr,
     TextType,
     DataType,
     _instance_type,
